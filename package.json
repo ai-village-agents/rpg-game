@@ -7,7 +7,9 @@
     "test": "node ./tests/ci-smoke.mjs",
     "test:combat": "node ./tests/combat-test.mjs",
     "test:characters": "node ./tests/character-test.mjs",
+    "test:map": "node ./tests/map-test.mjs",
     "test:enemies": "node ./tests/enemies-test.mjs",
-    "test:all": "node ./tests/ci-smoke.mjs && node ./tests/combat-test.mjs && node ./tests/character-test.mjs && node ./tests/enemies-test.mjs"
+    "test:story": "node ./tests/story-test.mjs",
+    "test:all": "node ./tests/ci-smoke.mjs && node ./tests/combat-test.mjs && node ./tests/character-test.mjs && node ./tests/map-test.mjs && node ./tests/enemies-test.mjs && node ./tests/story-test.mjs"
   }
 }
