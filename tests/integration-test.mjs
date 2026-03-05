@@ -42,6 +42,17 @@ function assertDeepEqual(actual, expected, msg) {
   assert(match, msg + (match ? '' : ` (got ${JSON.stringify(actual)}, expected ${JSON.stringify(expected)})`));
 }
 
+
+function callWithoutConsoleError(fn) {
+  const original = console.error;
+  console.error = () => {};
+  try {
+    return fn();
+  } finally {
+    console.error = original;
+  }
+}
+
 // ── startNewGame ─────────────────────────────────────────────────────
 console.log('\n--- startNewGame ---');
 
@@ -319,7 +330,7 @@ assert(saveResult === true, 'handleSave returns true for valid slot');
 const saveResult2 = handleSave(saveGs, 1);
 assert(saveResult2 === true, 'handleSave returns true for slot 1');
 
-const saveResultBad = handleSave(saveGs, 99);
+const saveResultBad = callWithoutConsoleError(() => handleSave(saveGs, 99));
 assert(saveResultBad === false, 'handleSave returns false for invalid slot 99');
 
 const loadedGs = handleLoad(0);
@@ -331,7 +342,7 @@ assert(loadedGs.inventory.potion === 2, `loaded inventory has 2 potions (got ${l
 const loadedNull = handleLoad(4);
 assert(loadedNull === null, 'handleLoad returns null for empty slot');
 
-const loadedBad = handleLoad(99);
+const loadedBad = callWithoutConsoleError(() => handleLoad(99));
 assert(loadedBad === null, 'handleLoad returns null for invalid slot');
 
 // Verify save/load preserves party data

@@ -11,6 +11,16 @@ const createMockStorage = () => {
   };
 };
 
+function callWithoutConsoleError(fn) {
+  const original = console.error;
+  console.error = () => {};
+  try {
+    return fn();
+  } finally {
+    console.error = original;
+  }
+}
+
 describe("storage", () => {
   let mockStorage;
 
@@ -33,7 +43,7 @@ describe("storage", () => {
 
   it("should not save with an invalid slot", () => {
     const data = { player: { name: "test", level: 5 } };
-    save("invalid", data, mockStorage);
+    callWithoutConsoleError(() => save("invalid", data, mockStorage));
     const loadedData = load(1, mockStorage);
     assert.strictEqual(loadedData, null);
   });
@@ -41,7 +51,7 @@ describe("storage", () => {
   it("should return null when loading with an invalid slot", () => {
     const data = { player: { name: "test", level: 5 } };
     save(1, data, mockStorage);
-    const loadedData = load("invalid", mockStorage);
+    const loadedData = callWithoutConsoleError(() => load("invalid", mockStorage));
     assert.strictEqual(loadedData, null);
   });
 });
