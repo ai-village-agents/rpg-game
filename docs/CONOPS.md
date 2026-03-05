@@ -45,7 +45,7 @@ If you land a change that substantially alters architecture or invariants, **upd
 - `src/` — ES‑module game code (see below).
 - `tests/` — Node‑driven test suite (see §5).
 - `.github/workflows/`
-  - `ci.yml` — GitHub Actions workflow running `npm test` (smoke tests) on push/PR.
+  - `ci.yml` — GitHub Actions workflow running `npm run test:all` (full test suite) on pushes to `main` and all PRs.
   - `js-syntax.yml` — Syntax checks using `node --check` on all `src/**/*.js` files.
 
 ### 2.2 Core game modules (`src/`)
@@ -194,7 +194,26 @@ Validated by `tests/enemies-test.mjs`.
 
 Covered by `tests/items-test.mjs`.
 
-#### 2.2.9 Story, dialog, quests, NPCs
+#### 2.2.9 Storage abstraction
+
+- `src/storage/save.js`
+  - Thin, testable wrapper around `localStorage` for multi-slot saves in the browser entry layer.
+  - Exposes `save(slot, data, storage = localStorage)` and `load(slot, storage = localStorage)`.
+  - Enforces a numeric slot range (0‑99); invalid slots log an error and are treated as no-ops / `null` reads.
+  - Used as a low-level building block under higher-level save systems; behaviour is covered by `tests/storage-test.mjs`.
+
+#### 2.2.10 Level-up system
+
+- `src/level-up.js`
+  - Pure functions for detecting and applying level-ups after combat rewards.
+  - Works with party members and class growth curves defined in `src/characters/*`.
+  - Key pieces:
+    - Detection helpers (e.g., identifying which members crossed XP thresholds).
+    - State helpers to manage queues of pending level-ups and per-level-up views.
+    - Stat diff utilities for presenting before/after changes in the UI.
+  - Integrated into `main.js` and `render.js` so victories can surface a dedicated level-up screen; behaviour is covered by `tests/level-up-test.mjs`.
+
+#### 2.2.11 Story, dialog, quests, NPCs
 
 - `src/story/dialog.js` — dialog node types and traversal.
 - `src/story/quest.js` — quest lifecycles and objectives.
@@ -264,11 +283,23 @@ We use **Node‑based tests** to keep logic verifiable without a browser. The ca
   "test:engine": "node ./tests/engine-test.mjs",
   "test:state": "node ./tests/state-test.mjs",
   "test:integration": "node ./tests/integration-test.mjs",
-  "test:all": "node ./tests/ci-smoke.mjs && node ./tests/combat-test.mjs && node ./tests/character-test.mjs && node ./tests/items-test.mjs && node ./tests/map-test.mjs && node ./tests/enemies-test.mjs && node ./tests/story-test.mjs && node ./tests/engine-test.mjs && node ./tests/state-test.mjs && node ./tests/integration-test.mjs"
+  "test:exploration-loop": "node tests/exploration-loop-test.mjs",
+  "test:combat-actions": "node ./tests/combat-actions-test.mjs",
+  "test:exploration": "node ./tests/exploration-quests-test.mjs",
+  "test:input": "node ./tests/input-test.mjs",
+  "test:move-dispatch": "node ./tests/move-dispatch-test.mjs",
+  "test:ui": "node ./tests/ui-test.mjs",
+  "test:all": "node ./tests/ci-smoke.mjs && node ./tests/combat-test.mjs && node ./tests/character-test.mjs && node ./tests/items-test.mjs && node ./tests/map-test.mjs && node ./tests/enemies-test.mjs && node ./tests/story-test.mjs && node ./tests/engine-test.mjs && node ./tests/state-test.mjs && node ./tests/integration-test.mjs && npm run test:exploration-loop && node ./tests/combat-actions-test.mjs && npm run test:exploration && npm run test:input && npm run test:move-dispatch && npm run test:ui && npm run test:inventory-mgmt && npm run test:quest-integration && npm run test:inventory-wiring && npm run test:storage && npm run test:level-up",
+  "test:quest-integration": "node ./tests/quest-integration-test.mjs",
+  "test:inventory-mgmt": "node ./tests/inventory-management-test.mjs",
+  "test:inventory-wiring": "node ./tests/inventory-wiring-test.mjs",
+  "test:storage": "node ./tests/storage-test.mjs",
+  "test:level-up": "node ./tests/level-up-test.mjs"
 }
 ```
 
 ### 5.1 Test suite by area
+
 
 - `tests/ci-smoke.mjs`
   - Verifies that key entrypoint files exist:
@@ -321,11 +352,56 @@ We use **Node‑based tests** to keep logic verifiable without a browser. The ca
   - Rewards and XP distribution.
   - Save/load integration across the full game state.
 
+- `tests/exploration-loop-test.mjs`
+  - Class-select → exploration → movement → encounters using the legacy `main.js` + `map.js` wiring.
+  - Room transitions, blocked moves, and log behaviour during exploration.
+  - Legacy save/load behaviour while in exploration.
+
+- `tests/combat-actions-test.mjs`
+  - Higher-level combat flows around the legacy `src/combat.js` helpers.
+  - Player attack/defend/potion actions and enemy turns over multiple encounters.
+
+- `tests/exploration-quests-test.mjs`
+  - Structure and integrity of exploration quest definitions in `src/data/exploration-quests.js`.
+  - Alignment between exploration quest room IDs and the world map rooms.
+
+- `tests/input-test.mjs`
+  - Keyboard input mapping via `keyToCardinalDirection` in `src/input.js`.
+  - Ensures WASD and arrow keys map only to `north/south/east/west`, and invalid keys return `null`.
+
+- `tests/move-dispatch-test.mjs`
+  - Behaviour of `MOVE` / `EXPLORE` actions in `main.js` and their interaction with `movePlayer` in `map.js`.
+  - Phase guards (movement only in exploration), log messages, and valid direction constraints.
+
+- `tests/ui-test.mjs`
+  - Canvas UI renderer in `src/ui/renderer.js`.
+  - Rendering of the map, HUD, battle scene, and battle UI using a mocked canvas context.
+
+- `tests/inventory-management-test.mjs`
+  - Inventory core logic in `src/inventory.js`: equip/unequip, consumable use, equipment bonuses, and edge cases.
+  - Category views and equipment display helpers.
+
+- `tests/quest-integration-test.mjs`
+  - Quest lifecycle management in `src/quest-integration.js` (accepting, progressing, and completing quests).
+  - Room-enter and enemy-kill hooks, reward application, and progress summaries.
+
+- `tests/inventory-wiring-test.mjs`
+  - Wiring between `main.js`, `render.js`, and `src/inventory.js` for inventory UI.
+  - Phase transitions into/out of the inventory screen and basic anti-Easter-egg scan on shared surfaces.
+
+- `tests/storage-test.mjs`
+  - Storage abstraction in `src/storage/save.js` using dependency-injected storage.
+  - Valid slot range checks, round-trip save/load, and invalid-slot no-op behaviour.
+
+- `tests/level-up-test.mjs`
+  - Level-up system in `src/level-up.js` (detection, stat growth, and XP thresholds).
+  - Wiring in `main.js` and `render.js` for pending level-ups, level-up screens, and anti-Easter-egg checks.
+
 ### 5.2 CI workflows
 
 - **Default CI (`.github/workflows/ci.yml`)**
   - Runs on pushes to `main` and on all PRs.
-  - Executes `npm test` (the smoke test) to catch missing files and basic wiring issues.
+  - Executes `npm run test:all` (the full suite) to catch missing files, regressions, and wiring/integration issues.
 
 - **JS syntax check (`.github/workflows/js-syntax.yml`)**
   - Runs on pushes to `main` and on PRs.
@@ -333,9 +409,9 @@ We use **Node‑based tests** to keep logic verifiable without a browser. The ca
 
 ### 5.3 Expectations for contributors
 
-- Before opening a PR touching game logic, run at least:
-  - `npm test` (smoke)
-  - `npm run test:all` (full suite) if your change is non‑trivial.
+- Before opening a PR touching game logic:
+  - For a quick sanity check during development, you can run `npm test` (smoke).
+  - Before merging any non‑trivial change, run `npm run test:all` (full suite).
 - If you add a new pure module, **strongly consider** adding a dedicated test file and wiring a `test:<area>` script plus `test:all` update.
 
 ---
