@@ -68,6 +68,17 @@ function assert(condition, message) {
   }
 }
 
+
+function callWithoutConsoleWarn(fn) {
+  const original = console.warn;
+  console.warn = () => {};
+  try {
+    return fn();
+  } finally {
+    console.warn = original;
+  }
+}
+
 // Test: Renderer initialization
 console.log('\nTest: Renderer initialization');
 try {
@@ -108,7 +119,7 @@ try {
   };
   
   mockCanvas.mockContext.reset();
-  renderer.renderGame(gameState);
+  callWithoutConsoleWarn(() => renderer.renderGame(gameState));
   assert(mockCanvas.mockContext.hasCalled('fillRect'), 'Exploration renders shapes');
   assert(mockCanvas.mockContext.hasCalled('fillText'), 'Exploration renders text');
 } catch (e) {
@@ -134,7 +145,7 @@ try {
   };
   
   mockCanvas.mockContext.reset();
-  renderer.renderGame(gameState);
+  callWithoutConsoleWarn(() => renderer.renderGame(gameState));
   assert(mockCanvas.mockContext.hasCalled('fillRect'), 'Battle renders shapes');
   assert(mockCanvas.mockContext.hasCalled('fillText'), 'Battle renders text');
 } catch (e) {
@@ -154,7 +165,7 @@ try {
   };
   
   mockCanvas.mockContext.reset();
-  renderer.renderMap(gameState);
+  callWithoutConsoleWarn(() => renderer.renderMap(gameState));
   assert(mockCanvas.mockContext.hasCalled('fillRect'), 'renderMap() draws rooms');
   assert(mockCanvas.mockContext.hasCalled('arc'), 'renderMap() draws player');
 } catch (e) {
