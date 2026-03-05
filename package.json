@@ -16,6 +16,7 @@
     "test:integration": "node ./tests/integration-test.mjs",
     "test:exploration-loop": "node tests/exploration-loop-test.mjs",
     "test:combat-actions": "node ./tests/combat-actions-test.mjs",
-    "test:all": "node ./tests/ci-smoke.mjs && node ./tests/combat-test.mjs && node ./tests/character-test.mjs && node ./tests/items-test.mjs && node ./tests/map-test.mjs && node ./tests/enemies-test.mjs && node ./tests/story-test.mjs && node ./tests/engine-test.mjs && node ./tests/state-test.mjs && node ./tests/integration-test.mjs && npm run test:exploration-loop && node ./tests/combat-actions-test.mjs"
+    "test:exploration": "node ./tests/exploration-quests-test.mjs",
+    "test:all": "node ./tests/ci-smoke.mjs && node ./tests/combat-test.mjs && node ./tests/character-test.mjs && node ./tests/items-test.mjs && node ./tests/map-test.mjs && node ./tests/enemies-test.mjs && node ./tests/story-test.mjs && node ./tests/engine-test.mjs && node ./tests/state-test.mjs && node ./tests/integration-test.mjs && npm run test:exploration-loop && node ./tests/combat-actions-test.mjs && npm run test:exploration"
   }
 }
