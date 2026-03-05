@@ -6,6 +6,7 @@ import { getCurrentLevelUp, getStatDiffs, formatStatName, xpForNextLevel } from 
 import { getNPCsInRoom, getCurrentDialogLine, getDialogProgress } from './npc-dialog.js';
 import { getActiveQuestsSummary, getAvailableQuestsInRoom } from './quest-integration.js';
 import { getAbilityDisplayInfo } from './combat/abilities.js';
+import { items as itemsData } from './data/items.js';
 
 function hpLine(entity) {
   const pct = Math.round((entity.hp / entity.maxHp) * 100);
@@ -244,6 +245,15 @@ export function render(state, dispatch) {
       `<button class="ability-btn" data-ability="${esc(a.id)}" ${(!isPlayerTurn || !a.canUse) ? 'disabled' : ''} title="${esc(a.description)}">${esc(a.name)} (${a.mpCost} MP)</button>`
     ).join('');
 
+    // Build combat item buttons from real inventory consumables
+    const playerInv = state.player.inventory || {};
+    const combatItemBtns = Object.entries(playerInv)
+      .filter(([id, count]) => count > 0 && itemsData[id] && itemsData[id].type === 'consumable')
+      .map(([id, count]) => {
+        const item = itemsData[id];
+        return `<button class="item-btn" data-item="${esc(id)}" ${!isPlayerTurn ? 'disabled' : ''} title="${esc(item.description)}">${esc(item.name)} (${count})</button>`;
+      }).join('');
+
     actions.innerHTML = `
       <div class="buttons">
         <button id="btnAttack" ${!isPlayerTurn ? 'disabled' : ''}>Attack</button>
@@ -251,6 +261,7 @@ export function render(state, dispatch) {
         <button id="btnPotion" ${!isPlayerTurn ? 'disabled' : ''}>Use Potion</button>
         ${abilityBtns}
       </div>
+      ${combatItemBtns ? '<div class="buttons item-buttons"><b>Items:</b> ' + combatItemBtns + '</div>' : ''}
     `;
 
     document.getElementById('btnAttack').onclick = () => dispatch({ type: 'PLAYER_ATTACK' });
@@ -260,6 +271,11 @@ export function render(state, dispatch) {
     // Wire ability buttons
     actions.querySelectorAll('.ability-btn').forEach(btn => {
       btn.onclick = () => dispatch({ type: 'PLAYER_ABILITY', abilityId: btn.dataset.ability });
+    });
+
+    // Wire combat item buttons
+    actions.querySelectorAll('.item-btn').forEach(btn => {
+      btn.onclick = () => dispatch({ type: 'PLAYER_ITEM', itemId: btn.dataset.item });
     });
 
     log.innerHTML = state.log

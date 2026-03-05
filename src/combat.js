@@ -1,5 +1,6 @@
 import { clamp, pushLog } from './state.js';
 import { items } from './data/items.js';
+import { removeItemFromInventory, hasItem } from './items.js';
 import { getEnemy, getEncounter } from './data/enemies.js';
 import { getAbility, getAbilityDisplayInfo } from './combat/abilities.js';
 import { calculateDamage, calculateHeal, getElementMultiplier } from './combat/damage-calc.js';
@@ -253,18 +254,25 @@ export function playerUseAbility(state, abilityId) {
   if (ability.targetType === 'single-enemy' || ability.targetType === 'all-enemies') {
     // Damage ability targeting enemy
     if (ability.power > 0) {
-      const atkStat = state.player.atk;
-      const defStat = state.enemy.def;
-      const abilityPower = ability.power;
-      const raw = Math.floor(atkStat * abilityPower) - defStat;
-      const damage = Math.max(1, raw);
+      const abilityElement = ability.element ?? 'physical';
+      const { damage, critical } = calculateDamage({
+        attackerAtk: state.player.atk,
+        targetDef: state.enemy.def,
+        targetDefending: state.enemy.defending,
+        element: abilityElement,
+        targetElement: state.enemy.element ?? null,
+        rngValue,
+        abilityPower: ability.power,
+      });
 
       const enemyHp = clamp(state.enemy.hp - damage, 0, state.enemy.maxHp);
       state = {
         ...state,
         enemy: { ...state.enemy, hp: enemyHp },
       };
-      state = pushLog(state, `${state.enemy.name} takes ${damage} ${ability.element} damage!`);
+      let msg = `${state.enemy.name} takes ${damage} ${abilityElement} damage!`;
+      if (critical) msg += ' Critical hit!';
+      state = pushLog(state, msg);
     }
 
     // Apply status effect to enemy
@@ -309,6 +317,103 @@ export function playerUseAbility(state, abilityId) {
   return applyVictoryDefeat(state);
 }
 
+
+export function playerUseItem(state, itemId) {
+  if (state.phase !== 'player-turn') return state;
+
+  if (isStunned(state.player)) {
+    state = pushLog(state, 'Player is stunned!');
+    state = processTurnStart(state, 'enemy');
+    if (state.phase === 'victory' || state.phase === 'defeat') return state;
+    return { ...state, phase: 'enemy-turn' };
+  }
+
+  const item = items[itemId];
+  if (!item) {
+    return pushLog(state, 'Unknown item.');
+  }
+
+  if (item.type !== 'consumable') {
+    return pushLog(state, `${item.name} cannot be used in combat.`);
+  }
+
+  // Check if player has the item in inventory
+  const inventory = state.player.inventory || {};
+  if (!hasItem(inventory, itemId)) {
+    return pushLog(state, `You don't have any ${item.name}.`);
+  }
+
+  // Remove item from inventory
+  const newInventory = removeItemFromInventory(inventory, itemId, 1);
+  state = {
+    ...state,
+    player: { ...state.player, inventory: newInventory, defending: false },
+  };
+
+  const effect = item.effect || {};
+
+  // Handle healing items (potion, hiPotion)
+  const healAmount = effect.heal ?? item.heal;
+  if (healAmount !== undefined && healAmount !== null && healAmount > 0) {
+    const oldHp = state.player.hp;
+    const newHp = clamp(oldHp + healAmount, 0, state.player.maxHp);
+    const actualHeal = newHp - oldHp;
+    state = {
+      ...state,
+      player: { ...state.player, hp: newHp },
+    };
+    state = pushLog(state, `You use ${item.name} and restore ${actualHeal} HP.`);
+  }
+
+  // Handle mana restoration (ether)
+  const manaAmount = effect.mana ?? effect.restoreMP;
+  if (manaAmount !== undefined && manaAmount !== null && manaAmount > 0) {
+    const oldMp = state.player.mp ?? 0;
+    const maxMp = state.player.maxMp ?? 0;
+    const newMp = clamp(oldMp + manaAmount, 0, maxMp);
+    const actualRestore = newMp - oldMp;
+    state = {
+      ...state,
+      player: { ...state.player, mp: newMp },
+    };
+    state = pushLog(state, `You use ${item.name} and restore ${actualRestore} MP.`);
+  }
+
+  // Handle damage items (bomb)
+  if (effect.damage !== undefined && effect.damage > 0) {
+    const damage = effect.damage;
+    const element = effect.element || 'physical';
+    const enemyHp = clamp(state.enemy.hp - damage, 0, state.enemy.maxHp);
+    state = {
+      ...state,
+      enemy: { ...state.enemy, hp: enemyHp },
+    };
+    state = pushLog(state, `You throw ${item.name} for ${damage} ${element} damage!`);
+    state = applyVictoryDefeat(state);
+    if (state.phase === 'victory' || state.phase === 'defeat') return state;
+  }
+
+  // Handle cleanse items (antidote)
+  if (effect.cleanse && Array.isArray(effect.cleanse)) {
+    const currentEffects = state.player.statusEffects ?? [];
+    const cleaned = currentEffects.filter(e => !effect.cleanse.includes(e.type));
+    const removed = currentEffects.length - cleaned.length;
+    state = {
+      ...state,
+      player: { ...state.player, statusEffects: cleaned },
+    };
+    if (removed > 0) {
+      state = pushLog(state, `You use ${item.name} and cure ${effect.cleanse.join(', ')}!`);
+    } else {
+      state = pushLog(state, `You use ${item.name}, but there was nothing to cure.`);
+    }
+  }
+
+  // Transition to enemy turn
+  state = processTurnStart(state, 'enemy');
+  if (state.phase === 'victory' || state.phase === 'defeat') return state;
+  return { ...state, phase: 'enemy-turn' };
+}
 
 export function enemyAct(state) {
   if (state.phase !== 'enemy-turn') return state;

@@ -116,9 +116,9 @@ console.log('\n--- playerUseAbility: damage calculation ---');
   });
   const result = playerUseAbility(state, 'power-strike');
   // power-strike: power=1.5, atk=10 → floor(10*1.5)=15, -3 def = 12
-  const expectedDmg = 12;
-  assert(result.enemy.hp === state.enemy.hp - expectedDmg,
-    `power-strike damage = floor(10*1.5)-3 = ${expectedDmg}, enemy hp went from ${state.enemy.hp} to ${result.enemy.hp}`);
+  const damageDealt = state.enemy.hp - result.enemy.hp;
+  assert(damageDealt >= 10 && damageDealt <= 14,
+    `power-strike damage with variance should be between 10 and 14 (got ${damageDealt}), enemy hp went from ${state.enemy.hp} to ${result.enemy.hp}`);
 }
 
 {
