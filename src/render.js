@@ -1,7 +1,7 @@
 import { saveToLocalStorage } from './state.js';
 import { CLASS_DEFINITIONS } from './characters/classes.js';
 import { DEFAULT_WORLD_DATA, getRoomExits } from './map.js';
-import { getCategorizedInventory, getEquipmentDisplay, getItemDetails, INVENTORY_SCREENS, EQUIPMENT_SLOTS } from './inventory.js';
+import { getCategorizedInventory, getEquipmentDisplay, getItemDetails, INVENTORY_SCREENS, EQUIPMENT_SLOTS, getEquipmentBonuses } from './inventory.js';
 import { getEffectiveCombatStats, getEquipmentBonusDisplay, hasEquipmentBonuses } from './combat/equipment-bonuses.js';
 import { getCurrentLevelUp, getStatDiffs, formatStatName, xpForNextLevel } from './level-up.js';
 import { getNPCsInRoom, getCurrentDialogLine, getDialogProgress } from './npc-dialog.js';
@@ -546,13 +546,30 @@ export function render(state, dispatch) {
     const categorized = getCategorizedInventory(player?.inventory || {});
     const eqDisplay = getEquipmentDisplay(equipment);
 
-    // Build equipment section HTML
+    // Build equipment section HTML with per-slot stat bonuses
     const eqRows = Object.entries(EQUIPMENT_SLOTS).map(([slot, label]) => {
       const itemId = equipment[slot];
-      const itemName = itemId ? (getItemDetails(itemId)?.name || itemId) : '—';
+      const detail = itemId ? getItemDetails(itemId) : null;
+      const itemName = detail ? detail.name : (itemId || '—');
+      const statTags = detail && detail.stats
+        ? Object.entries(detail.stats)
+            .filter(([, v]) => typeof v === 'number' && v !== 0)
+            .map(([k, v]) => `<span style="color:#4f4;font-size:0.85em;margin-left:4px;">${v > 0 ? '+' : ''}${v} ${esc(k.toUpperCase())}</span>`)
+            .join('')
+        : '';
       const unequipBtn = itemId ? `<button class="inv-btn" data-action="unequip" data-slot="${esc(slot)}">Unequip</button>` : '';
-      return `<div>${esc(label)}</div><div><b>${esc(itemName)}</b> ${unequipBtn}</div>`;
+      return `<div>${esc(label)}</div><div><b>${esc(itemName)}</b>${statTags} ${unequipBtn}</div>`;
     }).join('');
+
+    // Compute total equipment bonuses for stat summary
+    const eqBonuses = getEquipmentBonuses(equipment);
+    const hasBonuses = Object.values(eqBonuses).some(v => v !== 0);
+    const bonusSummaryRows = hasBonuses
+      ? Object.entries(eqBonuses)
+          .filter(([, v]) => v !== 0)
+          .map(([stat, v]) => `<div>${esc(stat.charAt(0).toUpperCase() + stat.slice(1))}</div><div style="color:#4f4;"><b>${v > 0 ? '+' : ''}${v}</b></div>`)
+          .join('')
+      : '<div><i>No bonuses</i></div><div></div>';
 
     // Build inventory items list HTML
     const allItems = [...categorized.consumables, ...categorized.weapons, ...categorized.armor, ...categorized.accessories, ...categorized.other];
@@ -584,16 +601,27 @@ export function render(state, dispatch) {
 
     const messageHtml = invState.message ? `<div class="card"><p class="good">${esc(invState.message)}</p></div>` : '';
 
+    // Compute effective stats (base + equipment)
+    const baseAtk = player?.atk ?? 0;
+    const baseDef = player?.def ?? 0;
+    const baseSpd = player?.spd ?? 0;
+    const effectiveStats = getEffectiveCombatStats(player || {});
+
     hud.innerHTML = `
       <div class="row">
         <div class="card">
           <h2>Equipment</h2>
           <div class="kv">${eqRows}</div>
+          ${hasBonuses ? `<h3 style="margin-top:8px;color:#aaa;">Total Bonuses</h3><div class="kv">${bonusSummaryRows}</div>` : ''}
         </div>
         <div class="card">
           <h2>${esc(player?.name || 'Player')} — Lv ${player?.level || 1}</h2>
           <div class="kv">
             <div>HP</div><div><b>${hpLine(player)}</b></div>
+            <div>MP</div><div><b>${player?.mp ?? 0}/${player?.maxMp ?? 0}</b></div>
+            <div>ATK</div><div><b>${baseAtk}</b>${eqBonuses.attack ? ` <span style="color:#4f4;">+${eqBonuses.attack}</span> = <b>${effectiveStats.atk}</b>` : ''}</div>
+            <div>DEF</div><div><b>${baseDef}</b>${eqBonuses.defense ? ` <span style="color:#4f4;">+${eqBonuses.defense}</span> = <b>${effectiveStats.def}</b>` : ''}</div>
+            <div>SPD</div><div><b>${baseSpd}</b>${eqBonuses.speed ? ` <span style="color:#4f4;">+${eqBonuses.speed}</span> = <b>${effectiveStats.spd}</b>` : ''}</div>
             <div>Gold</div><div><b>${player?.gold ?? 0}</b></div>
           </div>
         </div>
