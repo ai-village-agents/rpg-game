@@ -8,9 +8,11 @@ import { movePlayer, getCurrentRoom, getRoomExits } from './map.js';
 import { nextRng } from './combat.js';
 import { checkLevelUps, createLevelUpState, advanceLevelUp, getCurrentLevelUp } from './level-up.js';
 import { calcLevel } from './characters/stats.js';
+import { getNPCsInRoom, createDialogState, advanceDialog } from './npc-dialog.js';
 import { initQuestState, acceptQuest, onRoomEnter, getAvailableQuestsInRoom, getActiveQuestsSummary } from './quest-integration.js';
 
 const ENCOUNTER_RATE = 0.3; // 30% chance per move
+const ROOM_ID_MAP = [['nw', 'n', 'ne'], ['w', 'center', 'e'], ['sw', 's', 'se']];
 
 let state = { phase: 'class-select', log: ['Welcome to AI Village RPG! Select your class.'] };
 
@@ -71,6 +73,11 @@ function getRoomDescription(worldState) {
 
 function getAvailableExits(worldState) {
   return getRoomExits(worldState);
+}
+
+function getRoomId(worldState) {
+  if (!worldState) return null;
+  return ROOM_ID_MAP[worldState.roomRow]?.[worldState.roomCol] ?? null;
 }
 
 function dispatch(action) {
@@ -216,6 +223,48 @@ function dispatch(action) {
     let next = pushLog(state, 'You search the area for monsters...');
     next = startNewEncounter(next, 1);
     return setState(next);
+  }
+
+  // TALK_TO_NPC: enter dialog phase with specific NPC (or first NPC in room)
+  if (type === 'TALK_TO_NPC') {
+    if (state.phase !== 'exploration') return;
+    const roomId = getRoomId(state.world);
+    const npcs = getNPCsInRoom(roomId);
+    if (npcs.length === 0) {
+      return setState(pushLog(state, 'There is no one here to talk to.'));
+    }
+    // Find NPC by id if provided, otherwise use first NPC
+    const npc = action.npcId ? npcs.find((n) => n.id === action.npcId) : npcs[0];
+    if (!npc) {
+      return setState(pushLog(state, 'That person is not here.'));
+    }
+    const dialogState = createDialogState(npc);
+    return setState({
+      ...state,
+      phase: 'dialog',
+      dialogState,
+      preDialogPhase: 'exploration',
+    });
+  }
+
+  // DIALOG_NEXT: advance dialog or close when done
+  if (type === 'DIALOG_NEXT') {
+    if (state.phase !== 'dialog' || !state.dialogState) return;
+    const next = advanceDialog(state.dialogState);
+    if (next.done) {
+      const returnPhase = state.preDialogPhase || 'exploration';
+      const { dialogState: _ds, preDialogPhase: _pdp, ...rest } = state;
+      return setState(pushLog({ ...rest, phase: returnPhase }, `${state.dialogState.npcName}: Farewell, traveler.`));
+    }
+    return setState({ ...state, dialogState: next });
+  }
+
+  // DIALOG_CLOSE: close dialog and return to exploration without farewell
+  if (type === 'DIALOG_CLOSE') {
+    if (state.phase !== 'dialog') return;
+    const returnPhase = state.preDialogPhase || 'exploration';
+    const { dialogState: _ds, preDialogPhase: _pdp, ...rest } = state;
+    return setState({ ...rest, phase: returnPhase });
   }
 
   if (type === 'VIEW_INVENTORY') {
