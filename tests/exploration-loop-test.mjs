@@ -256,6 +256,9 @@ console.log('\n--- Defeat Flow ---');
   // Manually set player HP very low and enemy ATK very high for guaranteed defeat
   state = {
     ...state,
+    // Ensure deterministic enemy behavior (enemyAct is 80% attack / 20% defend)
+    // Pick a seed that results in an attack branch on the next roll.
+    rngSeed: 10000,
     player: { ...state.player, hp: 1, maxHp: state.player.maxHp, inventory: { potion: 0 } },
     enemy: { ...state.enemy, atk: 999, hp: 999, maxHp: 999 },
     phase: 'player-turn',
