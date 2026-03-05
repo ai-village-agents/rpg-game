@@ -5,6 +5,7 @@ import { getEnemy, getEncounter } from './data/enemies.js';
 import { getAbility, getAbilityDisplayInfo } from './combat/abilities.js';
 import { calculateDamage, calculateHeal, getElementMultiplier } from './combat/damage-calc.js';
 import { StatusEffect } from './combat/status-effects.js';
+import { selectEnemyAction, executeEnemyAbility } from './enemy-abilities.js';
 
 // Minimal deterministic RNG (Park-Miller LCG)
 export function nextRng(seed) {
@@ -419,40 +420,55 @@ export function enemyAct(state) {
   if (state.phase !== 'enemy-turn') return state;
   if (state.enemy.hp <= 0 || state.player.hp <= 0) return applyVictoryDefeat(state);
 
-  // Choose action: 80% attack, 20% defend.
-  const { seed, value } = nextRng(state.rngSeed);
-  state = { ...state, rngSeed: seed };
+  const wasEnemyStunned = (state.enemy.statusEffects ?? []).some(
+    (effect) => effect.type === 'stun' && (effect.duration ?? 0) > 0
+  );
 
-  if (value < 0.2) {
-    state = {
-      ...state,
-      enemy: { ...state.enemy, defending: true },
-      player: { ...state.player, defending: false },
-      turn: state.turn + 1,
-    };
-    state = pushLog(state, `${state.enemy.name} wiggles defensively.`);
+  state = processTurnStart(state, 'enemy');
+  if (state.phase === 'victory' || state.phase === 'defeat') return state;
+
+  if (wasEnemyStunned) {
+    state = pushLog(state, `${state.enemy.name} is stunned and cannot act!`);
     state = processTurnStart(state, 'player');
     if (state.phase === 'victory' || state.phase === 'defeat') return state;
     state = pushLog(state, `Your turn.`);
     return { ...state, phase: 'player-turn' };
   }
 
-  const damage = computeDamage({
-    attackerAtk: state.enemy.atk,
-    targetDef: state.player.def,
-    targetDefending: state.player.defending,
-  });
+  const result = selectEnemyAction(state.enemy, state.player, state.rngSeed);
+  state = { ...state, rngSeed: result.newSeed };
 
-  const playerHp = clamp(state.player.hp - damage, 0, state.player.maxHp);
-  state = {
-    ...state,
-    player: { ...state.player, hp: playerHp, defending: false },
-    enemy: { ...state.enemy, defending: false },
-    turn: state.turn + 1,
-  };
+  if (result.action === 'defend') {
+    state = {
+      ...state,
+      enemy: { ...state.enemy, defending: true },
+      player: { ...state.player, defending: false },
+      turn: state.turn + 1,
+    };
+    state = pushLog(state, `${state.enemy.name} takes a defensive stance.`);
+  } else if (result.action === 'ability') {
+    state = executeEnemyAbility(state, result.abilityId);
+    state = { ...state, turn: state.turn + 1 };
+    state = applyVictoryDefeat(state);
+  } else if (result.action === 'attack') {
+    const damage = computeDamage({
+      attackerAtk: state.enemy.atk,
+      targetDef: state.player.def,
+      targetDefending: state.player.defending,
+    });
 
-  state = pushLog(state, `${state.enemy.name} slams you for ${damage} damage.`);
-  state = applyVictoryDefeat(state);
+    const playerHp = clamp(state.player.hp - damage, 0, state.player.maxHp);
+    state = {
+      ...state,
+      player: { ...state.player, hp: playerHp, defending: false },
+      enemy: { ...state.enemy, defending: false },
+      turn: state.turn + 1,
+    };
+
+    state = pushLog(state, `${state.enemy.name} slams you for ${damage} damage.`);
+    state = applyVictoryDefeat(state);
+  }
+
   if (state.phase === 'victory' || state.phase === 'defeat') return state;
   state = processTurnStart(state, 'player');
   if (state.phase === 'victory' || state.phase === 'defeat') return state;

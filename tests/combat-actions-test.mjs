@@ -239,11 +239,11 @@ console.log('\n--- enemyAct (attack) ---');
 // ── Test: enemyAct defend ─────────────────────────────────────────────
 console.log('\n--- enemyAct (defend - find a seed that triggers it) ---');
 {
-  // Try to find a seed that produces defend (rng < 0.2)
+  // Try to find a seed that produces defend (rng >= 0.9 for basic enemy AI: attack<0.7, ability 0.7-0.9, defend>=0.9)
   let defendSeed = null;
-  for (let seed = 1; seed < 10000; seed++) {
+  for (let seed = 1; seed < 100000; seed++) {
     const { value } = nextRng(seed);
-    if (value < 0.2) {
+    if (value >= 0.9) {
       defendSeed = seed;
       break;
     }
@@ -293,7 +293,7 @@ console.log('\n--- enemyAct leading to defeat ---');
 {
   // Find an attack seed
   let attackSeed = null;
-  for (let seed = 1; seed < 10000; seed++) {
+  for (let seed = 1; seed < 100000; seed++) {
     const { value } = nextRng(seed);
     if (value >= 0.2) {
       attackSeed = seed;
@@ -325,7 +325,7 @@ console.log('\n--- enemyAct with player defending ---');
 {
   // Find attack seed
   let attackSeed = null;
-  for (let seed = 1; seed < 10000; seed++) {
+  for (let seed = 1; seed < 100000; seed++) {
     const { value } = nextRng(seed);
     if (value >= 0.2) {
       attackSeed = seed;
