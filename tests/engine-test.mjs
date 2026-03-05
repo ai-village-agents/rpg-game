@@ -31,6 +31,16 @@ function assert(condition, msg) {
   }
 }
 
+function callWithoutConsoleError(fn) {
+  const original = console.error;
+  console.error = () => {};
+  try {
+    return fn();
+  } finally {
+    console.error = original;
+  }
+}
+
 // Mock localStorage for Node.js environment
 const mockStorage = {};
 global.localStorage = {
@@ -138,16 +148,16 @@ console.log('\n--- Save System ---');
   assert(loaded.savedAt !== undefined, 'SavedAt timestamp added');
 
   // Test invalid slot index
-  const badSave = saveToSlot(testState, -1);
+  const badSave = callWithoutConsoleError(() => saveToSlot(testState, -1));
   assert(badSave === false, 'Save fails for negative slot');
 
-  const badSave2 = saveToSlot(testState, 10);
+  const badSave2 = callWithoutConsoleError(() => saveToSlot(testState, 10));
   assert(badSave2 === false, 'Save fails for slot >= MAX_SAVE_SLOTS');
 
-  const badLoad = loadFromSlot(-1);
+  const badLoad = callWithoutConsoleError(() => loadFromSlot(-1));
   assert(badLoad === null, 'Load returns null for negative slot');
 
-  const badLoad2 = loadFromSlot(10);
+  const badLoad2 = callWithoutConsoleError(() => loadFromSlot(10));
   assert(badLoad2 === null, 'Load returns null for slot >= MAX_SAVE_SLOTS');
 
   // Test empty slot load
