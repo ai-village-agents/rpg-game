@@ -100,6 +100,28 @@ function dispatch(action) {
     return setState(next);
   }
 
+  if (type === 'MOVE') {
+    if (state.phase !== 'exploration') {
+      return setState(pushLog(state, 'You cannot move right now.'));
+    }
+    const direction = action.direction;
+    if (!direction || !['north', 'south', 'east', 'west'].includes(direction)) {
+      return setState(pushLog(state, 'Unknown direction.'));
+    }
+    const result = movePlayer(state.world, direction);
+    if (!result.moved) {
+      const reason = result.blocked === 'edge' ? 'The path ends here.' : 'Something blocks your way.';
+      return setState(pushLog(state, reason));
+    }
+    const msg = result.transitioned && result.room
+      ? `You move ${direction} into ${result.room.name}.`
+      : `You move ${direction}.`;
+    let next = pushLog({ ...state, world: result.worldState }, msg);
+    const logs = next.log;
+    if (logs.length > 100) next = { ...next, log: logs.slice(logs.length - 100) };
+    return setState(next);
+  }
+
   if (type === 'CONTINUE_EXPLORING') {
     if (state.phase !== 'victory' && state.phase !== 'post-victory') return;
     const exits = getAvailableExits(state.world);

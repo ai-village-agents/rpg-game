@@ -1,5 +1,6 @@
 import { saveToLocalStorage } from './state.js';
 import { CLASS_DEFINITIONS } from './characters/classes.js';
+import { DEFAULT_WORLD_DATA, getRoomExits } from './map.js';
 
 function hpLine(entity) {
   const pct = Math.round((entity.hp / entity.maxHp) * 100);
@@ -24,6 +25,51 @@ function inventorySummary(player) {
     .join('');
   const gold = player?.gold ?? 0;
   return entries + `<div>Gold</div><div><b>${gold}</b></div>`;
+}
+
+function renderMapPanel(state, dispatch) {
+  if (!state.world) return '';
+
+  const { roomRow, roomCol } = state.world;
+  const rooms = DEFAULT_WORLD_DATA.rooms;
+  const exits = getRoomExits(state.world);
+  const currentRoom = rooms[roomRow]?.[roomCol];
+  const roomName = currentRoom?.name ?? 'Unknown';
+
+  // Build 3x3 ASCII world overview grid
+  const gridRows = rooms.map((row, r) =>
+    row.map((room, c) => {
+      const isCurrent = r === roomRow && c === roomCol;
+      const label = room.name.split(' ').map(w => w[0]).join('').slice(0, 3).toUpperCase();
+      if (isCurrent) {
+        return `<span class="map-cur" title="${esc(room.name)}">[${esc(label)}]</span>`;
+      }
+      return `<span class="map-room" title="${esc(room.name)}">&nbsp;${esc(label)}&nbsp;</span>`;
+    }).join('<span class="map-sep">|</span>')
+  ).map(row => `<div class="map-row">${row}</div>`).join('<div class="map-div">---+---+---</div>');
+
+  const exitBtns = ['north', 'south', 'west', 'east']
+    .filter(d => exits.includes(d))
+    .map(d => {
+      const label = { north: 'N', south: 'S', west: 'W', east: 'E' }[d];
+      return `<button class="move-btn" data-dir="${d}">${label}</button>`;
+    }).join('');
+
+  const controlsHtml = state.phase === 'exploration'
+    ? `<div class="map-controls">${exitBtns}</div>`
+    : '';
+
+  return `
+    <div class="card map-panel">
+      <h2>World Map</h2>
+      <div class="map-grid">${gridRows}</div>
+      <div class="map-info">
+        <b>Location:</b> ${esc(roomName)}<br>
+        <b>Exits:</b> ${exits.length ? exits.join(', ') : 'none'}
+      </div>
+      ${controlsHtml}
+    </div>
+  `;
 }
 
 export function render(state, dispatch) {
@@ -70,6 +116,7 @@ export function render(state, dispatch) {
 
   // --- Exploration Phase ---
   if (state.phase === 'exploration') {
+    const mapHtml = renderMapPanel(state, dispatch);
     hud.innerHTML = `
       <div class="row">
         <div class="card">
@@ -89,14 +136,14 @@ export function render(state, dispatch) {
           </div>
         </div>
 
-        <div class="card">
-          <h2>Exploration</h2>
-          <div class="kv">
-            <div>Phase</div><div><b>${esc(state.phase)}</b></div>
-          </div>
-        </div>
+        ${mapHtml}
       </div>
     `;
+
+    // Attach map movement button listeners
+    hud.querySelectorAll('.move-btn').forEach((btn) => {
+      btn.onclick = () => dispatch({ type: 'EXPLORE', direction: btn.dataset.dir });
+    });
 
     actions.innerHTML = `
       <div class="buttons">
