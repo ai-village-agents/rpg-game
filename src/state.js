@@ -1,4 +1,5 @@
 import { characters } from './data/characters.js';
+import { createWorldState } from './map.js';
 
 export function initialState() {
   const playerBase = characters.player;
@@ -30,6 +31,7 @@ export function initialState() {
       `A wild ${enemyBase.name} appears.`,
       `Your turn.`,
     ],
+        world: createWorldState(),
   };
 }
 
