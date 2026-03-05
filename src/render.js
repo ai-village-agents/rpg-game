@@ -8,6 +8,7 @@ import { getNPCsInRoom, getCurrentDialogLine, getDialogProgress } from './npc-di
 import { getActiveQuestsSummary, getAvailableQuestsInRoom } from './quest-integration.js';
 import { getAbilityDisplayInfo } from './combat/abilities.js';
 import { items as itemsData } from './data/items.js';
+import { renderStatusEffectsRow, getStatusEffectStyles } from './status-effect-ui.js';
 
 function hpLine(entity) {
   const pct = Math.round((entity.hp / entity.maxHp) * 100);
@@ -85,6 +86,14 @@ export function render(state, dispatch) {
   const hud = document.getElementById('hud');
   const actions = document.getElementById('actions');
   const log = document.getElementById('log');
+
+  // Inject status effect styles once
+  if (!document.getElementById('status-effect-styles')) {
+    const styleEl = document.createElement('style');
+    styleEl.id = 'status-effect-styles';
+    styleEl.textContent = getStatusEffectStyles();
+    document.head.appendChild(styleEl);
+  }
 
   // --- Class Select Phase ---
   if (state.phase === 'class-select') {
@@ -217,7 +226,7 @@ export function render(state, dispatch) {
               return atkStr + ' / ' + defStr;
             })()}</b></div>
             <div>Defending</div><div><b>${state.player.defending ? 'Yes' : 'No'}</b></div>
-            <div>Status</div><div><b>${(state.player.statusEffects ?? []).map(e => e.name).join(', ') || 'None'}</b></div>
+            ${renderStatusEffectsRow(state.player.statusEffects ?? [])}
             <div>Potions</div><div><b>${state.player.inventory.potion ?? 0}</b></div>
           </div>
         </div>
@@ -229,7 +238,7 @@ export function render(state, dispatch) {
             <div>HP</div><div><b>${hpLine(state.enemy)}</b></div>
             <div>ATK / DEF</div><div><b>${state.enemy.atk}</b> / <b>${state.enemy.def}</b></div>
             <div>Defending</div><div><b>${state.enemy.defending ? 'Yes' : 'No'}</b></div>
-            <div>Status</div><div><b>${(state.enemy.statusEffects ?? []).map(e => e.name).join(', ') || 'None'}</b></div>
+            ${renderStatusEffectsRow(state.enemy.statusEffects ?? [])}
           </div>
         </div>
 
