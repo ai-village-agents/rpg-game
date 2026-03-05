@@ -6,12 +6,50 @@ import { keyToCardinalDirection } from './input.js';
 import { CLASS_DEFINITIONS } from './characters/classes.js';
 import { movePlayer, getCurrentRoom, getRoomExits } from './map.js';
 import { nextRng } from './combat.js';
+import { checkLevelUps, createLevelUpState, advanceLevelUp, getCurrentLevelUp } from './level-up.js';
+import { calcLevel } from './characters/stats.js';
 
 const ENCOUNTER_RATE = 0.3; // 30% chance per move
 
 let state = { phase: 'class-select', log: ['Welcome to AI Village RPG! Select your class.'] };
 
 function setState(next) {
+  // Detect level-ups when entering victory phase
+  if (next.phase === 'victory' && state.phase !== 'victory' && state.phase !== 'level-up') {
+    const player = next.player;
+    if (player && player.classId) {
+      const oldLevel = player.level ?? 1;
+      const newLevel = calcLevel(player.xp ?? 0);
+      if (newLevel > oldLevel) {
+        // Build level-up data: simulate the stat growth
+        const levelUps = checkLevelUps(
+          [{ ...player, level: oldLevel, xp: (player.xp ?? 0) - (next.xpGained ?? 0) }],
+          next.xpGained ?? 0
+        );
+        if (levelUps.length > 0) {
+          // Update player level and stats to match post-level-up
+          const lu = levelUps[0];
+          next = {
+            ...next,
+            player: {
+              ...player,
+              level: lu.newLevel,
+              maxHp: lu.newStats.maxHp,
+              hp: player.hp + (lu.newStats.maxHp - lu.oldStats.maxHp), // Heal by the HP growth amount
+              maxMp: lu.newStats.maxMp,
+              mp: (player.mp ?? 0) + (lu.newStats.maxMp - (lu.oldStats.maxMp ?? 0)),
+              atk: lu.newStats.atk,
+              def: lu.newStats.def,
+              spd: lu.newStats.spd,
+            },
+            pendingLevelUps: levelUps,
+          };
+          next = pushLog(next, `${player.name} reached level ${lu.newLevel}!`);
+        }
+      }
+    }
+  }
+
   state = next;
   render(state, dispatch);
 
@@ -20,11 +58,6 @@ function setState(next) {
     window.setTimeout(() => {
       state = enemyAct(state);
       render(state, dispatch);
-
-      // After enemy acts, check if combat ended and transition
-      if (state.phase === 'victory') {
-        // Auto-transition to post-victory exploration after short delay
-      }
     }, 450);
   }
 }
@@ -124,6 +157,24 @@ function dispatch(action) {
     return setState(next);
   }
 
+  if (type === 'VIEW_LEVEL_UPS') {
+    // From victory screen, view the level-up details
+    if (!state.pendingLevelUps || state.pendingLevelUps.length === 0) return;
+    const luState = createLevelUpState(state.pendingLevelUps, 'victory');
+    return setState({ ...state, phase: 'level-up', levelUpState: luState });
+  }
+
+  if (type === 'LEVEL_UP_CONTINUE') {
+    if (state.phase !== 'level-up' || !state.levelUpState) return;
+    const { levelUpState: nextLuState, done } = advanceLevelUp(state.levelUpState);
+    if (done) {
+      // All level-ups viewed, return to victory phase
+      const returnPhase = state.levelUpState.returnPhase || 'victory';
+      return setState({ ...state, phase: returnPhase, levelUpState: undefined });
+    }
+    return setState({ ...state, levelUpState: nextLuState });
+  }
+
   if (type === 'CONTINUE_EXPLORING') {
     if (state.phase !== 'victory' && state.phase !== 'post-victory') return;
     const exits = getAvailableExits(state.world);
@@ -131,6 +182,8 @@ function dispatch(action) {
       ...state,
       phase: 'exploration',
       player: { ...state.player, defending: false },
+      levelUpState: undefined,
+      pendingLevelUps: undefined,
     };
     next = pushLog(next, `You gather yourself and continue your journey.`);
     next = pushLog(next, `${getRoomDescription(state.world)} Exits: ${exits.join(', ') || 'none'}.`);

@@ -2,6 +2,7 @@ import { saveToLocalStorage } from './state.js';
 import { CLASS_DEFINITIONS } from './characters/classes.js';
 import { DEFAULT_WORLD_DATA, getRoomExits } from './map.js';
 import { getCategorizedInventory, getEquipmentDisplay, getItemDetails, INVENTORY_SCREENS, EQUIPMENT_SLOTS } from './inventory.js';
+import { getCurrentLevelUp, getStatDiffs, formatStatName, xpForNextLevel } from './level-up.js';
 
 function hpLine(entity) {
   const pct = Math.round((entity.hp / entity.maxHp) * 100);
@@ -232,7 +233,57 @@ export function render(state, dispatch) {
     return;
   }
 
-  // --- Victory Phase ---
+  // --- Level-Up Phase ---
+  if (state.phase === 'level-up' && state.levelUpState) {
+    const current = getCurrentLevelUp(state.levelUpState);
+    if (current) {
+      const diffs = getStatDiffs(current.oldStats, current.newStats);
+      const diffRows = diffs.map(d => {
+        const sign = d.diff > 0 ? '+' : '';
+        return '<div>' + esc(formatStatName(d.stat)) + '</div><div><b>' + d.oldValue + '</b> \u2192 <b class="good">' + d.newValue + '</b> <span class="good">(' + sign + d.diff + ')</span></div>';
+      }).join('');
+
+      const nextXp = xpForNextLevel(current.newLevel);
+      const nextXpText = nextXp > 0 ? 'Next level at ' + nextXp + ' XP' : 'MAX LEVEL';
+      const queueInfo = state.levelUpState.levelUps.length > 1
+        ? ' (' + (state.levelUpState.currentIndex + 1) + '/' + state.levelUpState.levelUps.length + ')'
+        : '';
+
+      hud.innerHTML = '<div class="row">' +
+        '<div class="card">' +
+          '<h2 class="good">\u2B50 Level Up!' + esc(queueInfo) + '</h2>' +
+          '<div class="kv">' +
+            '<div>Character</div><div><b>' + esc(current.name) + '</b></div>' +
+            '<div>Class</div><div><b>' + esc(current.classId ? current.classId[0].toUpperCase() + current.classId.slice(1) : '') + '</b></div>' +
+            '<div>Level</div><div><b>' + current.oldLevel + '</b> \u2192 <b class="good">' + current.newLevel + '</b></div>' +
+          '</div>' +
+        '</div>' +
+        '<div class="card">' +
+          '<h2>Stat Growth</h2>' +
+          '<div class="kv">' + diffRows + '</div>' +
+          '<div style="margin-top:8px;opacity:0.7">' + esc(nextXpText) + '</div>' +
+        '</div>' +
+      '</div>';
+
+      const btnLabel = state.levelUpState.currentIndex < state.levelUpState.levelUps.length - 1
+        ? 'Next Level Up' : 'Continue';
+
+      actions.innerHTML = '<div class="buttons">' +
+        '<button id="btnLevelUpContinue">' + esc(btnLabel) + '</button>' +
+      '</div>';
+
+      document.getElementById('btnLevelUpContinue').onclick = () => dispatch({ type: 'LEVEL_UP_CONTINUE' });
+
+      log.innerHTML = state.log
+        .slice()
+        .reverse()
+        .map(line => '<div class="logLine">' + esc(line) + '</div>')
+        .join('');
+      return;
+    }
+  }
+
+    // --- Victory Phase ---
   if (state.phase === 'victory') {
     const xpGained = state.xpGained ?? 0;
     const goldGained = state.goldGained ?? 0;
@@ -260,13 +311,22 @@ export function render(state, dispatch) {
       </div>
     `;
 
+    const hasLevelUps = state.pendingLevelUps && state.pendingLevelUps.length > 0;
+    const levelUpBtn = hasLevelUps
+      ? '<button id="btnViewLevelUps" class="good">View Level Ups \u2B50</button>'
+      : '';
+
     actions.innerHTML = `
       <div class="buttons">
+        ${levelUpBtn}
         <button id="btnContinue">Continue Exploring</button>
         <button id="btnSave">Save</button>
       </div>
     `;
 
+    if (hasLevelUps) {
+      document.getElementById('btnViewLevelUps').onclick = () => dispatch({ type: 'VIEW_LEVEL_UPS' });
+    }
     document.getElementById('btnContinue').onclick = () => dispatch({ type: 'CONTINUE_EXPLORING' });
     document.getElementById('btnSave').onclick = () => dispatch({ type: 'SAVE' });
 
