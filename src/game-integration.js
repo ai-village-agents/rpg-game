@@ -5,13 +5,14 @@ import { createCombatState, calculateTurnOrder, executePlayerAction, getAbilitie
 import { createCharacter, createParty, addMember, setActiveParty, getActiveMembers, gainXp, toCombatant } from './characters/index.js';
 import { createMap, movePlayer, getCurrentRoom, getRoomExits } from './map.js';
 import { useItem, getInventory, addItem, removeItem } from './items.js';
+import { lootTables, getRandomLoot } from './data/items.js';
 
 const RNG_MOD = 2147483647;
 const RNG_MULT = 48271;
 const ENEMY_POOL = [
-  { name: 'Slime', hp: 20, maxHp: 20, mp: 0, maxMp: 0, atk: 5, def: 3, spd: 4, abilities: ['slime-splash'], element: 'earth', xpReward: 15, goldReward: 8 },
-  { name: 'Goblin', hp: 30, maxHp: 30, mp: 5, maxMp: 5, atk: 8, def: 4, spd: 7, abilities: ['backstab'], element: 'physical', xpReward: 25, goldReward: 15 },
-  { name: 'Fire Imp', hp: 25, maxHp: 25, mp: 15, maxMp: 15, atk: 10, def: 3, spd: 6, abilities: ['fire-breath'], element: 'fire', xpReward: 30, goldReward: 20 },
+  { name: 'Slime', hp: 20, maxHp: 20, mp: 0, maxMp: 0, atk: 5, def: 3, spd: 4, abilities: ['slime-splash'], element: 'earth', lootTable: 'goblin', xpReward: 15, goldReward: 8 },
+  { name: 'Goblin', hp: 30, maxHp: 30, mp: 5, maxMp: 5, atk: 8, def: 4, spd: 7, abilities: ['backstab'], element: 'physical', lootTable: 'goblin', xpReward: 25, goldReward: 15 },
+  { name: 'Fire Imp', hp: 25, maxHp: 25, mp: 15, maxMp: 15, atk: 10, def: 3, spd: 6, abilities: ['fire-breath'], element: 'fire', lootTable: 'banditCaptain', xpReward: 30, goldReward: 20 },
 ];
 
 let hooksReady = false;
@@ -218,7 +219,21 @@ export function handleCombatAction(gameState, action) {
   let party = syncPartyFromCombat(updated.party, combatState);
   updated = { ...updated, combatState, party, inventory };
   if (combatState.phase === 'victory') {
-    const rewardResult = applyRewards(party, inventory, combatState.rewards);
+    const rewards = { ...(combatState.rewards ?? {}) };
+    const rewardItems = [...(rewards.items ?? [])];
+    combatState.allCombatants
+      .filter((combatant) => combatant.side === 'enemy')
+      .forEach((enemy) => {
+        const lootTableId = enemy.lootTable;
+        if (!lootTableId) return;
+        const lootTable = lootTables[lootTableId];
+        if (!lootTable) return;
+        const loot = getRandomLoot(lootTable.rarityWeights);
+        if (loot) rewardItems.push(loot.id);
+      });
+    rewards.items = rewardItems;
+    combatState = { ...combatState, rewards };
+    const rewardResult = applyRewards(party, inventory, rewards);
     messages.push(...rewardResult.messages);
     updated = { ...updated, party: rewardResult.party, inventory: rewardResult.inventory, combatState: null, gamePhase: setGameState(GameState.EXPLORATION) };
     emit('combat:win', { rewards: combatState.rewards });
