@@ -1,15 +1,14 @@
-import { initialState, initialStateWithClass, loadFromLocalStorage, saveToLocalStorage, pushLog } from './state.js';
+import { startNewGame } from "./game-integration.js";
+import { initialState, loadFromLocalStorage, saveToLocalStorage, pushLog } from './state.js';
 import { playerAttack, playerDefend, playerUsePotion, playerUseAbility, playerUseItem, enemyAct, startNewEncounter } from './combat.js';
 import { render } from './render.js';
 import { createInventoryState, handleInventoryAction } from './inventory.js';
 import { keyToCardinalDirection } from './input.js';
-import { CLASS_DEFINITIONS } from './characters/classes.js';
 import { movePlayer, getCurrentRoom, getRoomExits } from './map.js';
 import { nextRng } from './combat.js';
 import { checkLevelUps, createLevelUpState, advanceLevelUp, getCurrentLevelUp } from './level-up.js';
 import { calcLevel } from './characters/stats.js';
 import { getNPCsInRoom, createDialogState, advanceDialog } from './npc-dialog.js';
-import { initQuestState, acceptQuest, onRoomEnter, getAvailableQuestsInRoom, getActiveQuestsSummary } from './quest-integration.js';
 import { createBattleSummary } from './battle-summary.js';
 
 const ENCOUNTER_RATE = 0.3; // 30% chance per move
@@ -95,12 +94,12 @@ function dispatch(action) {
   if (type === 'PLAYER_ABILITY') return setState(playerUseAbility(state, action.abilityId));
   if (type === 'PLAYER_ITEM') return setState(playerUseItem(state, action.itemId));
 
-  if (type === 'SELECT_CLASS') {
+    }
+if (type === 'SELECT_CLASS') {
     if (!CLASS_DEFINITIONS[action.classId]) {
       return setState(pushLog(state, 'Unknown class selected.'));
     }
     state = initialStateWithClass(action.classId);
-    // Start in exploration phase instead of immediate combat
     state = {
       questState: initQuestState(),
       ...state,
@@ -108,6 +107,50 @@ function dispatch(action) {
       log: [
         `You have chosen the path of the ${action.classId[0].toUpperCase() + action.classId.slice(1)}.`,
         `${getRoomDescription(state.world)} You may explore in any direction.`,
+      ],
+    };
+    return render(state, dispatch);
+  }
+    state = initialStateWithClass(action.classId);
+    state = {
+      questState: initQuestState(),
+      ...state,
+      phase: 'exploration',
+      log: [
+        ,
+        ,
+      ],
+    };
+    return render(state, dispatch);
+  }
+if (type === 'SELECT_CLASS') {
+    if (!CLASS_DEFINITIONS[action.classId]) {
+      return setState(pushLog(state, 'Unknown class selected.'));
+    }
+    state = initialStateWithClass(action.classId);
+    state = {
+      questState: initQuestState(),
+      ...state,
+      phase: 'exploration',
+      log: [
+        ,
+        ,
+      ],
+    };
+    return render(state, dispatch);
+  }
+if (type === 'SELECT_CLASS') {
+    if (!CLASS_DEFINITIONS[action.classId]) {
+      return setState(pushLog(state, 'Unknown class selected.'));
+    }
+    state = initialStateWithClass(action.classId);
+    state = {
+      questState: initQuestState(),
+      ...state,
+      phase: 'exploration',
+      log: [
+        ,
+        ,
       ],
     };
     return render(state, dispatch);

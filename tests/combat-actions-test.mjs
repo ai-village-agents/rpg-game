@@ -243,7 +243,7 @@ console.log('\n--- enemyAct (defend - find a seed that triggers it) ---');
   let defendSeed = null;
   for (let seed = 1; seed < 10000; seed++) {
     const { value } = nextRng(seed);
-    if (value < 0.2) {
+    if (value >= 0.9) {
       defendSeed = seed;
       break;
     }
