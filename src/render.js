@@ -4,6 +4,7 @@ import { DEFAULT_WORLD_DATA, getRoomExits } from './map.js';
 import { getCategorizedInventory, getEquipmentDisplay, getItemDetails, INVENTORY_SCREENS, EQUIPMENT_SLOTS } from './inventory.js';
 import { getCurrentLevelUp, getStatDiffs, formatStatName, xpForNextLevel } from './level-up.js';
 import { getActiveQuestsSummary, getAvailableQuestsInRoom } from './quest-integration.js';
+import { getNPCsInRoom, getCurrentDialogLine, getDialogProgress } from './npc-dialog.js';
 
 function hpLine(entity) {
   const pct = Math.round((entity.hp / entity.maxHp) * 100);
@@ -75,6 +76,8 @@ function renderMapPanel(state, dispatch) {
   `;
 }
 
+const RENDER_ROOM_ID_MAP = [['nw', 'n', 'ne'], ['w', 'center', 'e'], ['sw', 's', 'se']];
+
 export function render(state, dispatch) {
   const hud = document.getElementById('hud');
   const actions = document.getElementById('actions');
@@ -120,6 +123,11 @@ export function render(state, dispatch) {
   // --- Exploration Phase ---
   if (state.phase === 'exploration') {
     const mapHtml = renderMapPanel(state, dispatch);
+    const exploreRoomId = RENDER_ROOM_ID_MAP[state.world?.roomRow]?.[state.world?.roomCol] ?? null;
+    const exploreNpcs = exploreRoomId ? getNPCsInRoom(exploreRoomId) : [];
+    const npcListHtml = exploreNpcs.length > 0
+      ? exploreNpcs.map(n => `<button class="npc-talk-btn" data-npcid="${esc(n.id)}">${esc(n.name)}</button>`).join('')
+      : '<em>No one is here.</em>';
     hud.innerHTML = `
       <div class="row">
         <div class="card">
@@ -140,6 +148,11 @@ export function render(state, dispatch) {
         </div>
 
         ${mapHtml}
+
+        <div class="card">
+          <h2>People Here</h2>
+          <div class="npc-list">${npcListHtml}</div>
+        </div>
       </div>
     `;
 
@@ -171,6 +184,10 @@ export function render(state, dispatch) {
     document.getElementById('btnQuests').onclick = () => dispatch({ type: 'VIEW_QUESTS' });
     document.getElementById('btnSave').onclick = () => dispatch({ type: 'SAVE' });
     document.getElementById('btnLoad').onclick = () => dispatch({ type: 'LOAD' });
+
+    hud.querySelectorAll('.npc-talk-btn').forEach((btn) => {
+      btn.onclick = () => dispatch({ type: 'TALK_TO_NPC', npcId: btn.dataset.npcid });
+    });
 
     log.innerHTML = state.log
       .slice()
@@ -535,6 +552,45 @@ export function render(state, dispatch) {
     });
 
     log.innerHTML = state.log.slice().reverse().map(line => `<div class="logLine">${esc(line)}</div>`).join('');
+    return;
+  }
+
+  if (state.phase === 'dialog' && state.dialogState) {
+    const ds = state.dialogState;
+    const currentLine = getCurrentDialogLine(ds);
+    const progress = getDialogProgress(ds);
+    const progressText = ds.lines.length > 0
+      ? `(${progress.current}/${progress.total})`
+      : '';
+
+    hud.innerHTML = `
+      <div class="card">
+        <h2>💬 ${esc(ds.npcName)}</h2>
+        <div class="dialog-greeting" style="color:#aaa;font-style:italic;margin-bottom:8px;">${esc(ds.greeting)}</div>
+        ${currentLine
+          ? `<div class="dialog-line" style="font-size:1.1em;margin-bottom:12px;">${esc(currentLine)} ${progressText}</div>`
+          : `<div class="dialog-line" style="color:#aaa;font-style:italic;">... (End of conversation)</div>`
+        }
+      </div>
+    `;
+
+    actions.innerHTML = `
+      <div class="buttons">
+        ${currentLine ? `<button id="btnDialogNext">Next ▶</button>` : ''}
+        <button id="btnDialogClose">Farewell</button>
+      </div>
+    `;
+
+    if (currentLine) {
+      document.getElementById('btnDialogNext').onclick = () => dispatch({ type: 'DIALOG_NEXT' });
+    }
+    document.getElementById('btnDialogClose').onclick = () => dispatch({ type: 'DIALOG_CLOSE' });
+
+    log.innerHTML = state.log
+      .slice()
+      .reverse()
+      .map((line) => `<div class="logLine">${esc(line)}</div>`)
+      .join('');
     return;
   }
 
