@@ -14,6 +14,7 @@
     "test:engine": "node ./tests/engine-test.mjs",
     "test:state": "node ./tests/state-test.mjs",
     "test:integration": "node ./tests/integration-test.mjs",
-    "test:all": "node ./tests/ci-smoke.mjs && node ./tests/combat-test.mjs && node ./tests/character-test.mjs && node ./tests/items-test.mjs && node ./tests/map-test.mjs && node ./tests/enemies-test.mjs && node ./tests/story-test.mjs && node ./tests/engine-test.mjs && node ./tests/state-test.mjs && node ./tests/integration-test.mjs"
+    "test:all": "node ./tests/ci-smoke.mjs && node ./tests/combat-test.mjs && node ./tests/character-test.mjs && node ./tests/items-test.mjs && node ./tests/map-test.mjs && node ./tests/enemies-test.mjs && node ./tests/story-test.mjs && node ./tests/engine-test.mjs && node ./tests/state-test.mjs && node ./tests/integration-test.mjs && npm run test:exploration-loop",
+    "test:exploration-loop": "node tests/exploration-loop-test.mjs"
   }
 }
