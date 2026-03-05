@@ -8,8 +8,11 @@ import { movePlayer, getCurrentRoom, getRoomExits } from './map.js';
 import { nextRng } from './combat.js';
 import { checkLevelUps, createLevelUpState, advanceLevelUp, getCurrentLevelUp } from './level-up.js';
 import { calcLevel } from './characters/stats.js';
+import { getNPCsInRoom, createDialogState, advanceDialog } from './npc-dialog.js';
+import { initQuestState, acceptQuest, onRoomEnter, getAvailableQuestsInRoom, getActiveQuestsSummary } from './quest-integration.js';
 
 const ENCOUNTER_RATE = 0.3; // 30% chance per move
+const ROOM_ID_MAP = [['nw', 'n', 'ne'], ['w', 'center', 'e'], ['sw', 's', 'se']];
 
 let state = { phase: 'class-select', log: ['Welcome to AI Village RPG! Select your class.'] };
 
@@ -72,6 +75,11 @@ function getAvailableExits(worldState) {
   return getRoomExits(worldState);
 }
 
+function getRoomId(worldState) {
+  if (!worldState) return null;
+  return ROOM_ID_MAP[worldState.roomRow]?.[worldState.roomCol] ?? null;
+}
+
 function dispatch(action) {
   const type = action?.type;
 
@@ -86,6 +94,7 @@ function dispatch(action) {
     state = initialStateWithClass(action.classId);
     // Start in exploration phase instead of immediate combat
     state = {
+      questState: initQuestState(),
       ...state,
       phase: 'exploration',
       log: [
@@ -107,6 +116,15 @@ function dispatch(action) {
     }
 
     let next = { ...state, world: result.worldState };
+    // Update quest state on room enter
+    const ROOM_ID_MAP = [['nw', 'n', 'ne'], ['w', 'center', 'e'], ['sw', 's', 'se']];
+    const roomId = result.worldState?.roomRow !== undefined && result.worldState?.roomCol !== undefined
+      ? ROOM_ID_MAP[result.worldState.roomRow]?.[result.worldState.roomCol]
+      : null;
+    if (roomId && next.questState) {
+      const questResult = onRoomEnter(next.questState, roomId);
+      next = { ...next, questState: questResult.questState };
+    }
     const room = getCurrentRoom(result.worldState);
     const roomName = room?.name || 'a new area';
 
@@ -152,6 +170,15 @@ function dispatch(action) {
       ? `You move ${direction} into ${result.room.name}.`
       : `You move ${direction}.`;
     let next = pushLog({ ...state, world: result.worldState }, msg);
+    // Update quest state on room enter
+    const ROOM_ID_MAP_MOVE = [['nw', 'n', 'ne'], ['w', 'center', 'e'], ['sw', 's', 'se']];
+    const moveRoomId = result.worldState?.roomRow !== undefined && result.worldState?.roomCol !== undefined
+      ? ROOM_ID_MAP_MOVE[result.worldState.roomRow]?.[result.worldState.roomCol]
+      : null;
+    if (moveRoomId && next.questState) {
+      const questResult = onRoomEnter(next.questState, moveRoomId);
+      next = { ...next, questState: questResult.questState };
+    }
     const logs = next.log;
     if (logs.length > 100) next = { ...next, log: logs.slice(logs.length - 100) };
     return setState(next);
@@ -198,9 +225,68 @@ function dispatch(action) {
     return setState(next);
   }
 
+  // TALK_TO_NPC: enter dialog phase with specific NPC (or first NPC in room)
+  if (type === 'TALK_TO_NPC') {
+    if (state.phase !== 'exploration') return;
+    const roomId = getRoomId(state.world);
+    const npcs = getNPCsInRoom(roomId);
+    if (npcs.length === 0) {
+      return setState(pushLog(state, 'There is no one here to talk to.'));
+    }
+    // Find NPC by id if provided, otherwise use first NPC
+    const npc = action.npcId ? npcs.find((n) => n.id === action.npcId) : npcs[0];
+    if (!npc) {
+      return setState(pushLog(state, 'That person is not here.'));
+    }
+    const dialogState = createDialogState(npc);
+    return setState({
+      ...state,
+      phase: 'dialog',
+      dialogState,
+      preDialogPhase: 'exploration',
+    });
+  }
+
+  // DIALOG_NEXT: advance dialog or close when done
+  if (type === 'DIALOG_NEXT') {
+    if (state.phase !== 'dialog' || !state.dialogState) return;
+    const next = advanceDialog(state.dialogState);
+    if (next.done) {
+      const returnPhase = state.preDialogPhase || 'exploration';
+      const { dialogState: _ds, preDialogPhase: _pdp, ...rest } = state;
+      return setState(pushLog({ ...rest, phase: returnPhase }, `${state.dialogState.npcName}: Farewell, traveler.`));
+    }
+    return setState({ ...state, dialogState: next });
+  }
+
+  // DIALOG_CLOSE: close dialog and return to exploration without farewell
+  if (type === 'DIALOG_CLOSE') {
+    if (state.phase !== 'dialog') return;
+    const returnPhase = state.preDialogPhase || 'exploration';
+    const { dialogState: _ds, preDialogPhase: _pdp, ...rest } = state;
+    return setState({ ...rest, phase: returnPhase });
+  }
+
   if (type === 'VIEW_INVENTORY') {
     if (state.phase === 'class-select') return;
     return setState({ ...state, phase: 'inventory', inventoryState: createInventoryState(state.phase) });
+  }
+
+  if (type === 'VIEW_QUESTS') {
+    if (state.phase === 'class-select') return;
+    return setState({ ...state, phase: 'quests', previousPhase: state.phase });
+  }
+
+  if (type === 'CLOSE_QUESTS') {
+    if (state.phase !== 'quests') return;
+    return setState({ ...state, phase: state.previousPhase || 'exploration' });
+  }
+
+  if (type === 'ACCEPT_QUEST') {
+    if (!state.questState) return setState(pushLog(state, 'Quest system not initialized.'));
+    const result = acceptQuest(state.questState, action.questId);
+    const next = { ...state, questState: result.questState };
+    return setState(pushLog(next, result.message));
   }
 
   if (state.phase === 'inventory') {
