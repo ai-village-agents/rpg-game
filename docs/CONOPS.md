@@ -66,6 +66,8 @@ If you land a change that substantially alters architecture or invariants, **upd
     - Reads a high‑level view model (from `getGameStatus()` in `src/game-integration.js`).
     - Emits UI events that main/engine handle.
   - Renders ability buttons based on `getAbilityDisplayInfo` from `src/combat/abilities.js` during combat phases.
+  - In the combat HUD, displays equipment-modified ATK/DEF using `getEffectiveCombatStats` and `getEquipmentBonusDisplay` from `src/combat/equipment-bonuses.js`, showing bonuses as green (+N) indicators next to the base values.
+  - In the inventory phase, renders per-slot equipment stat tags (e.g. `+3 ATK +1 SPD`), a **Total Bonuses** summary for non-zero equipment stats, and a player stats card showing `base +bonus = effective` lines for ATK/DEF/SPD alongside HP/MP and gold.
   - Renders a dedicated `'battle-summary'` screen for the battle-summary phase, showing XP, gold, loot, and level-up lines with a Continue button that dispatches `CONTINUE_AFTER_BATTLE`.
 
 #### 2.2.2 State & engine
@@ -166,10 +168,13 @@ These modules are validated by `tests/character-test.mjs`.
 - `src/combat/index.js`
   - Public combat API re‑exporting the above.
 
-- `src/combat.js`
-  - **Legacy 1v1 combat** used by the very first vertical slice. Still present and tested for backwards compatibility but gradually superseded by `src/combat/*`. Uses the shared `calculateDamage` from `src/combat/damage-calc.js` for both basic attacks and abilities so elements, variance, defending, and crits are applied consistently.
+- `src/combat-tooltips.js`
+  - Pure UI helper module that turns combat abilities, items, and basic actions into rich tooltip data structures and HTML strings. Uses ability metadata from `src/combat/abilities.js` and item data from `src/data/items.js` to provide `getAbilityTooltip`, `getItemTooltip`, `getActionTooltip`, `formatTooltipText`, `getAbilityTooltips`, and `createTooltipHTML`. Intended to be consumed by the browser UI to render consistent, human-readable combat tooltips without introducing side effects.
 
-Behaviour is covered by `tests/combat-test.mjs`, `tests/combat-actions-test.mjs`, and `tests/combat-abilities-test.mjs` across both the modular engine and the legacy `src/combat.js` path.
+- `src/combat.js`
+  - **Legacy 1v1 combat** used by the very first vertical slice. Still present and tested for backwards compatibility but gradually superseded by `src/combat/*`. Uses the shared `calculateDamage` from `src/combat/damage-calc.js` for both basic attacks and abilities so elements, variance, defending, and crits are applied consistently. Integrates equipment combat bonuses via `src/combat/equipment-bonuses.js` so player ATK (basic attacks and abilities) and player DEF (when taking enemy basic attacks) include equipment bonuses from `getEquipmentBonuses` in `src/inventory.js` without mutating base stats.
+
+Behaviour is covered by `tests/combat-test.mjs`, `tests/combat-actions-test.mjs`, `tests/combat-abilities-test.mjs`, and `tests/equipment-combat-bonuses-test.mjs` across both the modular engine and the legacy `src/combat.js` path.
 
 #### 2.2.7 Enemies / encounters
 
@@ -310,7 +315,8 @@ We use **Node‑based tests** to keep logic verifiable without a browser. The ca
   "test:npc-dialog": "node ./tests/npc-dialog-test.mjs",
   "test:battle-summary": "node ./tests/battle-summary-test.mjs",
   "test:combat-items": "node tests/combat-items-test.mjs",
-  "test:all": "node ./scripts/run-tests.mjs",
+  "test:shop": "node --test tests/shop-test.mjs",
+  "test:all": "node ./scripts/run-tests.mjs && npm run test:shop",
   "test:all:list": "node ./scripts/run-tests.mjs --list",
   "test:all:quiet": "node ./scripts/run-tests.mjs --quiet"
 }
@@ -407,6 +413,9 @@ We use **Node‑based tests** to keep logic verifiable without a browser. The ca
   - Wiring between `main.js`, `render.js`, and `src/inventory.js` for inventory UI.
   - Phase transitions into/out of the inventory screen and basic anti-Easter-egg scan on shared surfaces.
 
+- `tests/inventory-equipment-stats-test.mjs`
+  - Focuses on equipment stat bonuses as presented in the inventory UI. Verifies `getEquipmentBonuses`, `getItemDetails`, and `getEffectiveCombatStats` for equipped/unequipped states, ensures per-slot stat tags, Total Bonuses rows, and `base + bonus = effective` lines render correctly (including negative and zero values), and checks data integrity and edge cases for equipment stats.
+
 - `tests/storage-test.mjs`
   - Storage abstraction in `src/storage/save.js` using dependency-injected storage.
   - Valid slot range checks, round-trip save/load, and invalid-slot no-op behaviour.
@@ -427,15 +436,27 @@ We use **Node‑based tests** to keep logic verifiable without a browser. The ca
 - `tests/combat-items-test.mjs`
   - Covers the combat item system in `src/combat.js` and related data in `src/data/items.js`: using consumables during combat (healing, mana restore, damage items, status cleanses), enforcing item counts, and keeping combat item effects aligned with non-combat `useItem` behaviour.
 
+- `tests/combat-tooltips-test.mjs`
+  - Exercises `src/combat-tooltips.js`, validating element/target/status icon constants and the behaviour of `getAbilityTooltip`, `getItemTooltip`, `getActionTooltip`, `formatTooltipText`, `getAbilityTooltips`, and `createTooltipHTML`, including integration-style checks that tooltips remain well-formed and robust to missing data.
+
 - `tests/battle-summary-test.mjs`
   - Validates `createBattleSummary` and `formatBattleSummary`, including defaulting behaviour when fields are missing, copying arrays instead of reusing references, formatting of loot and level-up lines, and the victory-state → summary → display pipeline; asserts compatibility with `initialStateWithClass` for plugging battle summaries into the existing victory flow.
+
+- `tests/enemy-abilities-test.mjs`
+  - Focuses on the enemy AI system introduced in `src/combat.js` and related helpers: `selectEnemyAction`, `getEnemyActionDescription`, and `executeEnemyAbility`. Verifies behaviour profiles for basic/aggressive/caster/boss enemies, ensures MP checks and fallbacks to basic attacks, validates status applications (stun, debuffs, regen), logging, defeat handling, and integration with `enemyAct` and the shared status-effects model.
+
+- `tests/equipment-combat-bonuses-test.mjs`
+  - Validates `src/combat/equipment-bonuses.js` plus its integration into the legacy `src/combat.js` flow and underlying inventory helpers. Ensures equipment stats from `getEquipmentBonuses` (weapons, armour, accessories) correctly adjust effective ATK/DEF/SPD/MAG/critChance without mutating base stats; checks stacking, negative modifiers, minimum damage enforcement, and coverage across all defined equipment items.
+
+- `tests/shop-test.mjs`
+  - Covers the shop and vendor system in `src/shop.js`, ensuring buying and selling correctly adjust gold and inventory, failures are handled when funds or items are insufficient, and behaviours are exercised both via the generic test runner and Node's built-in `node --test` harness.
 
 ### 5.2 CI workflows
 
 - **Default CI (`.github/workflows/ci.yml`)**
   - Runs on pushes to `main` and on all PRs.
   - Executes `npm run test:all` (the full suite) to catch missing files, regressions, and wiring/integration issues.
-  - The `test:all` entrypoint is implemented by `scripts/run-tests.mjs`, which auto-discovers `tests/ci-smoke.mjs` and all `tests/*-test.mjs`, runs them sequentially, and supports `--list`, `--quiet`, and `--match` flags for local development.
+  - The `test:all` entrypoint is implemented by `scripts/run-tests.mjs`, which auto-discovers `tests/ci-smoke.mjs` and all `tests/*-test.mjs`, runs them sequentially, and supports `--list`, `--quiet`, and `--match` flags for local development. For now, `npm run test:all` also chains `npm run test:shop`, which re-runs `tests/shop-test.mjs` under Node's built-in test runner as an extra guard on the shop system.
 
 - **JS syntax check (`.github/workflows/js-syntax.yml`)**
   - Runs on pushes to `main` and on PRs.
