@@ -20,11 +20,12 @@
     "test:input": "node ./tests/input-test.mjs",
     "test:move-dispatch": "node ./tests/move-dispatch-test.mjs",
     "test:ui": "node ./tests/ui-test.mjs",
-    "test:all": "node ./tests/ci-smoke.mjs && node ./tests/combat-test.mjs && node ./tests/character-test.mjs && node ./tests/items-test.mjs && node ./tests/map-test.mjs && node ./tests/enemies-test.mjs && node ./tests/story-test.mjs && node ./tests/engine-test.mjs && node ./tests/state-test.mjs && node ./tests/integration-test.mjs && npm run test:exploration-loop && node ./tests/combat-actions-test.mjs && npm run test:exploration && npm run test:input && npm run test:move-dispatch && npm run test:ui && npm run test:inventory-mgmt && npm run test:quest-integration && npm run test:inventory-wiring && npm run test:storage && npm run test:level-up",
+    "test:all": "node ./tests/ci-smoke.mjs && node ./tests/combat-test.mjs && node ./tests/character-test.mjs && node ./tests/items-test.mjs && node ./tests/map-test.mjs && node ./tests/enemies-test.mjs && node ./tests/story-test.mjs && node ./tests/engine-test.mjs && node ./tests/state-test.mjs && node ./tests/integration-test.mjs && npm run test:exploration-loop && node ./tests/combat-actions-test.mjs && npm run test:exploration && npm run test:input && npm run test:move-dispatch && npm run test:ui && npm run test:inventory-mgmt && npm run test:quest-integration && npm run test:inventory-wiring && npm run test:storage && npm run test:level-up && npm run test:quest-log-ui",
     "test:quest-integration": "node ./tests/quest-integration-test.mjs",
     "test:inventory-mgmt": "node ./tests/inventory-management-test.mjs",
     "test:inventory-wiring": "node ./tests/inventory-wiring-test.mjs",
     "test:storage": "node ./tests/storage-test.mjs",
-    "test:level-up": "node ./tests/level-up-test.mjs"
+    "test:level-up": "node ./tests/level-up-test.mjs",
+    "test:quest-log-ui": "node ./tests/quest-log-ui-test.mjs"
   }
 }

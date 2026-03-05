@@ -3,6 +3,7 @@ import { CLASS_DEFINITIONS } from './characters/classes.js';
 import { DEFAULT_WORLD_DATA, getRoomExits } from './map.js';
 import { getCategorizedInventory, getEquipmentDisplay, getItemDetails, INVENTORY_SCREENS, EQUIPMENT_SLOTS } from './inventory.js';
 import { getCurrentLevelUp, getStatDiffs, formatStatName, xpForNextLevel } from './level-up.js';
+import { getActiveQuestsSummary, getAvailableQuestsInRoom } from './quest-integration.js';
 
 function hpLine(entity) {
   const pct = Math.round((entity.hp / entity.maxHp) * 100);
@@ -155,6 +156,7 @@ export function render(state, dispatch) {
         <button id="btnEast">East</button>
         <button id="btnSeek">Seek Battle</button>
         <button id="btnInventory">Inventory</button>
+        <button id="btnQuests">Quests 📜</button>
         <button id="btnSave">Save</button>
         <button id="btnLoad">Load</button>
       </div>
@@ -166,6 +168,7 @@ export function render(state, dispatch) {
     document.getElementById('btnEast').onclick = () => dispatch({ type: 'EXPLORE', direction: 'east' });
     document.getElementById('btnSeek').onclick = () => dispatch({ type: 'SEEK_ENCOUNTER' });
     document.getElementById('btnInventory').onclick = () => dispatch({ type: 'VIEW_INVENTORY' });
+    document.getElementById('btnQuests').onclick = () => dispatch({ type: 'VIEW_QUESTS' });
     document.getElementById('btnSave').onclick = () => dispatch({ type: 'SAVE' });
     document.getElementById('btnLoad').onclick = () => dispatch({ type: 'LOAD' });
 
@@ -367,6 +370,75 @@ export function render(state, dispatch) {
       .reverse()
       .map((line) => `<div class="logLine">${esc(line)}</div>`)
       .join('');
+    return;
+  }
+
+
+  // --- Quests Phase ---
+  if (state.phase === 'quests') {
+    const questState = state.questState || { activeQuests: {}, completedQuests: [] };
+    const summary = getActiveQuestsSummary(questState);
+    const currentRoomId = state.world?.roomRow !== undefined && state.world?.roomCol !== undefined
+      ? [['nw', 'n', 'ne'], ['w', 'center', 'e'], ['sw', 's', 'se']][state.world.roomRow]?.[state.world.roomCol]
+      : null;
+    const availableQuests = currentRoomId ? getAvailableQuestsInRoom(questState, currentRoomId) : [];
+
+    // Build active quests HTML
+    const activeQuestsHtml = summary.length === 0
+      ? '<p><i>No active quests. Explore to find new adventures!</i></p>'
+      : summary.map(q => {
+          const progress = q.stageIndex !== undefined ? `Stage ${q.stageIndex + 1}/${q.totalStages}` : '';
+          return `<div class="quest-item"><b>${esc(q.questName)}</b> <small>${progress}</small><br/><i>${esc(q.currentStage || '')}</i></div>`;
+        }).join('');
+
+    // Build available quests HTML
+    const availableQuestsHtml = availableQuests.length === 0
+      ? '<p><i>No quests available in this area.</i></p>'
+      : availableQuests.map(q => `<div class="quest-item"><b>${esc(q.name)}</b> - Lv ${q.level}<br/><i>${esc(q.description || '')}</i><br/><button class="quest-accept-btn" data-quest-id="${esc(q.id)}">Accept Quest</button></div>`).join('');
+
+    // Completed quests count
+    const completedCount = questState.completedQuests?.length || 0;
+
+    hud.innerHTML = `
+      <div class="row">
+        <div class="card">
+          <h2>Active Quests</h2>
+          ${activeQuestsHtml}
+        </div>
+        <div class="card">
+          <h2>Available Quests</h2>
+          ${availableQuestsHtml}
+        </div>
+        <div class="card">
+          <h2>Quest Stats</h2>
+          <div class="kv">
+            <div>Active</div><div><b>${summary.length}</b></div>
+            <div>Completed</div><div><b>${completedCount}</b></div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    actions.innerHTML = `
+      <div class="buttons">
+        <button id="btnCloseQuests">Close Quests</button>
+      </div>
+    `;
+
+    // Wire close button
+    document.getElementById('btnCloseQuests').onclick = () => dispatch({ type: 'CLOSE_QUESTS' });
+
+    // Wire accept quest buttons
+    actions.querySelectorAll('.quest-accept-btn').forEach(btn => {
+      const questId = btn.dataset.questId;
+      btn.onclick = () => dispatch({ type: 'ACCEPT_QUEST', questId });
+    });
+    hud.querySelectorAll('.quest-accept-btn').forEach(btn => {
+      const questId = btn.dataset.questId;
+      btn.onclick = () => dispatch({ type: 'ACCEPT_QUEST', questId });
+    });
+
+    log.innerHTML = state.log.slice().reverse().map(line => `<div class="logLine">${esc(line)}</div>`).join('');
     return;
   }
 
