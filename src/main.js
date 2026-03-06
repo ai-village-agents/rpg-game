@@ -384,6 +384,18 @@ function dispatch(action) {
     return setState({ ...state, phase: 'quests', previousPhase: state.phase });
   }
 
+  if (type === 'VIEW_STATS') {
+    if (state.phase === 'class-select') return;
+    return setState({ ...state, phase: 'stats', statsPreviousPhase: state.phase });
+  }
+
+  if (type === 'CLOSE_STATS') {
+    if (state.phase !== 'stats') return;
+    const returnPhase = state.statsPreviousPhase || 'exploration';
+    const { statsPreviousPhase: _spp, ...rest } = state;
+    return setState({ ...rest, phase: returnPhase });
+  }
+
   if (type === 'CLOSE_QUESTS') {
     if (state.phase !== 'quests') return;
     return setState({ ...state, phase: state.previousPhase || 'exploration' });

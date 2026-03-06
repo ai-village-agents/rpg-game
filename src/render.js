@@ -10,6 +10,7 @@ import { getAbilityDisplayInfo } from './combat/abilities.js';
 import { items as itemsData } from './data/items.js';
 import { renderStatusEffectsRow, getStatusEffectStyles } from './status-effect-ui.js';
 import { getMinimapStyles, renderMinimap } from './minimap.js';
+import { getStatsSummary, createGameStats } from './game-stats.js';
 
 function hpLine(entity) {
   const pct = Math.round((entity.hp / entity.maxHp) * 100);
@@ -140,6 +141,46 @@ export function render(state, dispatch) {
     return;
   }
 
+  if (state.phase === 'stats') {
+    const summary = getStatsSummary(state.gameStats ?? createGameStats());
+    hud.innerHTML = `
+      <div class="row">
+        <div class="card">
+          <h2>Game Stats</h2>
+          <div class="kv">
+            <div>Battles Won</div><div><b>${summary.battlesWon}</b></div>
+            <div>Battles Fled</div><div><b>${summary.battlesFled}</b></div>
+            <div>Turns Played</div><div><b>${summary.turnsPlayed}</b></div>
+            <div>Enemies Defeated</div><div><b>${summary.enemiesDefeated}</b></div>
+            <div>Most Defeated</div><div><b>${esc(summary.mostDefeated)}</b></div>
+            <div>Total Damage Dealt</div><div><b>${summary.totalDamageDealt}</b></div>
+            <div>Total Damage Received</div><div><b>${summary.totalDamageReceived}</b></div>
+            <div>Damage Ratio</div><div><b>${esc(summary.damageRatio)}</b></div>
+            <div>Items Used</div><div><b>${summary.itemsUsed}</b></div>
+            <div>Abilities Used</div><div><b>${summary.abilitiesUsed}</b></div>
+            <div>Gold Earned</div><div><b>${summary.goldEarned}</b></div>
+            <div>XP Earned</div><div><b>${summary.xpEarned}</b></div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    actions.innerHTML = `
+      <div class="buttons">
+        <button id="btnCloseStats">Back</button>
+      </div>
+    `;
+
+    document.getElementById('btnCloseStats').onclick = () => dispatch({ type: 'CLOSE_STATS' });
+
+    log.innerHTML = state.log
+      .slice()
+      .reverse()
+      .map((line) => `<div class="logLine">${esc(line)}</div>`)
+      .join('');
+    return;
+  }
+
   // --- Exploration Phase ---
   if (state.phase === 'exploration') {
     const mapHtml = renderMapPanel(state, dispatch);
@@ -192,6 +233,7 @@ export function render(state, dispatch) {
         <button id="btnSeek">Seek Battle</button>
         <button id="btnInventory">Inventory</button>
         <button id="btnQuests">Quests 📜</button>
+        <button id="btnStats">Stats</button>
         <button id="btnSave">Save</button>
         <button id="btnLoad">Load</button>
       </div>
@@ -204,6 +246,7 @@ export function render(state, dispatch) {
     document.getElementById('btnSeek').onclick = () => dispatch({ type: 'SEEK_ENCOUNTER' });
     document.getElementById('btnInventory').onclick = () => dispatch({ type: 'VIEW_INVENTORY' });
     document.getElementById('btnQuests').onclick = () => dispatch({ type: 'VIEW_QUESTS' });
+    document.getElementById('btnStats').onclick = () => dispatch({ type: 'VIEW_STATS' });
     document.getElementById('btnSave').onclick = () => dispatch({ type: 'SAVE' });
     document.getElementById('btnLoad').onclick = () => dispatch({ type: 'LOAD' });
 
