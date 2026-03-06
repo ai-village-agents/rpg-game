@@ -35,6 +35,16 @@ function makeState(overrides = {}) {
   };
 }
 
+function callWithoutConsoleError(fn) {
+  const original = console.error;
+  console.error = () => {};
+  try {
+    return fn();
+  } finally {
+    console.error = original;
+  }
+}
+
 // Simulate dispatch logic from main.js
 function simulateDispatch(state, action) {
   const type = action.type;
@@ -141,7 +151,7 @@ console.log('# --- SAVE_TO_SLOT invalid index ---');
 clearSlots();
 {
   const s = makeState({ phase: 'save-slots', saveSlotMode: 'save' });
-  const next = simulateDispatch(s, { type: 'SAVE_TO_SLOT', slotIndex: 10 });
+  const next = callWithoutConsoleError(() => simulateDispatch(s, { type: 'SAVE_TO_SLOT', slotIndex: 10 }));
   check('log includes failed message', next.log.some(l => l.includes('Save failed!')));
 }
 
