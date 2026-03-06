@@ -1,4 +1,4 @@
-import { playerAttack, playerDefend, playerUsePotion, playerUseAbility, playerUseItem, enemyAct } from '../combat.js';
+import { playerAttack, playerDefend, playerFlee, playerUsePotion, playerUseAbility, playerUseItem, enemyAct } from '../combat.js';
 import { createGameStats, recordDamageDealt, recordTurnPlayed, recordItemUsed, recordAbilityUsed, recordDamageReceived } from '../game-stats.js';
 import { getCraftingMaterialDrops, lookupItem } from '../crafting.js';
 import { addItemToInventory } from '../items.js';
@@ -31,6 +31,10 @@ export function handleCombatAction(state, action) {
 
   if (type === 'PLAYER_DEFEND') {
     return playerDefend(state);
+  }
+
+  if (type === 'PLAYER_FLEE') {
+    return playerFlee(state);
   }
 
   if (type === 'PLAYER_POTION') {

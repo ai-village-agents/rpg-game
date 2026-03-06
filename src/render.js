@@ -344,6 +344,7 @@ export function render(state, dispatch) {
         <button id="btnAttack" ${!isPlayerTurn ? 'disabled' : ''}>Attack</button>
         <button id="btnDefend" ${!isPlayerTurn ? 'disabled' : ''}>Defend</button>
         <button id="btnPotion" ${!isPlayerTurn ? 'disabled' : ''}>Use Potion</button>
+        <button id="btnFlee" ${!isPlayerTurn ? 'disabled' : ''}>Flee</button>
         ${abilityBtns}
       </div>
       ${combatItemBtns ? '<div class="buttons item-buttons"><b>Items:</b> ' + combatItemBtns + '</div>' : ''}
@@ -352,6 +353,7 @@ export function render(state, dispatch) {
     document.getElementById('btnAttack').onclick = () => dispatch({ type: 'PLAYER_ATTACK' });
     document.getElementById('btnDefend').onclick = () => dispatch({ type: 'PLAYER_DEFEND' });
     document.getElementById('btnPotion').onclick = () => dispatch({ type: 'PLAYER_POTION' });
+    document.getElementById('btnFlee').onclick = () => dispatch({ type: 'PLAYER_FLEE' });
 
     // Wire ability buttons
     actions.querySelectorAll('.ability-btn').forEach(btn => {

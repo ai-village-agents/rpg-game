@@ -187,6 +187,29 @@ export function playerDefend(state) {
   return { ...state, phase: 'enemy-turn' };
 }
 
+export function playerFlee(state) {
+  if (state.phase !== 'player-turn') return state;
+  if (isStunned(state.player)) {
+    state = pushLog(state, 'Player is stunned!');
+    state = processTurnStart(state, 'enemy');
+    if (state.phase === 'victory' || state.phase === 'defeat') return state;
+    return { ...state, phase: 'enemy-turn' };
+  }
+
+  const { seed, value } = nextRng(state.rngSeed);
+  state = { ...state, rngSeed: seed };
+
+  if (value < 0.4) {
+    state = pushLog(state, 'You fled successfully!');
+    return { ...state, phase: 'fled' };
+  }
+
+  state = pushLog(state, 'Failed to flee!');
+  state = processTurnStart(state, 'enemy');
+  if (state.phase === 'victory' || state.phase === 'defeat') return state;
+  return { ...state, phase: 'enemy-turn' };
+}
+
 export function playerUsePotion(state) {
   if (state.phase !== 'player-turn') return state;
 
