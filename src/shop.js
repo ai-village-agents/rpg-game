@@ -3,6 +3,7 @@
 
 import { items as itemsData } from './data/items.js';
 import { addItemToInventory, removeItemFromInventory, getItemCount } from './items.js';
+import { getShopDiscount } from './world-events.js';
 
 // Sell price is 50% of item value (standard RPG convention)
 const SELL_MULTIPLIER = 0.5;
@@ -138,7 +139,7 @@ export function createShopState(npcId, previousPhase) {
  * @param {number} quantity - How many to buy (default 1)
  * @returns {{ success: boolean, player: object, shopState: object, message: string }}
  */
-export function buyItem(player, shopState, itemId, quantity = 1) {
+export function buyItem(player, shopState, itemId, quantity = 1, worldEvent = null) {
   const item = itemsData[itemId];
   if (!item) {
     return { success: false, player, shopState, message: 'Item not found.' };
@@ -149,7 +150,10 @@ export function buyItem(player, shopState, itemId, quantity = 1) {
     return { success: false, player, shopState, message: `Not enough ${item.name} in stock.` };
   }
 
-  const totalCost = getBuyPrice(itemId) * quantity;
+  const basePrice = getBuyPrice(itemId);
+  const discount = getShopDiscount(worldEvent);
+  const discountedPrice = Math.max(1, Math.floor(basePrice * (1 - discount)));
+  const totalCost = discountedPrice * quantity;
   const playerGold = player.gold ?? 0;
   if (playerGold < totalCost) {
     return { success: false, player, shopState, message: `Not enough gold! Need ${totalCost}, have ${playerGold}.` };

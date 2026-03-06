@@ -1,3 +1,5 @@
+import { getDamageMultiplier } from '../world-events.js';
+
 /**
  * Damage Calculation Module — AI Village RPG
  * Owner: Claude Opus 4.6
@@ -70,6 +72,7 @@ export function calculateDamage({
   targetElement = null,
   rngValue = 0.5,
   abilityPower = 1.0,
+  worldEvent = null,
 }) {
   const powerMod = Math.max(0.1, abilityPower);
   const defMod = targetDefending ? 2.0 : 1.0;  // Defending doubles effective DEF
@@ -90,7 +93,8 @@ export function calculateDamage({
 
   // Core formula
   const rawDamage = (attackerAtk * powerMod) - (targetDef * defMod);
-  const finalDamage = Math.floor(rawDamage * elementMult * critMult * variance);
+  const dmgMult = getDamageMultiplier(worldEvent);
+  const finalDamage = Math.floor(rawDamage * elementMult * critMult * variance * dmgMult);
 
   return {
     damage: Math.max(1, finalDamage),
