@@ -835,7 +835,11 @@ export function render(state, dispatch) {
   }
 
   if (state.phase === 'talents') {
-    const talentHtml = renderTalentTree(state);
+    const talentRenderState = {
+      ...state,
+      player: { ...(state.player || {}), talents: state.talentState }
+    };
+    const talentHtml = renderTalentTree(talentRenderState);
     hud.innerHTML = talentHtml;
     actions.innerHTML = '<div class="buttons"><button id="btnCloseTalents">Close Talents</button></div>';
     attachTalentHandlers(hud, dispatch);
