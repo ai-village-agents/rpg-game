@@ -7,6 +7,7 @@ import { createGameStats, recordBattleFled, recordBattleWon, recordEnemyDefeated
 import { pushLog } from '../state.js';
 import { getCurrentRoom, getRoomExits } from '../map.js';
 import { advanceDialog } from '../npc-dialog.js';
+import { renderAchievementsPanel } from '../achievements-ui.js';
 import { loadSettings, updateSetting, resetSettings, saveSettings } from '../settings.js';
 import { createShopState, buyItem, sellItem } from '../shop.js';
 import { createCraftingState, craftItem } from '../crafting.js';
@@ -37,6 +38,17 @@ export function handleUIAction(state, action) {
 
   if (type === 'CLOSE_SETTINGS') {
     if (state.phase !== 'settings') return null;
+    return { ...state, phase: state.previousPhase || 'exploration' };
+  }
+
+  // Achievements
+  if (type === 'VIEW_ACHIEVEMENTS') {
+    if (state.phase === 'class-select') return null;
+    return { ...state, phase: 'achievements', previousPhase: state.phase };
+  }
+
+  if (type === 'CLOSE_ACHIEVEMENTS') {
+    if (state.phase !== 'achievements') return null;
     return { ...state, phase: state.previousPhase || 'exploration' };
   }
 
