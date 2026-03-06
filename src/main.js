@@ -5,8 +5,23 @@ import { handleExplorationAction } from './handlers/exploration-handler.js';
 import { handleSystemAction } from './handlers/system-handler.js';
 import { handleUIAction } from './handlers/ui-handler.js';
 import { handleStateTransitions } from './state-transitions.js';
+import { initAudio } from './audio-system.js';
 
 let state = { phase: 'class-select', log: ['Welcome to AI Village RPG! Select your class.'] };
+
+// Initialize audio system on first interaction
+const startAudio = async () => {
+  try {
+    await initAudio();
+    // Remove listener after success
+    window.removeEventListener('click', startAudio);
+    window.removeEventListener('keydown', startAudio);
+  } catch (e) {
+    console.warn('Audio init failed (likely autoplay policy):', e);
+  }
+};
+window.addEventListener('click', startAudio, { once: true });
+window.addEventListener('keydown', startAudio, { once: true });
 
 function setState(next) {
   // Apply automatic state transitions (Level Up, Battle Summary)

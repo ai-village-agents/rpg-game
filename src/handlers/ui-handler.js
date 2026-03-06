@@ -1,3 +1,4 @@
+import { updateAudioSettings } from '../audio-system.js';
 import { createInventoryState, handleInventoryAction } from '../inventory.js';
 import { createLevelUpState, advanceLevelUp } from '../level-up.js';
 import { acceptQuest } from '../quest-integration.js';
@@ -31,12 +32,14 @@ export function handleUIAction(state, action) {
     if (state.phase !== 'settings') return null;
     const newSettings = updateSetting(state.settings || {}, action.path, action.value);
     saveSettings(newSettings);
+    updateAudioSettings(newSettings);
     return { ...state, settings: newSettings };
   }
 
   if (type === 'RESET_SETTINGS') {
     if (state.phase !== 'settings') return null;
     const newSettings = resetSettings();
+    updateAudioSettings(newSettings);
     return pushLog({ ...state, settings: newSettings }, 'Settings reset to defaults.');
   }
 
