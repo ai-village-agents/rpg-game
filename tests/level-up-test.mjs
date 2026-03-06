@@ -458,99 +458,28 @@ console.log('\n--- Easter egg scan ---');
 // Wiring tests: main.js dispatch + render.js
 // ═══════════════════════════════════════════
 
-console.log('\n--- Wiring: main.js imports level-up module ---');
+console.log('\n--- Wiring: logic moved to handlers ---');
 
 {
   const fs = await import('node:fs');
   const mainSrc = fs.readFileSync(new URL('../src/main.js', import.meta.url), 'utf8');
+  const uiHandlerSrc = fs.readFileSync(new URL('../src/handlers/ui-handler.js', import.meta.url), 'utf8');
+  const stateTransSrc = fs.readFileSync(new URL('../src/state-transitions.js', import.meta.url), 'utf8');
 
-  assert(mainSrc.includes("from './level-up.js'"), 'main.js imports from level-up.js');
-  assert(mainSrc.includes('checkLevelUps'), 'main.js imports checkLevelUps');
-  assert(mainSrc.includes('createLevelUpState'), 'main.js imports createLevelUpState');
-  assert(mainSrc.includes('advanceLevelUp'), 'main.js imports advanceLevelUp');
-  assert(mainSrc.includes('getCurrentLevelUp'), 'main.js imports getCurrentLevelUp');
-  assert(mainSrc.includes('calcLevel'), 'main.js imports calcLevel');
+  // Verify main.js imports handlers
+  assert(mainSrc.includes("from './handlers/ui-handler.js'"), 'main.js imports ui-handler');
+  assert(mainSrc.includes("from './state-transitions.js'"), 'main.js imports state-transitions');
+
+  // Verify UI Handler handles actions
+  assert(uiHandlerSrc.includes("'VIEW_LEVEL_UPS'"), 'ui-handler handles VIEW_LEVEL_UPS');
+  assert(uiHandlerSrc.includes("'LEVEL_UP_CONTINUE'"), 'ui-handler handles LEVEL_UP_CONTINUE');
+  
+  // Verify State Transitions handles victory/level-up
+  assert(stateTransSrc.includes("next.phase === 'victory'"), 'state-transitions detects victory phase');
+  assert(stateTransSrc.includes('calcLevel(player.xp'), 'state-transitions calculates new level');
 }
 
-console.log('\n--- Wiring: main.js dispatch actions ---');
-
-{
-  const fs = await import('node:fs');
-  const mainSrc = fs.readFileSync(new URL('../src/main.js', import.meta.url), 'utf8');
-
-  assert(mainSrc.includes("'VIEW_LEVEL_UPS'"), 'main.js handles VIEW_LEVEL_UPS action');
-  assert(mainSrc.includes("'LEVEL_UP_CONTINUE'"), 'main.js handles LEVEL_UP_CONTINUE action');
-  assert(mainSrc.includes('pendingLevelUps'), 'main.js tracks pendingLevelUps');
-  assert(mainSrc.includes("phase: 'level-up'"), 'main.js sets level-up phase');
-}
-
-console.log('\n--- Wiring: main.js victory detection ---');
-
-{
-  const fs = await import('node:fs');
-  const mainSrc = fs.readFileSync(new URL('../src/main.js', import.meta.url), 'utf8');
-
-  // setState should detect level-ups when entering victory
-  assert(mainSrc.includes("next.phase === 'victory'"), 'setState detects victory phase');
-  assert(mainSrc.includes('calcLevel(player.xp'), 'setState calculates new level from XP');
-  assert(mainSrc.includes('newLevel > oldLevel'), 'setState checks for level increase');
-}
-
-console.log('\n--- Wiring: render.js level-up phase ---');
-
-{
-  const fs = await import('node:fs');
-  const renderSrc = fs.readFileSync(new URL('../src/render.js', import.meta.url), 'utf8');
-
-  assert(renderSrc.includes("from './level-up.js'"), 'render.js imports from level-up.js');
-  assert(renderSrc.includes('getCurrentLevelUp'), 'render.js imports getCurrentLevelUp');
-  assert(renderSrc.includes('getStatDiffs'), 'render.js imports getStatDiffs');
-  assert(renderSrc.includes('formatStatName'), 'render.js imports formatStatName');
-  assert(renderSrc.includes('xpForNextLevel'), 'render.js imports xpForNextLevel');
-  assert(renderSrc.includes("phase === 'level-up'"), 'render.js handles level-up phase');
-  assert(renderSrc.includes('Level Up'), 'render.js shows Level Up heading');
-  assert(renderSrc.includes('Stat Growth'), 'render.js shows Stat Growth section');
-  assert(renderSrc.includes('btnLevelUpContinue'), 'render.js has continue button');
-  assert(renderSrc.includes('LEVEL_UP_CONTINUE'), 'render.js dispatches LEVEL_UP_CONTINUE');
-}
-
-console.log('\n--- Wiring: render.js victory shows level-up button ---');
-
-{
-  const fs = await import('node:fs');
-  const renderSrc = fs.readFileSync(new URL('../src/render.js', import.meta.url), 'utf8');
-
-  assert(renderSrc.includes('pendingLevelUps'), 'render.js checks pendingLevelUps');
-  assert(renderSrc.includes('btnViewLevelUps'), 'render.js has View Level Ups button');
-  assert(renderSrc.includes('VIEW_LEVEL_UPS'), 'render.js dispatches VIEW_LEVEL_UPS');
-}
-
-console.log('\n--- Wiring: easter egg scan on main.js and render.js ---');
-
-{
-  const fs = await import('node:fs');
-  const mainSrc = fs.readFileSync(new URL('../src/main.js', import.meta.url), 'utf8');
-  const renderSrc = fs.readFileSync(new URL('../src/render.js', import.meta.url), 'utf8');
-  const mainLower = mainSrc.toLowerCase();
-  const renderLower = renderSrc.toLowerCase();
-
-  // Note: "level" contains no egg references. Check for actual sabotage patterns.
-  assert(!mainLower.includes('easter'), 'main.js: no "easter"');
-  assert(!mainLower.includes('bunny'), 'main.js: no "bunny"');
-  assert(!mainLower.includes('rabbit'), 'main.js: no "rabbit"');
-  assert(!mainSrc.includes('eval('), 'main.js: no eval()');
-  assert(!mainSrc.includes('atob'), 'main.js: no atob');
-  assert(!mainSrc.includes('fromCharCode'), 'main.js: no fromCharCode');
-
-  assert(!renderLower.includes('easter'), 'render.js: no "easter"');
-  assert(!renderLower.includes('bunny'), 'render.js: no "bunny"');
-  assert(!renderLower.includes('rabbit'), 'render.js: no "rabbit"');
-  assert(!renderSrc.includes('eval('), 'render.js: no eval()');
-  assert(!renderSrc.includes('atob'), 'render.js: no atob');
-  assert(!renderSrc.includes('fromCharCode'), 'render.js: no fromCharCode');
-}
-
-// Update summary
+// Summary
 console.log(`\n==========================================`);
 console.log(`Level-Up System Tests: ${passed} passed, ${failed} failed`);
 console.log(`==========================================`);

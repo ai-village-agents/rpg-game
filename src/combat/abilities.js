@@ -235,6 +235,30 @@ const ABILITIES = {
     statusEffect: { type: 'regen', name: 'Regen', duration: 3, power: 6 },
     class: 'monster',
   },
+  'stone-gaze': {
+    id: 'stone-gaze',
+    name: 'Stone Gaze',
+    description: 'A petrifying glare that slows the target to a crawl.',
+    mpCost: 8,
+    power: 1.0,
+    healPower: 0,
+    element: 'earth',
+    targetType: 'single-enemy',
+    statusEffect: { type: 'spd-down', name: 'Petrify', duration: 3, power: 0 },
+    class: 'monster',
+  },
+  'venomous-peck': {
+    id: 'venomous-peck',
+    name: 'Venomous Peck',
+    description: 'A sharp beak strike that injects venom.',
+    mpCost: 4,
+    power: 1.3,
+    healPower: 0,
+    element: 'physical',
+    targetType: 'single-enemy',
+    statusEffect: { type: 'poison', name: 'Poison', duration: 2, power: 4 },
+    class: 'monster',
+  },
 };
 
 // ── Lookup Functions ─────────────────────────────────────────────────

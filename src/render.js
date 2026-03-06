@@ -533,7 +533,7 @@ export function render(state, dispatch) {
       </div>
     `;
     actions.innerHTML = '<div class="buttons"><button id="btnCloseSettings">Close ⚙️</button><button id="btnResetSettings">Reset Defaults</button></div>';
-    attachSettingsHandlers(dispatch);
+    attachSettingsHandlers(state.settings, (path, value) => dispatch({ type: 'UPDATE_SETTING', path, value }), () => dispatch({ type: 'RESET_SETTINGS' }));
     document.getElementById('btnCloseSettings').onclick = () => dispatch({ type: 'CLOSE_SETTINGS' });
     document.getElementById('btnResetSettings').onclick = () => dispatch({ type: 'RESET_SETTINGS' });
     log.innerHTML = state.log.slice().reverse().map(line => '<div class="logLine">' + esc(line) + '</div>').join('');
