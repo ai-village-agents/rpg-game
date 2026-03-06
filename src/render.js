@@ -19,6 +19,7 @@ import { renderCraftingPanel, getCraftingStyles, attachCraftingHandlers } from '
 import { renderTalentTree, getTalentTreeStyles, attachTalentHandlers } from './talents-ui.js';
 import { renderHelpModal, getHelpStyles, attachHelpHandlers } from './help-ui.js';
 import { renderWorldEventBanner } from './world-events-ui.js';
+import { isMinimapHidden } from './world-events.js';
 import { hasShop } from './shop.js';
 
 function hpLine(entity) {
@@ -216,7 +217,9 @@ export function render(state, dispatch) {
 
         ${mapHtml}
 
-        ${renderMinimap(state.world, state.visitedRooms || [])}
+        ${isMinimapHidden(state.worldEvent)
+          ? '<div class="card">The fog obscures your map...</div>'
+          : renderMinimap(state.world, state.visitedRooms || [])}
 
         <div class="card">
           <h2>People Here</h2>

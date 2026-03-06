@@ -7,6 +7,7 @@ import { calculateDamage, calculateHeal, getElementMultiplier } from './combat/d
 import { StatusEffect } from './combat/status-effects.js';
 import { selectEnemyAction, executeEnemyAbility } from './enemy-abilities.js';
 import { getEffectiveCombatStats } from './combat/equipment-bonuses.js';
+import { getGoldMultiplier, getMpCostMultiplier } from './world-events.js';
 
 // Minimal deterministic RNG (Park-Miller LCG)
 export function nextRng(seed) {
@@ -88,7 +89,8 @@ function processTurnStart(state, actorKey) {
 function applyVictoryDefeat(state) {
   if (state.enemy.hp <= 0) {
     const xpGained = state.enemy.xpReward ?? 0;
-    const goldGained = state.enemy.goldReward ?? 0;
+    const baseGold = state.enemy.goldReward ?? 0;
+    const goldGained = Math.floor(baseGold * getGoldMultiplier(state.worldEvent));
     state = {
       ...state,
       phase: 'victory',
@@ -234,8 +236,15 @@ export function playerUseAbility(state, abilityId) {
 
   // Check MP
   const currentMp = state.player.mp ?? 0;
-  if (currentMp < ability.mpCost) {
-    return pushLog(state, `Not enough MP! ${ability.name} costs ${ability.mpCost} MP. You have ${currentMp} MP.`);
+  const effectiveMpCost = Math.max(
+    1,
+    Math.floor(ability.mpCost * getMpCostMultiplier(state.worldEvent))
+  );
+  if (currentMp < effectiveMpCost) {
+    return pushLog(
+      state,
+      `Not enough MP! ${ability.name} costs ${effectiveMpCost} MP. You have ${currentMp} MP.`
+    );
   }
 
   // Deduct MP
@@ -243,7 +252,7 @@ export function playerUseAbility(state, abilityId) {
     ...state,
     player: {
       ...state.player,
-      mp: currentMp - ability.mpCost,
+      mp: currentMp - effectiveMpCost,
       defending: false,
     },
   };
