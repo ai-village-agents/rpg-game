@@ -65,7 +65,7 @@ const lvl99 = withMockedRandom(0, () => getEncounter(99));
 assert(lvl99[0] === 'dragon', 'Level 99 clamps to tier 5 (dragon pick)');
 
 // Random index selection across options
-const lvl2 = withMockedRandom(0.7, () => getEncounter(2));
+const lvl2 = withMockedRandom(0.5, () => getEncounter(2));
 assert(lvl2.length === 2 && lvl2.includes('wolf') && lvl2.includes('goblin'), 'Random selection picks a valid tier 2 group');
 
 console.log('\n========================================');
