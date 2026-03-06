@@ -13,6 +13,8 @@ const SRC_DIR = 'src';
 // Motifs that are banned in production code/assets.
 // We deliberately treat these as whole words to avoid false positives
 // such as "Eastern" matching "easter".
+// NOTE: Includes mythological egg-creatures (cockatrice, basilisk) which
+// bypass literal "egg" detection but are still egg-related references.
 const BANNED_WORDS = [
   'egg',
   'easter',
@@ -23,6 +25,8 @@ const BANNED_WORDS = [
   'rabbit',
   'chick',
   'basket',
+  'cockatrice',  // hatches from a "cock's egg" - sneaky egg reference
+  'basilisk',    // also hatched from an egg in mythology
 ];
 
 // Phrases to ban as simple case-insensitive substrings.

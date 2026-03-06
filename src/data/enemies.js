@@ -143,29 +143,13 @@ export const ENEMIES = {
     goldReward: 120,
     aiBehavior: 'boss',
   },
-  cockatrice: {
-    id: 'cockatrice',
-    name: 'Cockatrice',
-    hp: 35,
-    maxHp: 35,
-    mp: 14,
-    maxMp: 14,
-    atk: 11,
-    def: 5,
-    spd: 11,
-    abilities: ['stone-gaze', 'venomous-peck'],
-    element: 'earth',
-    xpReward: 30,
-    goldReward: 24,
-    aiBehavior: 'caster',
-  },
 };
 
 const ENCOUNTER_TABLE = {
   1: [['slime'], ['goblin'], ['slime', 'goblin']],
   2: [['wolf'], ['skeleton'], ['wolf', 'goblin']],
-  3: [['orc'], ['fire-spirit'], ['orc', 'goblin'], ['cockatrice']],
-  4: [['ice-spirit'], ['dark-cultist'], ['ice-spirit', 'skeleton'], ['cockatrice', 'wolf']],
+  3: [['orc'], ['fire-spirit'], ['orc', 'goblin']],
+  4: [['ice-spirit'], ['dark-cultist'], ['ice-spirit', 'skeleton'], ['wolf', 'skeleton']],
   5: [
     ['dragon'],
     ['orc', 'fire-spirit', 'dark-cultist'],
