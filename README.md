@@ -2,11 +2,32 @@
 
 A collaborative, browser-playable turn-based RPG built by the AI Village agents.
 
-Live demo (GitHub Pages): https://ai-village-agents.github.io/rpg-game/
+**Live demo (GitHub Pages):** https://ai-village-agents.github.io/rpg-game/
+
+## Features
+
+- **4 playable classes:** Warrior, Mage, Rogue, Cleric — each with unique stats and abilities
+- **Turn-based combat** with attack, defend, abilities, items, and potions
+- **Status effects:** Poison, burn, stun, regen, and more with duration tracking
+- **9 enemy types** across 5 zone tiers, from Slimes to Dragons
+- **Boss encounters:** Forest Guardian, Fire Drake, Shadow Wraith — with multi-phase fights
+- **Equipment system:** Weapons, armor, and accessories with stat bonuses and set bonuses
+- **Shop system:** Buy and sell items with dynamic pricing
+- **Crafting system:** Discover and craft recipes from collected materials
+- **Talent trees:** Allocate skill points across multiple talent branches
+- **Quest system:** Accept, track, and complete quests with rewards
+- **World events:** Dynamic events like Merchant Caravan, Monster Horde, Fog of War, and more
+- **NPC dialog system:** Story-driven conversations with NPCs
+- **Save/load system:** 5 save slots with full state persistence
+- **Settings:** Configurable game options
+- **Help/keybindings overlay:** In-game reference for controls
+- **Developer menu:** Debug tools for testing (toggle with dev key)
+- **Minimap:** Real-time map of explored areas
+- **Game statistics:** Track enemies defeated, items used, XP earned, and more
 
 ## Run locally
 
-No build step.
+No build step required — pure vanilla HTML/CSS/JS with ES modules.
 
 1. Clone the repo
 2. Open `index.html` in a browser
@@ -14,48 +35,98 @@ No build step.
 
 ## Controls
 
-- Exploration movement:
-  - Click the **North/South/West/East** buttons, or
-  - Use **WASD** / **Arrow keys**.
+- **Exploration movement:** Click **North/South/West/East** buttons, or use **WASD** / **Arrow keys**
+- **Combat:** Click action buttons (Attack, Defend, Ability, Item, Potion)
+- **Menus:** Click buttons or use keyboard shortcuts shown in the Help overlay
 
 Keyboard movement is ignored when focus is inside an `input`/`textarea` or a content-editable element.
 
-## UI notes
-
-- **Combat status effects** are displayed as badges under the **Status** row for both Player and Enemy.
-  - Badges show an icon/label and the remaining duration (turns).
-  - Hover a badge to see details (e.g., duration and per-turn damage/healing for effects like poison/burn/regen).
-- **Inventory equipment bonuses** are displayed in the Inventory screen:
-  - Each equipment slot shows item stat tags (e.g., `+2 ATK`).
-  - A **Total Bonuses** summary appears when you have any equipment bonuses.
-  - Player stats (ATK/DEF/SPD) show base, bonus, and effective totals.
-
 ## Tests
 
-- Smoke test:
-  - `npm test`
-- Full suite:
-  - `npm run test:all`
+- Smoke test: `npm test`
+- Full suite: `npm run test:all`
 
-CI is expected to run the full suite on every PR.
+CI runs the full suite on every PR. The test suite includes 500+ tests covering combat, items, equipment, crafting, talents, quests, world events, bosses, UI contracts, and defensive easter-egg detection.
 
 ## Project structure
 
-- `index.html` — app shell
-- `styles.css` — minimal styling
-- `src/` — game code (ES modules)
-  - `main.js` — bootstraps app, wires state + render
-  - `state.js` — initial state + tiny store helpers
-  - `combat.js` — turn resolution + enemy AI
-  - `render.js` — DOM renderer
-  - `inventory.js` — inventory + equipment + bonuses
-  - `status-effect-ui.js` — status effect badges renderer + CSS
-  - `data/` — content placeholders (characters, items)
+```
+index.html                — app shell
+styles.css                — minimal styling
+src/
+  main.js                 — bootstraps app, wires state + render
+  state.js                — initial state + store helpers
+  engine.js               — save/load system (5 slots)
+  render.js               — DOM renderer
+  input.js                — keyboard input handling
+  combat.js               — turn resolution + enemy AI
+  inventory.js            — inventory + equipment + bonuses
+  items.js                — item use/add/remove helpers
+  equipment-sets.js       — equipment set bonus calculations
+  shop.js / shop-ui.js    — shop logic and UI
+  crafting.js / crafting-ui.js — crafting logic and UI
+  talents.js / talents-ui.js   — talent tree logic and UI
+  quest-integration.js    — quest tracking and completion
+  quest-rewards.js / quest-rewards-ui.js — quest reward handling
+  world-events.js / world-events-ui.js   — dynamic world events
+  boss.js / boss-ui.js    — boss encounter logic and UI
+  npc-dialog.js           — NPC conversation system
+  level-up.js             — level progression and stat gains
+  minimap.js              — minimap rendering
+  game-stats.js           — gameplay statistics tracking
+  battle-summary.js       — post-combat summary
+  settings.js / settings-ui.js — game settings
+  save-slots-ui.js        — save slot UI
+  stats-display.js        — player stats display
+  status-effect-ui.js     — status effect badges + tooltips
+  combat-tooltips.js      — combat action tooltips
+  help-ui.js              — help/keybindings overlay
+  dev-menu.js             — developer debug menu
+  state-transitions.js    — game phase transitions
+  enemy-abilities.js      — enemy AI ability selection
+  audio-system.js         — audio management
+  game-integration.js     — cross-system integration
+  characters/
+    classes.js            — class definitions (Warrior, Mage, Rogue, Cleric)
+    character.js          — character creation
+    stats.js              — stat calculations
+    party.js              — party management
+  combat/
+    abilities.js          — player ability definitions
+    damage-calc.js        — damage/heal formulas
+    status-effects.js     — status effect definitions
+    equipment-bonuses.js  — combat stat bonuses from equipment
+  data/
+    enemies.js            — enemy definitions + encounter table
+    bosses.js             — boss definitions
+    items.js              — item catalog
+    recipes.js            — crafting recipes
+    talents.js            — talent definitions
+    world-events.js       — world event definitions
+    quests.js             — quest definitions
+    exploration-quests.js — exploration quest definitions
+    npcs.js               — NPC definitions
+    dialogs.js            — dialog scripts
+    characters.js         — character data
+  handlers/
+    system-handler.js     — system-level action dispatch
+    ui-handler.js         — UI action dispatch
+    combat-handler.js     — combat action dispatch
+    exploration-handler.js — exploration action dispatch
+  storage/                — persistence utilities
+  story/                  — story/dialog engine
+  ui/                     — shared UI utilities
+  audio/                  — audio assets/utilities
+tests/                    — 60+ test files, 500+ tests
+scripts/
+  run-tests.mjs           — test runner
+```
 
 ## Contributing
 
 - Prefer small PRs scoped to one module.
 - Avoid merge conflicts by coordinating ownership by module.
-- Assume *at least one* agent may be hiding “easter eggs”; keep changes reviewable.
+- Include tests for new features.
+- Run `npm run test:all` before submitting a PR.
 
 See `CONTRIBUTING.md`.
