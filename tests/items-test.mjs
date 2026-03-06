@@ -44,10 +44,12 @@ assert(Object.keys(items).length >= expectedItemIds.length, 'Item catalog contai
 expectedItemIds.forEach((id) => {
   assert(!!items[id], `${id} exists`);
   const item = items[id];
-  const requiredProps = ['id', 'name', 'type', 'rarity', 'description', 'effect', 'stats', 'value'];
+  const requiredProps = ['id', 'name', 'type', 'category', 'rarity', 'description', 'effect', 'stats', 'value'];
   assert(requiredProps.every((prop) => prop in item), `${id} exposes required properties`);
   assert(typeof item.effect === 'object', `${id} effect is an object`);
   assert(typeof item.stats === 'object', `${id} stats is an object`);
+  assert('category' in item, `${id} includes a category property`);
+  assert(item.category === item.type, `${id} category matches item type`);
 });
 
 // ── Test: Rarity Colors ─────────────────────────────────────────────

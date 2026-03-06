@@ -7,7 +7,7 @@ import { getCurrentLevelUp, getStatDiffs, formatStatName, xpForNextLevel } from 
 import { getNPCsInRoom, getCurrentDialogLine, getDialogProgress } from './npc-dialog.js';
 import { getActiveQuestsSummary, getAvailableQuestsInRoom } from './quest-integration.js';
 import { getAbilityDisplayInfo } from './combat/abilities.js';
-import { items as itemsData } from './data/items.js';
+import { items as itemsData, rarityColors } from './data/items.js';
 import { renderStatusEffectsRow, getStatusEffectStyles } from './status-effect-ui.js';
 import { getMinimapStyles, renderMinimap } from './minimap.js';
 import { renderStatsPanel, getStatsPanelStyles } from './stats-display.js';
@@ -688,13 +688,15 @@ export function render(state, dispatch) {
       : '<div><i>No bonuses</i></div><div></div>';
 
     // Build inventory items list HTML
-    const allItems = [...categorized.consumables, ...categorized.weapons, ...categorized.armor, ...categorized.accessories, ...categorized.other];
+    const allItems = [...categorized.consumables, ...categorized.weapons, ...categorized.armors, ...categorized.accessories, ...categorized.unknown];
     const itemRows = allItems.length === 0 ? '<div class="kv"><div><i>Empty</i></div><div></div></div>' :
-      '<div class="kv">' + allItems.map(({ id, name, count, type, equippable, usable }) => {
+      '<div class="kv">' + allItems.map(({ id, name, count, type, equippable, usable, rarity }) => {
         const useBtn = usable ? `<button class="inv-btn" data-action="use" data-item="${esc(id)}">Use</button>` : '';
         const eqBtn = equippable ? `<button class="inv-btn" data-action="equip" data-item="${esc(id)}">Equip</button>` : '';
         const detBtn = `<button class="inv-btn" data-action="details" data-item="${esc(id)}">Info</button>`;
-        return `<div>${esc(name)} <small>(${esc(type)})</small></div><div><b>${count}</b> ${useBtn}${eqBtn}${detBtn}</div>`;
+        const rarityColor = rarityColors[rarity] || '#aaa';
+        const rarityTag = rarity ? `<span style="color: ${rarityColor}; font-size: 0.85em; margin-left: 4px;">${esc(rarity)}</span>` : '';
+        return `<div>${esc(name)} <small>(${esc(type)})</small>${rarityTag}</div><div><b>${count}</b> ${useBtn}${eqBtn}${detBtn}</div>`;
       }).join('') + '</div>';
 
     // Item details screen
@@ -702,13 +704,22 @@ export function render(state, dispatch) {
     if (invState.screen === INVENTORY_SCREENS.DETAILS && invState.selectedItem) {
       const detail = getItemDetails(invState.selectedItem);
       if (detail) {
+        const rarityColor = rarityColors[detail.rarity] || '#aaa';
+        const rarityLabel = detail.rarity
+          ? `<span style="color:${rarityColor}; font-weight:700;">${esc(detail.rarity)}</span>`
+          : '<span style="color:#aaa;">Unknown</span>';
         const statsHtml = Object.entries(detail.stats || {}).map(([k, v]) => `<div>${esc(k)}</div><div><b>${v > 0 ? '+' : ''}${v}</b></div>`).join('');
         const effectHtml = Object.entries(detail.effect || {}).map(([k, v]) => `<div>${esc(k)}</div><div><b>${v}</b></div>`).join('');
         detailsHtml = `
           <div class="card">
-            <h2>${esc(detail.name)} <small class="good">${esc(detail.rarity || '')}</small></h2>
+            <h2>${esc(detail.name)}</h2>
+            <div style="color:#aaa; font-size:0.9em; margin-bottom:6px;">Type: <b>${esc(detail.type || 'Unknown')}</b> · Rarity: ${rarityLabel}</div>
             <div>${esc(detail.description || '')}</div>
-            <div class="kv">${statsHtml}${effectHtml}<div>Value</div><div><b>${detail.value}g</b></div></div>
+            <div class="kv">
+              <div>Category</div><div>${esc(detail.type || 'Unknown')}</div>
+              <div>Rarity</div><div>${rarityLabel}</div>
+              ${statsHtml}${effectHtml}<div>Value</div><div><b>${detail.value}g</b></div>
+            </div>
             <div class="buttons"><button id="btnInvBack">Back</button></div>
           </div>
         `;
