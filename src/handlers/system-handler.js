@@ -4,6 +4,7 @@ import { initQuestState } from '../quest-integration.js';
 import { createGameStats, recordBattleFled } from '../game-stats.js';
 import { initVisitedRooms } from '../minimap.js';
 import { getCurrentRoom } from '../map.js';
+import { saveToSlot, loadFromSlot, getSaveSlots, deleteSaveSlot } from '../engine.js';
 
 function getRoomDescription(worldState) {
   const room = getCurrentRoom(worldState);
@@ -68,6 +69,45 @@ export function handleSystemAction(state, action) {
       phase: 'class-select', 
       log: ['The adventure ends... but another awaits. Select your class.'] 
     };
+  }
+
+  if (type === 'SAVE_SLOTS') {
+    return { ...state, phase: 'save-slots', saveSlotMode: 'save', saveSlots: getSaveSlots() };
+  }
+
+  if (type === 'LOAD_SLOTS') {
+    return { ...state, phase: 'save-slots', saveSlotMode: 'load', saveSlots: getSaveSlots() };
+  }
+
+  if (type === 'SAVE_TO_SLOT') {
+    const slotIndex = action.slotIndex;
+    const success = saveToSlot(state, slotIndex);
+    if (success) {
+      return { ...state, phase: 'save-slots', saveSlotMode: 'save', saveSlots: getSaveSlots(), log: [...(state.log || []), 'Saved to slot ' + (slotIndex + 1) + '.'] };
+    }
+    return { ...state, phase: 'save-slots', saveSlotMode: 'save', saveSlots: getSaveSlots(), log: [...(state.log || []), 'Save failed!'] };
+  }
+
+  if (type === 'LOAD_FROM_SLOT') {
+    const slotIndex = action.slotIndex;
+    const loaded = loadFromSlot(slotIndex);
+    if (loaded) {
+      return { ...loaded, phase: 'exploration', log: [...(loaded.log || []), 'Loaded from slot ' + (slotIndex + 1) + '.'] };
+    }
+    return { ...state, phase: 'save-slots', saveSlotMode: 'load', saveSlots: getSaveSlots(), log: [...(state.log || []), 'Load failed! Slot may be empty.'] };
+  }
+
+  if (type === 'DELETE_SAVE_SLOT') {
+    deleteSaveSlot(action.slotIndex);
+    return { ...state, phase: 'save-slots', saveSlotMode: state.saveSlotMode || 'save', saveSlots: getSaveSlots(), log: [...(state.log || []), 'Slot ' + (action.slotIndex + 1) + ' deleted.'] };
+  }
+
+  if (type === 'CLOSE_SAVE_SLOTS') {
+    return { ...state, phase: 'exploration' };
+  }
+
+  if (type === 'SWITCH_SAVE_MODE') {
+    return { ...state, saveSlotMode: action.mode, saveSlots: getSaveSlots() };
   }
 
   return null;

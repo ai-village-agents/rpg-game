@@ -11,6 +11,7 @@ import { items as itemsData } from './data/items.js';
 import { renderStatusEffectsRow, getStatusEffectStyles } from './status-effect-ui.js';
 import { getMinimapStyles, renderMinimap } from './minimap.js';
 import { renderStatsPanel, getStatsPanelStyles } from './stats-display.js';
+import { renderSaveSlotsList, getSaveSlotsStyles } from './save-slots-ui.js';
 
 function hpLine(entity) {
   const pct = Math.round((entity.hp / entity.maxHp) * 100);
@@ -201,8 +202,7 @@ export function render(state, dispatch) {
         <button id="btnInventory">Inventory</button>
         <button id="btnQuests">Quests 📜</button>
         <button id="btnViewStats">Stats 📊</button>
-        <button id="btnSave">Save</button>
-        <button id="btnLoad">Load</button>
+        <button id="btnSaveSlots">Save/Load 💾</button>
       </div>
     `;
 
@@ -214,8 +214,7 @@ export function render(state, dispatch) {
     document.getElementById('btnInventory').onclick = () => dispatch({ type: 'VIEW_INVENTORY' });
     document.getElementById('btnQuests').onclick = () => dispatch({ type: 'VIEW_QUESTS' });
     document.getElementById('btnViewStats').onclick = () => dispatch({ type: 'VIEW_STATS' });
-    document.getElementById('btnSave').onclick = () => dispatch({ type: 'SAVE' });
-    document.getElementById('btnLoad').onclick = () => dispatch({ type: 'LOAD' });
+    document.getElementById('btnSaveSlots').onclick = () => dispatch({ type: 'SAVE_SLOTS' });
 
     hud.querySelectorAll('.npc-talk-btn').forEach((btn) => {
       btn.onclick = () => dispatch({ type: 'TALK_TO_NPC', npcId: btn.dataset.npcid });
@@ -509,6 +508,48 @@ export function render(state, dispatch) {
     `;
     actions.innerHTML = '<div class="buttons"><button id="btnCloseStats">Close 📊</button></div>';
     document.getElementById('btnCloseStats').onclick = () => dispatch({ type: 'CLOSE_STATS' });
+    log.innerHTML = state.log.slice().reverse().map(line => '<div class="logLine">' + esc(line) + '</div>').join('');
+    return;
+  }
+
+  // --- Save Slots Phase ---
+  if (state.phase === 'save-slots') {
+    const mode = state.saveSlotMode || 'save';
+    const slots = state.saveSlots || [];
+    hud.innerHTML = '<div class="row">' + renderSaveSlotsList(slots, mode) + '</div>';
+    actions.innerHTML = '';
+
+    // Style injection
+    if (!document.getElementById('save-slots-styles')) {
+      const styleEl = document.createElement('style');
+      styleEl.id = 'save-slots-styles';
+      styleEl.textContent = getSaveSlotsStyles();
+      document.head.appendChild(styleEl);
+    }
+
+    // Tab buttons
+    const btnModeSave = document.getElementById('btnModeSave');
+    const btnModeLoad = document.getElementById('btnModeLoad');
+    if (btnModeSave) btnModeSave.onclick = () => dispatch({ type: 'SWITCH_SAVE_MODE', mode: 'save' });
+    if (btnModeLoad) btnModeLoad.onclick = () => dispatch({ type: 'SWITCH_SAVE_MODE', mode: 'load' });
+
+    // Close button
+    const btnClose = document.getElementById('btnCloseSaveSlots');
+    if (btnClose) btnClose.onclick = () => dispatch({ type: 'CLOSE_SAVE_SLOTS' });
+
+    // Save/Load/Delete slot buttons
+    hud.querySelectorAll('.btn-save-slot').forEach(btn => {
+      btn.onclick = () => dispatch({ type: 'SAVE_TO_SLOT', slotIndex: parseInt(btn.dataset.slotIndex, 10) });
+    });
+    hud.querySelectorAll('.btn-load-slot').forEach(btn => {
+      if (!btn.disabled) {
+        btn.onclick = () => dispatch({ type: 'LOAD_FROM_SLOT', slotIndex: parseInt(btn.dataset.slotIndex, 10) });
+      }
+    });
+    hud.querySelectorAll('.btn-delete-slot').forEach(btn => {
+      btn.onclick = () => dispatch({ type: 'DELETE_SAVE_SLOT', slotIndex: parseInt(btn.dataset.slotIndex, 10) });
+    });
+
     log.innerHTML = state.log.slice().reverse().map(line => '<div class="logLine">' + esc(line) + '</div>').join('');
     return;
   }
