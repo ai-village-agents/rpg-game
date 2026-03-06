@@ -52,8 +52,8 @@ export function handleUIAction(state, action) {
     return handleInventoryAction(state, action);
   }
 
-  // Quests
-  if (type === 'VIEW_QUESTS') {
+  // Quests / Quest Log
+  if (type === 'VIEW_QUESTS' || type === 'VIEW_QUEST_LOG') {
     if (state.phase === 'class-select') return null;
     return { ...state, phase: 'quests', previousPhase: state.phase };
   }
@@ -63,7 +63,7 @@ export function handleUIAction(state, action) {
     return { ...state, phase: 'stats', previousPhase: state.phase };
   }
 
-  if (type === 'CLOSE_QUESTS') {
+  if (type === 'CLOSE_QUESTS' || type === 'CLOSE_QUEST_LOG') {
     if (state.phase !== 'quests') return null;
     return { ...state, phase: state.previousPhase || 'exploration' };
   }
