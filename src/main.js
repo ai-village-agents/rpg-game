@@ -1,17 +1,19 @@
-import { startNewGame } from "./game-integration.js";
-import { initialState, loadFromLocalStorage, saveToLocalStorage, pushLog } from './state.js';
+import { initialState, initialStateWithClass, loadFromLocalStorage, saveToLocalStorage, pushLog } from './state.js';
 import { playerAttack, playerDefend, playerUsePotion, playerUseAbility, playerUseItem, enemyAct, startNewEncounter } from './combat.js';
 import { render } from './render.js';
 import { createInventoryState, handleInventoryAction } from './inventory.js';
 import { keyToCardinalDirection } from './input.js';
+import { CLASS_DEFINITIONS } from './characters/classes.js';
 import { movePlayer, getCurrentRoom, getRoomExits } from './map.js';
 import { nextRng } from './combat.js';
 import { checkLevelUps, createLevelUpState, advanceLevelUp, getCurrentLevelUp } from './level-up.js';
 import { calcLevel } from './characters/stats.js';
 import { getNPCsInRoom, createDialogState, advanceDialog } from './npc-dialog.js';
+import { initQuestState, acceptQuest, onRoomEnter, getAvailableQuestsInRoom, getActiveQuestsSummary } from './quest-integration.js';
 import { createBattleSummary } from './battle-summary.js';
 import { initVisitedRooms, markRoomVisited } from './minimap.js';
 import { createGameStats, recordEnemyDefeated, recordDamageDealt, recordDamageReceived, recordItemUsed, recordAbilityUsed, recordGoldEarned, recordXPEarned, recordBattleWon, recordBattleFled, recordTurnPlayed } from './game-stats.js';
+import { handleUi } from './handlers/ui.js';
 
 const ENCOUNTER_RATE = 0.3; // 30% chance per move
 const ROOM_ID_MAP = [['nw', 'n', 'ne'], ['w', 'center', 'e'], ['sw', 's', 'se']];
@@ -130,12 +132,12 @@ function dispatch(action) {
     return setState({ ...next, gameStats: gs });
   }
 
-    }
-if (type === 'SELECT_CLASS') {
+  if (type === 'SELECT_CLASS') {
     if (!CLASS_DEFINITIONS[action.classId]) {
       return setState(pushLog(state, 'Unknown class selected.'));
     }
     state = initialStateWithClass(action.classId);
+    // Start in exploration phase instead of immediate combat
     state = {
       questState: initQuestState(),
       ...state,
@@ -146,50 +148,6 @@ if (type === 'SELECT_CLASS') {
       ],
       visitedRooms: initVisitedRooms(1, 1),
       gameStats: createGameStats(),
-    };
-    return render(state, dispatch);
-  }
-    state = initialStateWithClass(action.classId);
-    state = {
-      questState: initQuestState(),
-      ...state,
-      phase: 'exploration',
-      log: [
-        ,
-        ,
-      ],
-    };
-    return render(state, dispatch);
-  }
-if (type === 'SELECT_CLASS') {
-    if (!CLASS_DEFINITIONS[action.classId]) {
-      return setState(pushLog(state, 'Unknown class selected.'));
-    }
-    state = initialStateWithClass(action.classId);
-    state = {
-      questState: initQuestState(),
-      ...state,
-      phase: 'exploration',
-      log: [
-        ,
-        ,
-      ],
-    };
-    return render(state, dispatch);
-  }
-if (type === 'SELECT_CLASS') {
-    if (!CLASS_DEFINITIONS[action.classId]) {
-      return setState(pushLog(state, 'Unknown class selected.'));
-    }
-    state = initialStateWithClass(action.classId);
-    state = {
-      questState: initQuestState(),
-      ...state,
-      phase: 'exploration',
-      log: [
-        ,
-        ,
-      ],
     };
     return render(state, dispatch);
   }
@@ -430,6 +388,11 @@ if (type === 'SELECT_CLASS') {
   if (type === 'CLOSE_QUESTS') {
     if (state.phase !== 'quests') return;
     return setState({ ...state, phase: state.previousPhase || 'exploration' });
+  }
+
+  if (type === 'CLOSE_QUEST_LOG') {
+    const next = handleUi(state, action);
+    return setState(next);
   }
 
   if (type === 'ACCEPT_QUEST') {

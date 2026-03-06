@@ -5,15 +5,9 @@ import { getCategorizedInventory, getEquipmentDisplay, getItemDetails, INVENTORY
 import { getEffectiveCombatStats, getEquipmentBonusDisplay, hasEquipmentBonuses } from './combat/equipment-bonuses.js';
 import { getCurrentLevelUp, getStatDiffs, formatStatName, xpForNextLevel } from './level-up.js';
 import { getNPCsInRoom, getCurrentDialogLine, getDialogProgress } from './npc-dialog.js';
-import { getActiveQuestsSummary, getAvailableQuestsInRoom } from './quest-integration.js';
-import { getAbilityDisplayInfo } from './combat/abilities.js';
 import { items as itemsData } from './data/items.js';
-import { renderStatusEffectsRow, getStatusEffectStyles } from './status-effect-ui.js';
 import { getMinimapStyles, renderMinimap } from './minimap.js';
-
-function hpLine(entity) {
-  const pct = Math.round((entity.hp / entity.maxHp) * 100);
-  const status = entity.hp <= 0 ? 'bad' : (pct <= 25 ? 'bad' : (pct >= 75 ? 'good' : ''));
+import { getExplorationQuest } from './data/exploration-quests.js';
   return `<span class="${status}">${entity.hp}</span> / ${entity.maxHp}`;
 }
 
@@ -83,6 +77,96 @@ function renderMapPanel(state, dispatch) {
 
 const RENDER_ROOM_ID_MAP = [['nw', 'n', 'ne'], ['w', 'center', 'e'], ['sw', 's', 'se']];
 
+function renderQuestLog(state, hud, actions, dispatch) {
+  const questState = state.questState || { activeQuests: [], questProgress: {} };
+  const activeSummaries = getActiveQuestsSummary(questState);
+  const log = document.getElementById('log');
+
+  const questsHtml = activeSummaries.length === 0
+    ? '<div class="card"><p><i>No active quests yet.</i></p></div>'
+    : activeSummaries.map((summary) => {
+        const questData = getExplorationQuest(summary.questId);
+        const stageIndex = summary.stageIndex ?? 0;
+        const totalStages = summary.totalStages ?? (questData?.stages?.length || 0);
+        const currentStage = questData?.stages?.[stageIndex] || null;
+        const stageName = currentStage?.name ?? summary.currentStage ?? 'Current Objectives';
+        const stageDescription = currentStage?.description
+          ? `<div class="quest-stage-desc">${esc(currentStage.description)}</div>`
+          : '';
+        const questDescription = questData?.description
+          ? `<div class="quest-desc">${esc(questData.description)}</div>`
+          : '';
+        const objectiveProgress = summary.objectiveProgress || {};
+        const objectives = currentStage?.objectives || [];
+        const objectivesHtml = objectives.length === 0
+          ? '<div class="quest-objective"><i>No current objectives.</i></div>'
+          : objectives.map((objective) => {
+              const rawProgress = objectiveProgress[objective.id];
+              let isComplete = false;
+              let progressNote = '';
+              if (objective.type === 'KILL') {
+                const required = Number(objective.count) || 0;
+                const current = Number(rawProgress) || 0;
+                isComplete = required > 0 ? current >= required : current > 0;
+                if (required > 0) {
+                  progressNote = ` (${current}/${required})`;
+                } else if (current > 0) {
+                  progressNote = ` (${current})`;
+                }
+              } else if (objective.type === 'DELIVER') {
+                const required = Number(objective.count) || 1;
+                const current = Number(rawProgress) || 0;
+                isComplete = current >= required;
+                progressNote = ` (${current}/${required})`;
+              } else {
+                isComplete = Boolean(rawProgress);
+              }
+              const statusIcon = isComplete ? '✅' : '⬜';
+              return `<div class="quest-objective">${statusIcon} ${esc(objective.description || 'Objective')}${progressNote}</div>`;
+            }).join('');
+        const stageInfo = totalStages > 0
+          ? `<div class="quest-stage">Stage ${Math.min(stageIndex + 1, totalStages)} / ${totalStages}: ${esc(stageName)}</div>`
+          : `<div class="quest-stage">${esc(stageName)}</div>`;
+
+        return `
+          <div class="card quest-log-card">
+            <h2>${esc(summary.questName)}</h2>
+            ${questDescription}
+            ${stageInfo}
+            ${stageDescription}
+            <div class="quest-objectives">
+              ${objectivesHtml}
+            </div>
+          </div>
+        `;
+      }).join('');
+
+  hud.innerHTML = `
+    <div class="row quest-log">
+      ${questsHtml}
+    </div>
+  `;
+
+  actions.innerHTML = `
+    <div class="buttons">
+      <button id="btnQuestLogBack">Back</button>
+    </div>
+  `;
+
+  const backBtn = document.getElementById('btnQuestLogBack');
+  if (backBtn) {
+    backBtn.onclick = () => dispatch({ type: 'CLOSE_QUEST_LOG' });
+  }
+
+  if (log) {
+    log.innerHTML = state.log
+      .slice()
+      .reverse()
+      .map((line) => `<div class="logLine">${esc(line)}</div>`)
+      .join('');
+  }
+}
+
 export function render(state, dispatch) {
   const hud = document.getElementById('hud');
   const actions = document.getElementById('actions');
@@ -137,6 +221,11 @@ export function render(state, dispatch) {
       .reverse()
       .map((line) => `<div class="logLine">${esc(line)}</div>`)
       .join('');
+    return;
+  }
+
+  if (state.phase === 'QUEST_LOG') {
+    renderQuestLog(state, hud, actions, dispatch);
     return;
   }
 
