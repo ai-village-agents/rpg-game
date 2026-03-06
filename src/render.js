@@ -17,6 +17,7 @@ import { renderQuestRewardScreen, renderQuestRewardActions, attachQuestRewardHan
 import { renderShopPanel, getShopStyles, attachShopHandlers } from './shop-ui.js';
 import { renderCraftingPanel, getCraftingStyles, attachCraftingHandlers } from './crafting-ui.js';
 import { renderTalentTree, getTalentTreeStyles, attachTalentHandlers } from './talents-ui.js';
+import { renderWorldEventBanner } from './world-events-ui.js';
 import { hasShop } from './shop.js';
 
 function hpLine(entity) {
@@ -178,6 +179,7 @@ export function render(state, dispatch) {
       ? exploreNpcs.map(n => `<button class="npc-talk-btn" data-npcid="${esc(n.id)}">${esc(n.name)}</button>`).join('')
       : '<em>No one is here.</em>';
     hud.innerHTML = `
+      ${renderWorldEventBanner(state.worldEvent || null)}
       <div class="row">
         <div class="card">
           <h2>${esc(state.player.name)}</h2>
@@ -225,6 +227,7 @@ export function render(state, dispatch) {
         <button id="btnSaveSlots">Save/Load 💾</button>
         <button id="btnSettings">Settings ⚙️</button>
         <button id="btnCrafting">Crafting 🔨</button>
+        <button id="btnTalents">Talents ⭐</button>
       </div>
     `;
 
@@ -239,6 +242,7 @@ export function render(state, dispatch) {
     document.getElementById('btnSaveSlots').onclick = () => dispatch({ type: 'SAVE_SLOTS' });
     document.getElementById('btnSettings').onclick = () => dispatch({ type: 'VIEW_SETTINGS' });
     document.getElementById('btnCrafting').onclick = () => dispatch({ type: 'VIEW_CRAFTING' });
+    document.getElementById('btnTalents').onclick = () => dispatch({ type: 'VIEW_TALENTS' });
 
     hud.querySelectorAll('.npc-talk-btn').forEach((btn) => {
       btn.onclick = () => dispatch({ type: 'TALK_TO_NPC', npcId: btn.dataset.npcid });
