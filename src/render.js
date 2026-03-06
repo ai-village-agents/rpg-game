@@ -11,6 +11,7 @@ import { items as itemsData } from './data/items.js';
 import { renderStatusEffectsRow, getStatusEffectStyles } from './status-effect-ui.js';
 import { getMinimapStyles, renderMinimap } from './minimap.js';
 import { renderStatsPanel, getStatsPanelStyles } from './stats-display.js';
+import { renderSettingsPanel, getSettingsStyles, attachSettingsHandlers } from './settings-ui.js';
 
 function hpLine(entity) {
   const pct = Math.round((entity.hp / entity.maxHp) * 100);
@@ -111,6 +112,13 @@ export function render(state, dispatch) {
     document.head.appendChild(statsPanelStyleEl);
   }
 
+  if (!document.getElementById('settings-styles')) {
+    const settingsStyleEl = document.createElement('style');
+    settingsStyleEl.id = 'settings-styles';
+    settingsStyleEl.textContent = getSettingsStyles();
+    document.head.appendChild(settingsStyleEl);
+  }
+
   // --- Class Select Phase ---
   if (state.phase === 'class-select') {
     const order = ['warrior', 'mage', 'rogue', 'cleric'];
@@ -201,6 +209,7 @@ export function render(state, dispatch) {
         <button id="btnInventory">Inventory</button>
         <button id="btnQuests">Quests 📜</button>
         <button id="btnViewStats">Stats 📊</button>
+        <button id="btnViewSettings">Settings ⚙️</button>
         <button id="btnSave">Save</button>
         <button id="btnLoad">Load</button>
       </div>
@@ -214,6 +223,7 @@ export function render(state, dispatch) {
     document.getElementById('btnInventory').onclick = () => dispatch({ type: 'VIEW_INVENTORY' });
     document.getElementById('btnQuests').onclick = () => dispatch({ type: 'VIEW_QUESTS' });
     document.getElementById('btnViewStats').onclick = () => dispatch({ type: 'VIEW_STATS' });
+    document.getElementById('btnViewSettings').onclick = () => dispatch({ type: 'VIEW_SETTINGS' });
     document.getElementById('btnSave').onclick = () => dispatch({ type: 'SAVE' });
     document.getElementById('btnLoad').onclick = () => dispatch({ type: 'LOAD' });
 
@@ -513,6 +523,22 @@ export function render(state, dispatch) {
     return;
   }
 
+
+  // --- Settings Phase ---
+  if (state.phase === 'settings') {
+    const settings = state.settings || {};
+    hud.innerHTML = `
+      <div class="row">
+        ${renderSettingsPanel(settings, dispatch)}
+      </div>
+    `;
+    actions.innerHTML = '<div class="buttons"><button id="btnCloseSettings">Close ⚙️</button><button id="btnResetSettings">Reset Defaults</button></div>';
+    attachSettingsHandlers(dispatch);
+    document.getElementById('btnCloseSettings').onclick = () => dispatch({ type: 'CLOSE_SETTINGS' });
+    document.getElementById('btnResetSettings').onclick = () => dispatch({ type: 'RESET_SETTINGS' });
+    log.innerHTML = state.log.slice().reverse().map(line => '<div class="logLine">' + esc(line) + '</div>').join('');
+    return;
+  }
 
   // --- Quests Phase ---
   if (state.phase === 'quests') {

@@ -13,6 +13,7 @@ import { initQuestState, acceptQuest, onRoomEnter, getAvailableQuestsInRoom, get
 import { createBattleSummary } from './battle-summary.js';
 import { initVisitedRooms, markRoomVisited } from './minimap.js';
 import { createGameStats, recordEnemyDefeated, recordDamageDealt, recordDamageReceived, recordItemUsed, recordAbilityUsed, recordGoldEarned, recordXPEarned, recordBattleWon, recordBattleFled, recordTurnPlayed, getStatsSummary } from './game-stats.js';
+import { loadSettings, saveSettings, updateSetting, resetSettings } from './settings.js';
 
 const ENCOUNTER_RATE = 0.3; // 30% chance per move
 const ROOM_ID_MAP = [['nw', 'n', 'ne'], ['w', 'center', 'e'], ['sw', 's', 'se']];
@@ -397,6 +398,29 @@ function dispatch(action) {
   if (type === 'CLOSE_STATS') {
     if (state.phase !== 'stats') return;
     return setState({ ...state, phase: state.previousPhase || 'exploration' });
+  }
+
+  if (type === 'VIEW_SETTINGS') {
+    if (state.phase === 'class-select') return;
+    const settings = loadSettings();
+    return setState({ ...state, phase: 'settings', previousPhase: state.phase, settings });
+  }
+
+  if (type === 'CLOSE_SETTINGS') {
+    if (state.phase !== 'settings') return;
+    return setState({ ...state, phase: state.previousPhase || 'exploration' });
+  }
+
+  if (type === 'UPDATE_SETTING') {
+    if (!state.settings) return;
+    const newSettings = updateSetting(state.settings, action.path, action.value);
+    saveSettings(newSettings);
+    return setState({ ...state, settings: newSettings });
+  }
+
+  if (type === 'RESET_SETTINGS') {
+    const defaults = resetSettings();
+    return setState({ ...state, settings: defaults });
   }
 
   if (type === 'ACCEPT_QUEST') {
