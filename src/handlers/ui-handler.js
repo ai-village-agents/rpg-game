@@ -5,6 +5,8 @@ import { createGameStats, recordBattleWon, recordEnemyDefeated, recordXPEarned, 
 import { pushLog } from '../state.js';
 import { getCurrentRoom, getRoomExits } from '../map.js';
 import { advanceDialog } from '../npc-dialog.js';
+import { loadSettings, saveSettings, updateSetting, resetSettings } from '../settings.js';
+
 
 function getRoomDescription(worldState) {
   const room = getCurrentRoom(worldState);
@@ -154,5 +156,31 @@ export function handleUIAction(state, action) {
     return { ...rest, phase: returnPhase };
   }
 
-  return null;
+  
+  // Settings Actions
+  if (type === 'VIEW_SETTINGS') {
+    if (state.phase === 'class-select') return null;
+    return { ...state, phase: 'settings', previousPhase: state.phase, settings: loadSettings() };
+  }
+
+  if (type === 'CLOSE_SETTINGS') {
+    if (state.phase !== 'settings') return null;
+    return { ...state, phase: state.previousPhase || 'exploration' };
+  }
+
+  if (type === 'UPDATE_SETTING') {
+    if (state.phase !== 'settings') return null;
+    const newSettings = updateSetting(state.settings || {}, action.path, action.value);
+    saveSettings(newSettings);
+    return { ...state, settings: newSettings };
+  }
+
+  if (type === 'RESET_SETTINGS') {
+    if (state.phase !== 'settings') return null;
+    const defaultSettings = resetSettings();
+    saveSettings(defaultSettings);
+    return pushLog({ ...state, settings: defaultSettings }, 'Settings reset to defaults.');
+  }
+
+return null;
 }

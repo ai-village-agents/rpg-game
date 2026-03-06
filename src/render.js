@@ -11,6 +11,7 @@ import { items as itemsData } from './data/items.js';
 import { renderStatusEffectsRow, getStatusEffectStyles } from './status-effect-ui.js';
 import { getMinimapStyles, renderMinimap } from './minimap.js';
 import { renderStatsPanel, getStatsPanelStyles } from './stats-display.js';
+import { renderSettingsPanel, getSettingsStyles, attachSettingsHandlers } from './settings-ui.js';
 
 function hpLine(entity) {
   const pct = Math.round((entity.hp / entity.maxHp) * 100);
@@ -514,7 +515,26 @@ export function render(state, dispatch) {
   }
 
 
-  // --- Quests Phase ---
+  // --- Settings Phase ---
+  if (state.phase === 'settings') {
+    const settings = state.settings || {};
+    hud.innerHTML = `
+      <div class="row">
+        ${renderSettingsPanel(settings, dispatch)}
+      </div>
+    `;
+    actions.innerHTML = '<div class="buttons"><button id="btnCloseSettings">Close ⚙️</button><button id="btnResetSettings">Reset Defaults</button></div>';
+    // Attach handlers with proper callbacks for settings UI
+    const onSettingUpdate = (path, value) => dispatch({ type: 'UPDATE_SETTING', path, value });
+    const onSettingReset = () => dispatch({ type: 'RESET_SETTINGS' });
+    attachSettingsHandlers(settings, onSettingUpdate, onSettingReset);
+    document.getElementById('btnCloseSettings').onclick = () => dispatch({ type: 'CLOSE_SETTINGS' });
+    document.getElementById('btnResetSettings').onclick = () => dispatch({ type: 'RESET_SETTINGS' });
+    log.innerHTML = state.log.slice().reverse().map(line => '<div class="logLine">' + esc(line) + '</div>').join('');
+    return;
+  }
+
+    // --- Quests Phase ---
   if (state.phase === 'quests') {
     const questState = state.questState || { activeQuests: {}, completedQuests: [] };
     const summary = getActiveQuestsSummary(questState);
