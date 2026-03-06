@@ -13,9 +13,18 @@ import { initQuestState, acceptQuest, onRoomEnter, getAvailableQuestsInRoom, get
 import { createBattleSummary } from './battle-summary.js';
 import { initVisitedRooms, markRoomVisited } from './minimap.js';
 import { createGameStats, recordEnemyDefeated, recordDamageDealt, recordDamageReceived, recordItemUsed, recordAbilityUsed, recordGoldEarned, recordXPEarned, recordBattleWon, recordBattleFled, recordTurnPlayed, getStatsSummary } from './game-stats.js';
+import { createSfx } from './audio/sfx.js';
 
 const ENCOUNTER_RATE = 0.3; // 30% chance per move
 const ROOM_ID_MAP = [['nw', 'n', 'ne'], ['w', 'center', 'e'], ['sw', 's', 'se']];
+const sfx = createSfx();
+
+try {
+  const maybeInit = sfx?.init?.();
+  maybeInit?.catch?.(() => {});
+} catch (_) {
+  // ignore init errors
+}
 
 let state = { phase: 'class-select', log: ['Welcome to AI Village RPG! Select your class.'] };
 
@@ -58,6 +67,7 @@ function setState(next) {
 
   // After level-up detection, transition victory → battle-summary
   if (next.phase === 'victory' && state.phase !== 'battle-summary' && state.phase !== 'level-up') {
+    sfx?.play?.('combat_victory');
     next = { ...next, phase: 'battle-summary', battleSummary: createBattleSummary(next) };
   }
 
@@ -71,6 +81,7 @@ function setState(next) {
       state = enemyAct(state);
       const dmgReceived = Math.max(0, hpBefore - (state.player?.hp ?? hpBefore));
       if (dmgReceived > 0) {
+        sfx?.play?.('combat_hit');
         state = { ...state, gameStats: recordDamageReceived(state.gameStats ?? createGameStats(), dmgReceived) };
       }
       render(state, dispatch);
@@ -103,6 +114,7 @@ function dispatch(action) {
     let gs = next.gameStats ?? createGameStats();
     if (dmgDealt > 0) gs = recordDamageDealt(gs, dmgDealt);
     gs = recordTurnPlayed(gs);
+    sfx?.play?.('combat_attack');
     return setState({ ...next, gameStats: gs });
   }
   if (type === 'PLAYER_DEFEND') return setState(playerDefend(state));
@@ -111,6 +123,7 @@ function dispatch(action) {
     let gs = next.gameStats ?? createGameStats();
     gs = recordItemUsed(gs, 'potion');
     gs = recordTurnPlayed(gs);
+    sfx?.play?.('combat_heal');
     return setState({ ...next, gameStats: gs });
   }
   if (type === 'PLAYER_ABILITY') {
@@ -121,6 +134,7 @@ function dispatch(action) {
     gs = recordAbilityUsed(gs, action.abilityId);
     if (dmgDealt > 0) gs = recordDamageDealt(gs, dmgDealt);
     gs = recordTurnPlayed(gs);
+    sfx?.play?.('combat_attack');
     return setState({ ...next, gameStats: gs });
   }
   if (type === 'PLAYER_ITEM') {
@@ -128,11 +142,13 @@ function dispatch(action) {
     let gs = next.gameStats ?? createGameStats();
     gs = recordItemUsed(gs, action.itemId);
     gs = recordTurnPlayed(gs);
+    sfx?.play?.('combat_item');
     return setState({ ...next, gameStats: gs });
   }
 
   if (type === 'SELECT_CLASS') {
     if (!CLASS_DEFINITIONS[action.classId]) {
+      sfx?.play?.('ui_cancel');
       return setState(pushLog(state, 'Unknown class selected.'));
     }
     state = initialStateWithClass(action.classId);
@@ -148,19 +164,25 @@ function dispatch(action) {
       visitedRooms: initVisitedRooms(1, 1),
       gameStats: createGameStats(),
     };
+    sfx?.play?.('ui_confirm');
     return render(state, dispatch);
   }
 
   if (type === 'EXPLORE') {
     if (state.phase !== 'exploration') return;
     const direction = action.direction;
-    if (!direction) return setState(pushLog(state, 'Choose a direction to move.'));
+    if (!direction) {
+      sfx?.play?.('ui_cancel');
+      return setState(pushLog(state, 'Choose a direction to move.'));
+    }
 
     const result = movePlayer(state.world, direction);
     if (!result.moved) {
+      sfx?.play?.('map_blocked');
       return setState(pushLog(state, `You cannot go ${direction}. The way is blocked.`));
     }
 
+    sfx?.play?.('map_step');
     let next = { ...state, world: result.worldState };
     if (result.transitioned) {
       next = {
@@ -211,17 +233,21 @@ function dispatch(action) {
 
   if (type === 'MOVE') {
     if (state.phase !== 'exploration') {
+      sfx?.play?.('ui_cancel');
       return setState(pushLog(state, 'You cannot move right now.'));
     }
     const direction = action.direction;
     if (!direction || !['north', 'south', 'east', 'west'].includes(direction)) {
+      sfx?.play?.('ui_cancel');
       return setState(pushLog(state, 'Unknown direction.'));
     }
     const result = movePlayer(state.world, direction);
     if (!result.moved) {
       const reason = result.blocked === 'edge' ? 'The path ends here.' : 'Something blocks your way.';
+      sfx?.play?.('map_blocked');
       return setState(pushLog(state, reason));
     }
+    sfx?.play?.('map_step');
     const msg = result.transitioned && result.room
       ? `You move ${direction} into ${result.room.name}.`
       : `You move ${direction}.`;
