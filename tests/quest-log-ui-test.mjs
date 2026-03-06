@@ -185,6 +185,48 @@ describe('Quest Log UI - Room Enter Integration', () => {
   });
 });
 
+
+
+describe('Quest Log UI - UI handler aliases', () => {
+  it('VIEW_QUEST_LOG should behave like VIEW_QUESTS (phase -> quests)', async () => {
+    const { handleUIAction } = await import('../src/handlers/ui-handler.js');
+    const state = { phase: 'exploration', questState: { activeQuests: [], completedQuests: [] } };
+    const next = handleUIAction(state, { type: 'VIEW_QUEST_LOG' });
+    assert.ok(next);
+    assert.strictEqual(next.phase, 'quests');
+    assert.strictEqual(next.previousPhase, 'exploration');
+  });
+
+  it('VIEW_QUEST_LOG should be blocked from class-select (return null)', async () => {
+    const { handleUIAction } = await import('../src/handlers/ui-handler.js');
+    const state = { phase: 'class-select' };
+    const next = handleUIAction(state, { type: 'VIEW_QUEST_LOG' });
+    assert.strictEqual(next, null);
+  });
+
+  it('CLOSE_QUEST_LOG should behave like CLOSE_QUESTS (return to previousPhase)', async () => {
+    const { handleUIAction } = await import('../src/handlers/ui-handler.js');
+    const state = { phase: 'quests', previousPhase: 'exploration' };
+    const next = handleUIAction(state, { type: 'CLOSE_QUEST_LOG' });
+    assert.ok(next);
+    assert.strictEqual(next.phase, 'exploration');
+  });
+
+  it('CLOSE_QUEST_LOG should default to exploration if previousPhase missing', async () => {
+    const { handleUIAction } = await import('../src/handlers/ui-handler.js');
+    const state = { phase: 'quests' };
+    const next = handleUIAction(state, { type: 'CLOSE_QUEST_LOG' });
+    assert.ok(next);
+    assert.strictEqual(next.phase, 'exploration');
+  });
+
+  it('CLOSE_QUEST_LOG should only close from quests phase (return null otherwise)', async () => {
+    const { handleUIAction } = await import('../src/handlers/ui-handler.js');
+    const state = { phase: 'exploration', previousPhase: 'quests' };
+    const next = handleUIAction(state, { type: 'CLOSE_QUEST_LOG' });
+    assert.strictEqual(next, null);
+  });
+});
 describe('Quest Log UI - Phase Transitions', () => {
   describe('Valid phase transitions', () => {
     it('exploration -> quests is valid', () => {
