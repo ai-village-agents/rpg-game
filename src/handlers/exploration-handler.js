@@ -5,6 +5,7 @@ import { onRoomEnter } from '../quest-integration.js';
 import { buildPendingRewards, hasPendingRewards } from '../quest-rewards.js';
 import { getNPCsInRoom, createDialogState } from '../npc-dialog.js';
 import { pushLog } from '../state.js';
+import { tryTriggerWorldEvent, tickWorldEvent, applyImmediateEffect, applyPerMoveEffect, getEffectiveEncounterRate } from '../world-events.js';
 
 const ENCOUNTER_RATE = 0.3;
 const ROOM_ID_MAP = [['nw', 'n', 'ne'], ['w', 'center', 'e'], ['sw', 's', 'se']];
@@ -73,12 +74,33 @@ export function handleExplorationAction(state, action) {
       next = pushLog(next, `You move ${direction}.`);
     }
 
+    // World Events — tick existing event or try to trigger a new one
+    if (result.transitioned) {
+      const prevEvent = next.worldEvent || null;
+      // Try to trigger new event (only if none active)
+      const rngForEvent = nextRng((next.rngSeed || Date.now()) + 7919);
+      const triggered = tryTriggerWorldEvent(rngForEvent.seed, prevEvent);
+      if (triggered) {
+        next = applyImmediateEffect({ ...next, worldEvent: triggered }, triggered);
+        next = pushLog(next, triggered.icon + ' World Event: ' + triggered.name + '! ' + triggered.description);
+      } else {
+        const ticked = tickWorldEvent(prevEvent);
+        if (prevEvent && !ticked) {
+          next = pushLog(next, 'The ' + prevEvent.name + ' world event has ended.');
+        }
+        next = { ...next, worldEvent: ticked };
+        // Apply per-move effect
+        next = applyPerMoveEffect(next, ticked);
+      }
+    }
+
     // Random Encounter
     if (result.transitioned) {
       const rng = nextRng(next.rngSeed || Date.now());
       next = { ...next, rngSeed: rng.seed };
 
-      if (rng.value < ENCOUNTER_RATE) {
+      const encounterRate = getEffectiveEncounterRate(ENCOUNTER_RATE, next.worldEvent || null);
+      if (rng.value < encounterRate) {
         return startNewEncounter(next, 1);
       }
     }
@@ -161,6 +183,11 @@ export function handleExplorationAction(state, action) {
       dialogState,
       preDialogPhase: 'exploration',
     };
+  }
+
+  if (type === 'DISMISS_WORLD_EVENT') {
+    if (!state.worldEvent) return state;
+    return { ...state, worldEvent: null };
   }
 
   return null;
