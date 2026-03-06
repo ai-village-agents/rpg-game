@@ -26,6 +26,7 @@ const ROOM_NPCS = {
   ne: [
     {
       id: 'hermit_sage',
+      hasShop: true,
       name: 'Hermit Sage',
       greeting:
         'Ah, a seeker of knowledge! The ridge holds ancient secrets. Ask and I shall share wisdom.',
@@ -44,6 +45,7 @@ const ROOM_NPCS = {
   w: [
     {
       id: 'merchant_bram',
+      hasShop: true,
       name: 'Merchant Bram',
       greeting:
         'Ho there! I trade in fine goods. If you find rare items on your travels, I pay well!',
@@ -53,6 +55,7 @@ const ROOM_NPCS = {
   s: [
     {
       id: 'wandering_knight',
+      hasShop: true,
       name: 'Wandering Knight',
       greeting:
         'Well met! I am Sir Aldous, knight errant. The southern road grows dangerous. Watch yourself.',
@@ -71,6 +74,7 @@ const ROOM_NPCS = {
   sw: [
     {
       id: 'swamp_witch',
+      hasShop: true,
       name: 'Swamp Witch Helga',
       greeting: "Eye of newt and wing of bat... Oh! A visitor! Don't mind the cauldron, dearie.",
       dialog: ['witch_1'],

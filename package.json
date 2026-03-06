@@ -30,7 +30,7 @@
     "test:npc-dialog": "node ./tests/npc-dialog-test.mjs",
     "test:battle-summary": "node ./tests/battle-summary-test.mjs",
     "test:combat-items": "node tests/combat-items-test.mjs",
-    "test:shop": "node --test tests/shop-test.mjs",
+    "test:shop": "node --test tests/shop-test.mjs tests/shop-ui-test.mjs",
     "test:all": "node ./scripts/run-tests.mjs && npm run test:shop",
     "test:all:list": "node ./scripts/run-tests.mjs --list",
     "test:all:quiet": "node ./scripts/run-tests.mjs --quiet"

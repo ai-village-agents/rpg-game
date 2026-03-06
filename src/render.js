@@ -14,6 +14,8 @@ import { renderStatsPanel, getStatsPanelStyles } from './stats-display.js';
 import { renderSaveSlotsList, getSaveSlotsStyles } from './save-slots-ui.js';
 import { renderSettingsPanel, getSettingsStyles, attachSettingsHandlers } from './settings-ui.js';
 import { renderQuestRewardScreen, renderQuestRewardActions, attachQuestRewardHandlers, getQuestRewardStyles } from './quest-rewards-ui.js';
+import { renderShopPanel, getShopStyles, attachShopHandlers } from './shop-ui.js';
+import { hasShop } from './shop.js';
 
 function hpLine(entity) {
   const pct = Math.round((entity.hp / entity.maxHp) * 100);
@@ -810,6 +812,28 @@ export function render(state, dispatch) {
     return;
   }
 
+  if (state.phase === 'shop' && state.shopState) {
+    const shopHtml = renderShopPanel(state.shopState, state.player);
+
+    hud.innerHTML = shopHtml;
+
+    actions.innerHTML = \`
+      <div class="buttons">
+        <button id="btnCloseShop">Leave Shop</button>
+      </div>
+    \`;
+
+    attachShopHandlers(hud, dispatch);
+    document.getElementById('btnCloseShop').onclick = () => dispatch({ type: 'CLOSE_SHOP' });
+
+    log.innerHTML = state.log
+      .slice()
+      .reverse()
+      .map((line) => \`<div class="logLine">\${esc(line)}</div>\`)
+      .join('');
+    return;
+  }
+
   if (state.phase === 'dialog' && state.dialogState) {
     const ds = state.dialogState;
     const currentLine = getCurrentDialogLine(ds);
@@ -840,6 +864,9 @@ export function render(state, dispatch) {
       document.getElementById('btnDialogNext').onclick = () => dispatch({ type: 'DIALOG_NEXT' });
     }
     document.getElementById('btnDialogClose').onclick = () => dispatch({ type: 'DIALOG_CLOSE' });
+    if (npcHasShop) {
+      document.getElementById('btnViewShop').onclick = () => dispatch({ type: 'VIEW_SHOP', npcId: ds.npcId });
+    }
 
     log.innerHTML = state.log
       .slice()

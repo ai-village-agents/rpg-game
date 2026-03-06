@@ -8,6 +8,7 @@ import { pushLog } from '../state.js';
 import { getCurrentRoom, getRoomExits } from '../map.js';
 import { advanceDialog } from '../npc-dialog.js';
 import { loadSettings, updateSetting, resetSettings, saveSettings } from '../settings.js';
+import { createShopState, buyItem, sellItem } from '../shop.js';
 
 function getRoomDescription(worldState) {
   const room = getCurrentRoom(worldState);
@@ -201,6 +202,39 @@ export function handleUIAction(state, action) {
     }
     return next;
   }
+
+  // Shop Actions
+  if (type === 'VIEW_SHOP') {
+    if (!action.npcId) return null;
+    const shopState = createShopState(action.npcId, state.preDialogPhase || state.phase);
+    if (!shopState) return pushLog(state, 'This person has nothing to sell.');
+    return { ...state, phase: 'shop', shopState };
+  }
+
+  if (type === 'BUY_ITEM') {
+    if (state.phase !== 'shop' || !state.shopState) return null;
+    const result = buyItem(state.player, state.shopState, action.itemId, action.quantity || 1);
+    return { ...state, player: result.player, shopState: result.shopState };
+  }
+
+  if (type === 'SELL_ITEM') {
+    if (state.phase !== 'shop' || !state.shopState) return null;
+    const result = sellItem(state.player, state.shopState, action.itemId, action.quantity || 1);
+    return { ...state, player: result.player, shopState: result.shopState };
+  }
+
+  if (type === 'SHOP_SWITCH_TAB') {
+    if (state.phase !== 'shop' || !state.shopState) return null;
+    return { ...state, shopState: { ...state.shopState, tab: action.tab || 'buy', message: null } };
+  }
+
+  if (type === 'CLOSE_SHOP') {
+    if (state.phase !== 'shop') return null;
+    const returnPhase = state.shopState?.previousPhase || 'exploration';
+    const { shopState: _ss, ...rest } = state;
+    return { ...rest, phase: returnPhase };
+  }
+
 
   return null;
 }
