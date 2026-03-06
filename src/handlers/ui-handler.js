@@ -5,6 +5,7 @@ import { createGameStats, recordBattleWon, recordEnemyDefeated, recordXPEarned, 
 import { pushLog } from '../state.js';
 import { getCurrentRoom, getRoomExits } from '../map.js';
 import { advanceDialog } from '../npc-dialog.js';
+import { renderAchievementsPanel } from '../achievements-ui.js';
 import { loadSettings, updateSetting, resetSettings } from '../settings.js';
 
 function getRoomDescription(worldState) {
@@ -24,6 +25,17 @@ export function handleUIAction(state, action) {
 
   if (type === 'CLOSE_SETTINGS') {
     if (state.phase !== 'settings') return null;
+    return { ...state, phase: state.previousPhase || 'exploration' };
+  }
+
+  // Achievements
+  if (type === 'VIEW_ACHIEVEMENTS') {
+    if (state.phase === 'class-select') return null;
+    return { ...state, phase: 'achievements', previousPhase: state.phase };
+  }
+
+  if (type === 'CLOSE_ACHIEVEMENTS') {
+    if (state.phase !== 'achievements') return null;
     return { ...state, phase: state.previousPhase || 'exploration' };
   }
 
