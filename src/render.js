@@ -817,11 +817,11 @@ export function render(state, dispatch) {
 
     hud.innerHTML = shopHtml;
 
-    actions.innerHTML = \`
+    actions.innerHTML = `
       <div class="buttons">
         <button id="btnCloseShop">Leave Shop</button>
       </div>
-    \`;
+    `;
 
     attachShopHandlers(hud, dispatch);
     document.getElementById('btnCloseShop').onclick = () => dispatch({ type: 'CLOSE_SHOP' });
@@ -829,7 +829,7 @@ export function render(state, dispatch) {
     log.innerHTML = state.log
       .slice()
       .reverse()
-      .map((line) => \`<div class="logLine">\${esc(line)}</div>\`)
+      .map((line) => `<div class="logLine">${esc(line)}</div>`)
       .join('');
     return;
   }
