@@ -239,10 +239,16 @@ export function handleCombatAction(gameState, action) {
     // Apply crafting material drops based on enemy levels
     const enemies = combatState.allCombatants.filter((c) => c.side === 'enemy');
     const craftingResult = applyCraftingMaterialDrops(
-      { ...updated, player: rewardResult.party?.members?.[0] ?? updated.player ?? {}, inventory: rewardResult.inventory },
+      {
+        ...updated,
+        player: {
+          ...(rewardResult.party?.members?.[0] ?? updated.player ?? {}),
+          inventory: rewardResult.inventory,
+        },
+      },
       enemies
     );
-    const finalInventory = craftingResult.drops.length > 0 ? craftingResult.state.player?.inventory ?? rewardResult.inventory : rewardResult.inventory;
+    const finalInventory = craftingResult.state.inventory ?? rewardResult.inventory;
     messages.push(...craftingResult.messages);
     updated = { ...updated, party: rewardResult.party, inventory: finalInventory, combatState: null, gamePhase: setGameState(GameState.EXPLORATION) };
     emit('combat:win', { rewards: combatState.rewards });

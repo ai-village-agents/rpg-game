@@ -58,9 +58,8 @@ export function applyCraftingMaterialDrops(state, enemies, rng = Math.random) {
   });
 
   const baseState = state && typeof state === 'object' ? state : {};
-  const player = baseState.player && typeof baseState.player === 'object' ? { ...baseState.player } : {};
-  let inventory = player.inventory && typeof player.inventory === 'object' && !Array.isArray(player.inventory)
-    ? player.inventory
+  let inventory = baseState.inventory && typeof baseState.inventory === 'object' && !Array.isArray(baseState.inventory)
+    ? { ...baseState.inventory }
     : {};
 
   for (const drop of drops) {
@@ -69,10 +68,7 @@ export function applyCraftingMaterialDrops(state, enemies, rng = Math.random) {
 
   const nextState = {
     ...baseState,
-    player: {
-      ...player,
-      inventory,
-    },
+    inventory,
   };
 
   const messages = getCraftingDropMessages(drops);
