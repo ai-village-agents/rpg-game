@@ -218,7 +218,7 @@ console.log('\n--- onNPCTalk - TALK objectives ---');
   const { questState: afterExplore } = onRoomEnter(state, 'nw');
   state = afterExplore;
 
-  const talkResult = onNPCTalk(state, 'grove_guardian_spirit');
+  const talkResult = onNPCTalk(state, 'forest_spirit');
   const progress = talkResult.questState.questProgress['grove_guardian'];
 
   assert(progress.objectiveProgress['talk_guardian'] === true, 'talk objective marked complete');
