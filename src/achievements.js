@@ -92,33 +92,33 @@ const ACHIEVEMENTS = [
   {
     id: 'first_steps',
     name: 'First Steps',
+    description: 'Explore your first room',
+    category: 'exploration',
+    condition: (data) => data.explored.length >= 1,
+    getProgress: (data) => data.explored.length
+  },
+  {
+    id: 'wanderer',
+    name: 'Wanderer',
     description: 'Explore 5 rooms',
     category: 'exploration',
     condition: (data) => data.explored.length >= 5,
     getProgress: (data) => data.explored.length
   },
   {
-    id: 'wanderer',
-    name: 'Wanderer',
-    description: 'Explore 20 rooms',
-    category: 'exploration',
-    condition: (data) => data.explored.length >= 20,
-    getProgress: (data) => data.explored.length
-  },
-  {
     id: 'pathfinder',
     name: 'Pathfinder',
-    description: 'Explore 50 rooms',
+    description: 'Explore 15 rooms',
     category: 'exploration',
-    condition: (data) => data.explored.length >= 50,
+    condition: (data) => data.explored.length >= 15,
     getProgress: (data) => data.explored.length
   },
   {
     id: 'cartographer',
     name: 'Cartographer',
-    description: 'Explore 100 rooms',
+    description: 'Explore 30 rooms',
     category: 'exploration',
-    condition: (data) => data.explored.length >= 100,
+    condition: (data) => data.explored.length >= 30,
     getProgress: (data) => data.explored.length
   },
 
@@ -184,17 +184,17 @@ const ACHIEVEMENTS = [
   {
     id: 'wealthy',
     name: 'Wealthy',
-    description: 'Collect 1000 gold',
+    description: 'Collect 500 gold',
     category: 'collection',
-    condition: (data) => data.gold >= 1000,
+    condition: (data) => data.gold >= 500,
     getProgress: (data) => data.gold
   },
   {
     id: 'tycoon',
     name: 'Tycoon',
-    description: 'Collect 5000 gold',
+    description: 'Collect 2000 gold',
     category: 'collection',
-    condition: (data) => data.gold >= 5000,
+    condition: (data) => data.gold >= 2000,
     getProgress: (data) => data.gold
   },
   {
@@ -254,9 +254,9 @@ const ACHIEVEMENTS = [
   {
     id: 'quest_seeker',
     name: 'Quest Seeker',
-    description: 'Complete 5 quests',
+    description: 'Complete 3 quests',
     category: 'quests',
-    condition: (data) => data.completedQuests.length >= 5,
+    condition: (data) => data.completedQuests.length >= 3,
     getProgress: (data) => data.completedQuests.length
   },
   {
