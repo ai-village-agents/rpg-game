@@ -9,13 +9,14 @@ import {
   onRoomEnter,
   onEnemyKill,
   onNPCTalk,
+  onNPCDeliver,
   getQuestProgress,
   getAvailableQuestsInRoom,
   getActiveQuestsSummary,
   applyQuestRewards
 } from '../src/quest-integration.js';
 
-import { getExplorationQuest } from '../src/data/exploration-quests.js';
+import { EXPLORATION_QUESTS } from '../src/data/exploration-quests.js';
 
 let passed = 0;
 let failed = 0;
@@ -355,6 +356,101 @@ console.log('\n--- Full Quest Flow ---');
   const { playerState, messages } = applyQuestRewards(player, r3.completedQuests[0].rewards);
   assert(playerState.xp === 25, 'xp reward applied (explore_village gives 25)');
   assert(playerState.gold === 10, 'gold reward applied (explore_village gives 10)');
+}
+
+// --- onNPCDeliver ---
+console.log('\n--- onNPCDeliver ---');
+{
+  // Test 1: no-op when npcId is null
+  const state1 = initQuestState();
+  const result1 = onNPCDeliver(state1, null, {});
+  assert(result1.messages.length === 0, 'no messages when npcId is null');
+  assert(result1.itemsConsumed.length === 0, 'no items consumed when npcId is null');
+
+  // Test 2: no-op when player does not have required item
+  let state2 = initQuestState();
+  const { questState: state2Accepted } = acceptQuest(state2, 'grove_guardian');
+  const { questState: state2Stage } = onRoomEnter(state2Accepted, 'nw');
+  state2 = state2Stage;
+  const result2 = onNPCDeliver(state2, 'forest_spirit', {});
+  assert(result2.messages.length === 0, 'no completion message when item missing');
+  assert(result2.itemsConsumed.length === 0, 'no items consumed when item missing');
+  assert(result2.completedObjectives.length === 0, 'objective not completed when item missing');
+
+  // Test 3: completes DELIVER objective and returns itemsConsumed when player has required item
+  let state3 = initQuestState();
+  const { questState: state3Accepted } = acceptQuest(state3, 'grove_guardian');
+  const { questState: state3Stage } = onRoomEnter(state3Accepted, 'nw');
+  const { questState: state3Talk } = onNPCTalk(state3Stage, 'forest_spirit');
+  state3 = state3Talk;
+  const result3 = onNPCDeliver(state3, 'forest_spirit', { forest_herb: 1 });
+  assert(result3.messages.length > 0, 'completion message returned when item present');
+  assert(result3.messages[0].startsWith('✓'), 'completion message starts with checkmark');
+  assert(result3.itemsConsumed.length === 1, 'one item consumed');
+  assert(result3.itemsConsumed[0].itemId === 'forest_herb', 'consumed forest_herb');
+  assert(result3.itemsConsumed[0].quantity === 1, 'consumed quantity is 1');
+  assert(result3.completedObjectives.length === 1, 'deliver objective completed');
+  assert(result3.questState.completedQuests.includes('grove_guardian'), 'quest completes after delivery');
+
+  // Test 4: does not re-trigger when objective already complete
+  const result4 = onNPCDeliver(result3.questState, 'forest_spirit', { forest_herb: 1 });
+  assert(result4.itemsConsumed.length === 0, 'no items consumed after completion');
+  assert(result4.messages.length === 0, 'no duplicate messages after completion');
+
+  // Test 5: supports itemIds array shape (plural)
+  const arrayQuestId = 'test_array_deliver';
+  EXPLORATION_QUESTS[arrayQuestId] = {
+    id: arrayQuestId,
+    name: 'Array Deliver',
+    description: 'Deliver multiple items.',
+    type: 'SIDE',
+    level: 1,
+    stages: [
+      {
+        id: 'stage1',
+        name: 'Stage1',
+        description: 'Deliver items',
+        objectives: [
+          {
+            id: 'obj1',
+            type: 'DELIVER',
+            description: 'Deliver items',
+            itemIds: ['forest_herb', 'healing_potion'],
+            required: true,
+            targetNpcId: 'merchant_npc'
+          }
+        ],
+        nextStage: null
+      }
+    ],
+    rewards: { experience: 20, gold: 0, items: [] },
+    prerequisites: []
+  };
+
+  let state5 = initQuestState();
+  const { questState: state5Accepted } = acceptQuest(state5, arrayQuestId);
+  state5 = state5Accepted;
+
+  const result5a = onNPCDeliver(state5, 'merchant_npc', { forest_herb: 1 });
+  assert(result5a.completedObjectives.length === 0, 'array deliver not complete with one item');
+  assert(result5a.itemsConsumed.length === 0, 'no items consumed with incomplete items');
+
+  const result5b = onNPCDeliver(state5, 'merchant_npc', { forest_herb: 1, healing_potion: 1 });
+  assert(result5b.completedObjectives.length === 1, 'array deliver completes with all items');
+  assert(result5b.itemsConsumed.length === 2, 'both items consumed');
+  assert(result5b.itemsConsumed[0].itemId === 'forest_herb', 'first consumed item is forest_herb');
+  assert(result5b.itemsConsumed[1].itemId === 'healing_potion', 'second consumed item is healing_potion');
+  assert(result5b.questState.completedQuests.includes(arrayQuestId), 'array deliver quest completes');
+
+  delete EXPLORATION_QUESTS[arrayQuestId];
+
+  // Test 6: does not complete if wrong NPC
+  let state6 = initQuestState();
+  const { questState: state6Accepted } = acceptQuest(state6, 'grove_guardian');
+  const { questState: state6Stage } = onRoomEnter(state6Accepted, 'nw');
+  state6 = state6Stage;
+  const result6 = onNPCDeliver(state6, 'wrong_npc', { forest_herb: 1 });
+  assert(result6.completedObjectives.length === 0, 'no completion for wrong NPC');
 }
 
 // --- Summary ---

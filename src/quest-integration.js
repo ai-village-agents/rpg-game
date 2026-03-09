@@ -7,6 +7,7 @@
 import { getExplorationQuest, getExplorationQuests, getQuestsForRoom } from './data/exploration-quests.js';
 import { getCompanionById, isCompanionRecruited } from './companions.js';
 import { getLoyaltyTier, getLoyaltyTierIndex, LOYALTY_TIER_ORDER } from './companion-loyalty-events.js';
+import { removeItemFromInventory } from './items.js';
 
 /**
  * Initialize quest tracking state
@@ -471,6 +472,154 @@ function onNPCTalk(questState, npcId) {
 }
 
 /**
+ * Update DELIVER objective progress when delivering items to an NPC
+ * @param {Object} questState - Current quest state
+ * @param {string} npcId - NPC being spoken to
+ * @param {Object} playerInventory - Player inventory { [itemId]: count }
+ * @returns {Object} { questState, messages, completedObjectives, completedStages, completedQuests, itemsConsumed }
+ */
+function onNPCDeliver(questState, npcId, playerInventory) {
+  if (!npcId) {
+    return {
+      questState,
+      messages: [],
+      completedObjectives: [],
+      completedStages: [],
+      completedQuests: [],
+      itemsConsumed: []
+    };
+  }
+
+  const messages = [];
+  const completedObjectives = [];
+  const completedStages = [];
+  const completedQuests = [];
+  const itemsConsumed = [];
+  const inventory = playerInventory || {};
+  let newState = questState;
+
+  for (const questId of newState.activeQuests) {
+    const quest = getExplorationQuest(questId);
+    if (!quest) continue;
+
+    const progress = newState.questProgress[questId];
+    if (!progress) continue;
+
+    const stage = quest.stages[progress.stageIndex];
+    if (!stage || !stage.objectives) continue;
+
+    let stageComplete = true;
+    let objectiveUpdated = false;
+
+    for (const objective of stage.objectives) {
+      if (
+        objective.type === 'DELIVER'
+        && (objective.targetNpcId === npcId || objective.npcId === npcId)
+      ) {
+        const alreadyComplete = progress.objectiveProgress[objective.id] === true;
+        if (!alreadyComplete) {
+          const requiredItems = [];
+          if (Array.isArray(objective.itemIds)) {
+            for (const entry of objective.itemIds) {
+              if (!entry) continue;
+              if (typeof entry === 'string') {
+                requiredItems.push({ itemId: entry, count: 1 });
+              } else if (typeof entry === 'object' && entry.itemId) {
+                requiredItems.push({ itemId: entry.itemId, count: entry.count || 1 });
+              }
+            }
+          } else if (objective.itemId) {
+            requiredItems.push({ itemId: objective.itemId, count: objective.count || 1 });
+          }
+
+          let hasAllItems = requiredItems.length > 0;
+          for (const req of requiredItems) {
+            const available = inventory[req.itemId] || 0;
+            if (available < req.count) {
+              hasAllItems = false;
+              break;
+            }
+          }
+
+          if (hasAllItems) {
+            newState = {
+              ...newState,
+              questProgress: {
+                ...newState.questProgress,
+                [questId]: {
+                  ...newState.questProgress[questId],
+                  objectiveProgress: {
+                    ...newState.questProgress[questId].objectiveProgress,
+                    [objective.id]: true
+                  }
+                }
+              }
+            };
+            objectiveUpdated = true;
+            completedObjectives.push({ questId, objectiveId: objective.id, description: objective.description });
+            messages.push(`✓ ${objective.description}`);
+            for (const req of requiredItems) {
+              itemsConsumed.push({ itemId: req.itemId, quantity: req.count });
+            }
+          }
+        }
+      }
+
+      const objProgress = newState.questProgress[questId].objectiveProgress[objective.id];
+      if (objective.required) {
+        if (objective.type === 'KILL') {
+          if ((objProgress || 0) < objective.count) stageComplete = false;
+        } else if (!objProgress) {
+          stageComplete = false;
+        }
+      }
+    }
+
+    if (stageComplete && objectiveUpdated) {
+      const nextStageId = stage.nextStage;
+      if (nextStageId) {
+        const nextStageIndex = quest.stages.findIndex(s => s.id === nextStageId);
+        if (nextStageIndex !== -1) {
+          newState = {
+            ...newState,
+            questProgress: {
+              ...newState.questProgress,
+              [questId]: {
+                ...newState.questProgress[questId],
+                stageIndex: nextStageIndex,
+                objectiveProgress: {}
+              }
+            }
+          };
+          completedStages.push({ questId, stageId: stage.id, stageName: stage.name });
+          messages.push(`Stage complete: ${stage.name}`);
+          messages.push(`New objective: ${quest.stages[nextStageIndex].name}`);
+        }
+      } else {
+        newState = {
+          ...newState,
+          activeQuests: newState.activeQuests.filter(id => id !== questId),
+          completedQuests: [...newState.completedQuests, questId],
+          questProgress: {
+            ...newState.questProgress,
+            [questId]: { ...newState.questProgress[questId], completed: true }
+          }
+        };
+        completedQuests.push({ questId, questName: quest.name, rewards: quest.rewards });
+        messages.push(`★ Quest complete: ${quest.name}!`);
+        if (quest.rewards) {
+          if (quest.rewards.experience) messages.push(`  +${quest.rewards.experience} XP`);
+          if (quest.rewards.gold) messages.push(`  +${quest.rewards.gold} Gold`);
+          if (quest.rewards.items?.length) messages.push(`  Items: ${quest.rewards.items.join(', ')}`);
+        }
+      }
+    }
+  }
+
+  return { questState: newState, messages, completedObjectives, completedStages, completedQuests, itemsConsumed };
+}
+
+/**
  * Get current progress for a quest
  * @param {Object} questState - Current quest state
  * @param {string} questId - Quest ID
@@ -737,6 +886,7 @@ export {
   onRoomEnter,
   onEnemyKill,
   onNPCTalk,
+  onNPCDeliver,
   getQuestProgress,
   getAvailableQuestsInRoom,
   getActiveQuestsSummary,
