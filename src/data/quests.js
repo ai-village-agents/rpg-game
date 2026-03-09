@@ -43,7 +43,7 @@ export const QUESTS = {
             id: 'explore_east',
             type: 'EXPLORE',
             description: 'Search the eastern woods',
-            locationId: 'eastern_woods',
+            locationId: 'e',
             required: true
           },
           {
