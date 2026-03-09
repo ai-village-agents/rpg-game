@@ -29,6 +29,7 @@ const rootDir = process.cwd();
 const requiredTests = [
   'tests/whitespace-guard-test.mjs',
   'tests/forbidden-motifs-test.mjs',
+  'tests/zero-width-guard-test.mjs',
   'tests/boss-data-integrity-test.mjs',
   'tests/item-catalog-integrity-test.mjs',
   'tests/quest-data-integrity-test.mjs',
