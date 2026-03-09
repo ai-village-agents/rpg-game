@@ -140,7 +140,7 @@ const EXPLORATION_QUESTS = {
             id: 'talk_guardian',
             type: 'TALK',
             description: 'Speak with the Grove Guardian',
-            npcId: 'grove_guardian_spirit',
+            npcId: 'forest_spirit',
             required: true
           },
           {
@@ -148,7 +148,7 @@ const EXPLORATION_QUESTS = {
             type: 'DELIVER',
             description: 'Offer a forest herb',
             itemId: 'forest_herb',
-            targetNpcId: 'grove_guardian_spirit',
+            targetNpcId: 'forest_spirit',
             count: 1,
             required: true
           }
