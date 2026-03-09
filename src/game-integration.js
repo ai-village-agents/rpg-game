@@ -6,6 +6,7 @@ import { createCharacter, createParty, addMember, setActiveParty, getActiveMembe
 import { createMap, movePlayer, getCurrentRoom, getRoomExits } from './map.js';
 import { useItem, getInventory, addItem, removeItem } from './items.js';
 import { lootTables, getRandomLoot } from './data/items.js';
+import { applyCraftingMaterialDrops } from './crafting-integration.js';
 
 const RNG_MOD = 2147483647;
 const RNG_MULT = 48271;
@@ -235,7 +236,15 @@ export function handleCombatAction(gameState, action) {
     combatState = { ...combatState, rewards };
     const rewardResult = applyRewards(party, inventory, rewards);
     messages.push(...rewardResult.messages);
-    updated = { ...updated, party: rewardResult.party, inventory: rewardResult.inventory, combatState: null, gamePhase: setGameState(GameState.EXPLORATION) };
+    // Apply crafting material drops based on enemy levels
+    const enemies = combatState.allCombatants.filter((c) => c.side === 'enemy');
+    const craftingResult = applyCraftingMaterialDrops(
+      { ...updated, player: rewardResult.party?.members?.[0] ?? updated.player ?? {}, inventory: rewardResult.inventory },
+      enemies
+    );
+    const finalInventory = craftingResult.drops.length > 0 ? craftingResult.state.player?.inventory ?? rewardResult.inventory : rewardResult.inventory;
+    messages.push(...craftingResult.messages);
+    updated = { ...updated, party: rewardResult.party, inventory: finalInventory, combatState: null, gamePhase: setGameState(GameState.EXPLORATION) };
     emit('combat:win', { rewards: combatState.rewards });
   } else if (combatState.phase === 'defeat') {
     updated = { ...updated, gamePhase: setGameState(GameState.GAME_OVER) };
