@@ -3,6 +3,7 @@ import { createCharacter } from './characters/character.js';
 import { CLASS_DEFINITIONS } from './characters/classes.js';
 import { getEncounter, getEnemy } from './data/enemies.js';
 import { createWorldState } from './map.js';
+import { createWeatherState } from './weather.js';
 
 export function initialState() {
   const playerBase = characters.player;
@@ -35,6 +36,7 @@ export function initialState() {
       `Your turn.`,
     ],
     world: createWorldState(),
+    weatherState: createWeatherState(),
   };
 }
 

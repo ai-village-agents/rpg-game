@@ -5,6 +5,7 @@ import { onRoomEnter } from '../quest-integration.js';
 import { buildPendingRewards, hasPendingRewards } from '../quest-rewards.js';
 import { getNPCsInRoom, createDialogState } from '../npc-dialog.js';
 import { pushLog } from '../state.js';
+import { advanceTime, tryChangeWeather, hasWeatherSystem } from '../weather.js';
 import {
   tryTriggerWorldEvent,
   tickWorldEvent,
@@ -57,6 +58,16 @@ export function handleExplorationAction(state, action) {
           result.worldState.roomCol
         ),
       };
+    }
+
+    if (hasWeatherSystem(state)) {
+      const previousWeather = next.weatherState?.weather;
+      let updatedWeather = advanceTime(next.weatherState);
+      updatedWeather = tryChangeWeather(updatedWeather, next.rngSeed || Date.now());
+      next = { ...next, weatherState: updatedWeather };
+      if (previousWeather && updatedWeather.weather !== previousWeather) {
+        next = pushLog(next, `The weather shifts to ${updatedWeather.weather}.`);
+      }
     }
 
     // Quest Integration
