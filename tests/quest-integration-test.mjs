@@ -8,6 +8,7 @@ import {
   acceptQuest,
   onRoomEnter,
   onEnemyKill,
+  onNPCTalk,
   getQuestProgress,
   getAvailableQuestsInRoom,
   getActiveQuestsSummary,
@@ -205,6 +206,33 @@ console.log('\n--- onEnemyKill - edge cases ---');
   
   const result2 = onEnemyKill(state, 'slime');
   assert(result2.messages.length === 0, 'no active quest with slime objective');
+}
+
+// --- onNPCTalk - TALK objectives ---
+console.log('\n--- onNPCTalk - TALK objectives ---');
+{
+  let state = initQuestState();
+  const { questState: accepted } = acceptQuest(state, 'grove_guardian');
+  state = accepted;
+
+  const { questState: afterExplore } = onRoomEnter(state, 'nw');
+  state = afterExplore;
+
+  const talkResult = onNPCTalk(state, 'grove_guardian_spirit');
+  const progress = talkResult.questState.questProgress['grove_guardian'];
+
+  assert(progress.objectiveProgress['talk_guardian'] === true, 'talk objective marked complete');
+  assert(talkResult.completedObjectives.length === 1, 'one objective completed via talk');
+  assert(talkResult.completedQuests.length === 0, 'quest not complete until delivery');
+}
+
+// --- onNPCTalk - edge cases ---
+console.log('\n--- onNPCTalk - edge cases ---');
+{
+  const state = initQuestState();
+  const result = onNPCTalk(state, null);
+  assert(result.messages.length === 0, 'null npcId returns empty messages');
+  assert(result.completedObjectives.length === 0, 'null npcId completes nothing');
 }
 
 // --- getQuestProgress ---
