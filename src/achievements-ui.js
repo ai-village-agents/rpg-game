@@ -86,3 +86,22 @@ export function renderAchievementsPanel(state) {
     </div>
   `;
 }
+
+/**
+ * Attach click handlers for achievement tabs using event delegation.
+ * @param {HTMLElement} container
+ * @param {function} dispatch
+ */
+export function attachAchievementsHandlers(container, dispatch) {
+  if (!container) return;
+
+  container.addEventListener('click', (event) => {
+    const tab = event.target.closest('.achievement-tab');
+    if (!tab || !container.contains(tab)) return;
+
+    const { category } = tab.dataset;
+    if (!category) return;
+
+    dispatch({ type: 'SET_ACHIEVEMENT_CATEGORY', category });
+  });
+}

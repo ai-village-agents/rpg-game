@@ -2,6 +2,7 @@ import { playerAttack, playerDefend, playerFlee, playerUsePotion, playerUseAbili
 import { createGameStats, recordDamageDealt, recordTurnPlayed, recordItemUsed, recordAbilityUsed, recordDamageReceived } from '../game-stats.js';
 import { getCraftingMaterialDrops, lookupItem } from '../crafting.js';
 import { addItemToInventory } from '../items.js';
+import { trackAchievements } from '../achievements.js';
 
 /**
  * Handles combat-related actions dispatched during 'player-turn'.
@@ -26,18 +27,19 @@ export function handleCombatAction(state, action) {
     gs = recordTurnPlayed(gs);
     applyCraftingMaterialDrops(next);
     
-    return { ...next, gameStats: gs };
+    return finalizeCombatState(next, { gameStats: gs });
   }
 
   if (type === 'PLAYER_DEFEND') {
-    return playerDefend(state);
+    const next = playerDefend(state);
+    return finalizeCombatState(next);
   }
 
   if (type === 'PLAYER_FLEE') {
     const next = playerFlee(state);
     let gs = next.gameStats || createGameStats();
     gs = recordTurnPlayed(gs);
-    return { ...next, gameStats: gs };
+    return finalizeCombatState(next, { gameStats: gs });
   }
 
   if (type === 'PLAYER_POTION') {
@@ -46,7 +48,7 @@ export function handleCombatAction(state, action) {
     gs = recordItemUsed(gs, 'potion');
     gs = recordTurnPlayed(gs);
     applyCraftingMaterialDrops(next);
-    return { ...next, gameStats: gs };
+    return finalizeCombatState(next, { gameStats: gs });
   }
 
   if (type === 'PLAYER_ABILITY') {
@@ -60,7 +62,7 @@ export function handleCombatAction(state, action) {
     gs = recordTurnPlayed(gs);
     applyCraftingMaterialDrops(next);
     
-    return { ...next, gameStats: gs };
+    return finalizeCombatState(next, { gameStats: gs });
   }
 
   if (type === 'PLAYER_ITEM') {
@@ -69,7 +71,7 @@ export function handleCombatAction(state, action) {
     gs = recordItemUsed(gs, action.itemId);
     gs = recordTurnPlayed(gs);
     applyCraftingMaterialDrops(next);
-    return { ...next, gameStats: gs };
+    return finalizeCombatState(next, { gameStats: gs });
   }
 
   return null;
@@ -93,6 +95,11 @@ export function handleEnemyTurnLogic(state) {
     }
     
     return next;
+}
+
+function finalizeCombatState(next, overrides = {}) {
+  if (!next) return next;
+  return trackAchievements({ ...next, ...overrides });
 }
 
 function applyCraftingMaterialDrops(state) {
