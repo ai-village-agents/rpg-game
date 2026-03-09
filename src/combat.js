@@ -9,6 +9,7 @@ import { selectEnemyAction, executeEnemyAbility } from './enemy-abilities.js';
 import { getEffectiveCombatStats } from './combat/equipment-bonuses.js';
 import { getGoldMultiplier, getMpCostMultiplier } from './world-events.js';
 import { recordEncounter, recordDefeat } from './bestiary.js';
+import { rollLootDrop, applyLootToState } from './loot-tables.js';
 
 // Minimal deterministic RNG (Park-Miller LCG)
 export function nextRng(seed) {
@@ -104,6 +105,16 @@ function applyVictoryDefeat(state) {
       },
     };
     if (state.bestiary && state.currentEnemyId) { state = { ...state, bestiary: recordDefeat(state.bestiary, state.currentEnemyId) }; }
+    // Generate loot drops
+    if (state.currentEnemyId) {
+      const lootSeed = state.rngSeed ?? Date.now();
+      const { lootedItems, seed: newSeed } = rollLootDrop(state.currentEnemyId, lootSeed);
+      state = applyLootToState(state, lootedItems);
+      state = { ...state, rngSeed: newSeed };
+      for (const loot of lootedItems) {
+        state = pushLog(state, `Loot: ${loot.name} (${loot.rarity})`);
+      }
+    }
     state = pushLog(state, `Victory! The ${state.enemy.name} dissolves.`);
   }
   if (state.player.hp <= 0) {
