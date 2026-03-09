@@ -94,14 +94,16 @@ export function handleEnemyTurnLogic(state) {
       let withGs = { ...next, gameStats: recordDamageReceived(next.gameStats || createGameStats(), dmgReceived) };
       // Companions auto-act after enemy turn (if still in combat)
       if (withGs.phase === 'player-turn' || withGs.phase === 'enemy-turn') {
-        withGs = companionAutoAct(withGs);
+        const autoResult = companionAutoAct(withGs);
+        withGs = autoResult.state;
       }
       return withGs;
     }
     
     // Companions auto-act after enemy turn (if still in combat)
     if (next.phase === 'player-turn' || next.phase === 'enemy-turn') {
-      return companionAutoAct(next);
+      const autoResult = companionAutoAct(next);
+      return autoResult.state;
     }
     return next;
 }
