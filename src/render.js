@@ -443,8 +443,29 @@ export function render(state, dispatch) {
     });
     const lootHtml = lootedItems.length > 0
       ? lootedItems.map(item => {
-          const n = typeof item === 'string' ? item : (item.name ?? item.id ?? 'Item');
-          return '<div>📦 ' + esc(n) + '</div>';
+          const isString = typeof item === 'string';
+          const name = isString ? item : (item.name ?? item.itemId ?? 'Item');
+          const rarity = isString ? null : (item.rarity ?? null);
+          const rarityKey = typeof rarity === 'string' ? rarity : null;
+          const color = rarityKey && rarityColors[rarityKey] ? rarityColors[rarityKey] : '#aaa';
+          const badge = rarityKey ? '[' + rarityKey + ']' : '';
+          const emoji = (() => {
+            switch (rarityKey) {
+              case 'Common': return '📦';
+              case 'Uncommon': return '💚';
+              case 'Rare': return '💎';
+              case 'Epic': return '💜';
+              case 'Legendary': return '🔥';
+              default: return '📦';
+            }
+          })();
+          const isBold = rarityKey === 'Rare' || rarityKey === 'Epic' || rarityKey === 'Legendary';
+          const nameStyle = 'color: ' + color + ';' + (isBold ? ' font-weight: bold;' : '');
+          const badgeStyle = 'color: ' + color + '; font-size: 0.8em; opacity: 0.85;';
+          return '<div>' + emoji + ' '
+            + '<span style="' + nameStyle + '">' + esc(name) + '</span>'
+            + (badge ? ' <span style="' + badgeStyle + '">' + esc(badge) + '</span>' : '')
+            + '</div>';
         }).join('')
       : '<div><em>No items looted.</em></div>';
     const levelUpHtml = hasLevelUps
