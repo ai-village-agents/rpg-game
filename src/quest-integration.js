@@ -364,6 +364,113 @@ function onEnemyKill(questState, enemyType, count = 1) {
 }
 
 /**
+ * Update TALK objective progress when speaking to an NPC
+ * @param {Object} questState - Current quest state
+ * @param {string} npcId - NPC being spoken to
+ * @returns {Object} { questState, messages, completedObjectives, completedStages, completedQuests }
+ */
+function onNPCTalk(questState, npcId) {
+  if (!npcId) {
+    return { questState, messages: [], completedObjectives: [], completedStages: [], completedQuests: [] };
+  }
+
+  const messages = [];
+  const completedObjectives = [];
+  const completedStages = [];
+  const completedQuests = [];
+  let newState = questState;
+
+  for (const questId of newState.activeQuests) {
+    const quest = getExplorationQuest(questId);
+    if (!quest) continue;
+
+    const progress = newState.questProgress[questId];
+    if (!progress) continue;
+
+    const stage = quest.stages[progress.stageIndex];
+    if (!stage || !stage.objectives) continue;
+
+    let stageComplete = true;
+    let objectiveUpdated = false;
+
+    for (const objective of stage.objectives) {
+      if (objective.type === 'TALK' && objective.npcId === npcId) {
+        const alreadyComplete = progress.objectiveProgress[objective.id] === true;
+        if (!alreadyComplete) {
+          newState = {
+            ...newState,
+            questProgress: {
+              ...newState.questProgress,
+              [questId]: {
+                ...newState.questProgress[questId],
+                objectiveProgress: {
+                  ...newState.questProgress[questId].objectiveProgress,
+                  [objective.id]: true
+                }
+              }
+            }
+          };
+          objectiveUpdated = true;
+          completedObjectives.push({ questId, objectiveId: objective.id, description: objective.description });
+          messages.push(`✓ ${objective.description}`);
+        }
+      }
+
+      const objProgress = newState.questProgress[questId].objectiveProgress[objective.id];
+      if (objective.required) {
+        if (objective.type === 'KILL') {
+          if ((objProgress || 0) < objective.count) stageComplete = false;
+        } else if (!objProgress) {
+          stageComplete = false;
+        }
+      }
+    }
+
+    if (stageComplete && objectiveUpdated) {
+      const nextStageId = stage.nextStage;
+      if (nextStageId) {
+        const nextStageIndex = quest.stages.findIndex(s => s.id === nextStageId);
+        if (nextStageIndex !== -1) {
+          newState = {
+            ...newState,
+            questProgress: {
+              ...newState.questProgress,
+              [questId]: {
+                ...newState.questProgress[questId],
+                stageIndex: nextStageIndex,
+                objectiveProgress: {}
+              }
+            }
+          };
+          completedStages.push({ questId, stageId: stage.id, stageName: stage.name });
+          messages.push(`Stage complete: ${stage.name}`);
+          messages.push(`New objective: ${quest.stages[nextStageIndex].name}`);
+        }
+      } else {
+        newState = {
+          ...newState,
+          activeQuests: newState.activeQuests.filter(id => id !== questId),
+          completedQuests: [...newState.completedQuests, questId],
+          questProgress: {
+            ...newState.questProgress,
+            [questId]: { ...newState.questProgress[questId], completed: true }
+          }
+        };
+        completedQuests.push({ questId, questName: quest.name, rewards: quest.rewards });
+        messages.push(`★ Quest complete: ${quest.name}!`);
+        if (quest.rewards) {
+          if (quest.rewards.experience) messages.push(`  +${quest.rewards.experience} XP`);
+          if (quest.rewards.gold) messages.push(`  +${quest.rewards.gold} Gold`);
+          if (quest.rewards.items?.length) messages.push(`  Items: ${quest.rewards.items.join(', ')}`);
+        }
+      }
+    }
+  }
+
+  return { questState: newState, messages, completedObjectives, completedStages, completedQuests };
+}
+
+/**
  * Get current progress for a quest
  * @param {Object} questState - Current quest state
  * @param {string} questId - Quest ID
@@ -629,6 +736,7 @@ export {
   acceptQuest,
   onRoomEnter,
   onEnemyKill,
+  onNPCTalk,
   getQuestProgress,
   getAvailableQuestsInRoom,
   getActiveQuestsSummary,

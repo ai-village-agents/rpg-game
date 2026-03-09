@@ -1,7 +1,7 @@
 import { movePlayer, getCurrentRoom, getRoomExits } from '../map.js';
 import { nextRng, startNewEncounter } from '../combat.js';
 import { markRoomVisited } from '../minimap.js';
-import { onRoomEnter } from '../quest-integration.js';
+import { onRoomEnter, onNPCTalk } from '../quest-integration.js';
 import { buildPendingRewards, hasPendingRewards } from '../quest-rewards.js';
 import { getNPCsInRoom, createDialogState } from '../npc-dialog.js';
 import { pushLog } from '../state.js';
@@ -194,16 +194,38 @@ export function handleExplorationAction(state, action) {
     if (!npc) {
       return pushLog(state, 'That person is not here.');
     }
-    const npcRelationshipManager = state.npcRelationshipManager ?? createNPCRelationshipManager();
+    let next = state;
+
+    // Quest TALK objective integration
+    if (next.questState) {
+      const questResult = onNPCTalk(next.questState, npc.id);
+      next = { ...next, questState: questResult.questState };
+
+      for (const msg of questResult.messages) {
+        next = pushLog(next, msg);
+      }
+
+      const newRewards = buildPendingRewards(questResult.completedQuests);
+      if (newRewards.length > 0) {
+        const existing = next.pendingQuestRewards || [];
+        next = { ...next, pendingQuestRewards: [...existing, ...newRewards] };
+      }
+    }
+
+    // NPC relationship greeting/reputation
+    const npcRelationshipManager = next.npcRelationshipManager ?? createNPCRelationshipManager();
     npcRelationshipManager.modifyReputation(
       npc.id,
       ReputationEvent.DIALOGUE_POSITIVE.value,
       ReputationEvent.DIALOGUE_POSITIVE
     );
-    const relationshipLevel = npcRelationshipManager.getRelationshipLevel(npc.id) || RelationshipLevel.NEUTRAL;
+
+    const relationshipLevel =
+      npcRelationshipManager.getRelationshipLevel(npc.id) || RelationshipLevel.NEUTRAL;
+
     const dialogState = createDialogState(npc, relationshipLevel);
     return {
-      ...state,
+      ...next,
       phase: 'dialog',
       dialogState,
       preDialogPhase: 'exploration',
