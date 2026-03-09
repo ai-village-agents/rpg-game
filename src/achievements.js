@@ -27,6 +27,7 @@ function extractAchievementData(state) {
     xp: state.player?.xp ?? legacy.xp,
     explored: state.questState?.discoveredRooms ?? legacy.explored,
     quests: state.questState?.activeQuests ?? state.quests ?? [],
+    activeQuests: state.questState?.activeQuests ?? state.quests ?? [],
     completedQuests: state.questState?.completedQuests ?? legacy.completedQuests,
     inventory: state.player?.inventory ?? legacy.inventory,
     equipment: state.player?.equipment ?? legacy.equipment,
@@ -246,10 +247,10 @@ const ACHIEVEMENTS = [
   {
     id: 'quest_starter',
     name: 'Quest Starter',
-    description: 'Complete your first quest',
+    description: 'Accept your first quest',
     category: 'quests',
-    condition: (data) => data.completedQuests.length >= 1,
-    getProgress: (data) => data.completedQuests.length
+    condition: (data) => (data.activeQuests?.length ?? 0) >= 1,
+    getProgress: (data) => data.activeQuests?.length ?? 0
   },
   {
     id: 'quest_seeker',
