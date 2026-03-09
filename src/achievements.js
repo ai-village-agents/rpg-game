@@ -312,7 +312,8 @@ export function getAllAchievements() {
 
 // Get achievements by category
 export function getAchievementsByCategory(category) {
-  return ACHIEVEMENTS.filter(a => a.category === category);
+  const normalizedCategory = typeof category === 'string' ? category.toLowerCase() : '';
+  return ACHIEVEMENTS.filter(a => (a.category || '').toLowerCase() === normalizedCategory);
 }
 
 // Get count of unlocked achievements

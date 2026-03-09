@@ -18,6 +18,7 @@ import { renderShopPanel, getShopStyles, attachShopHandlers } from './shop-ui.js
 import { renderCraftingPanel, getCraftingStyles, attachCraftingHandlers } from './crafting-ui.js';
 import { renderTalentTree, getTalentTreeStyles, attachTalentHandlers } from './talents-ui.js';
 import { renderHelpModal, getHelpStyles, attachHelpHandlers } from './help-ui.js';
+import { renderAchievementsPanel } from './achievements-ui.js';
 import { renderWorldEventBanner } from './world-events-ui.js';
 import { isMinimapHidden } from './world-events.js';
 import { hasShop } from './shop.js';
@@ -565,6 +566,14 @@ export function render(state, dispatch) {
     `;
     actions.innerHTML = '<div class="buttons"><button id="btnCloseStats">Close 📊</button></div>';
     document.getElementById('btnCloseStats').onclick = () => dispatch({ type: 'CLOSE_STATS' });
+    log.innerHTML = state.log.slice().reverse().map(line => '<div class="logLine">' + esc(line) + '</div>').join('');
+    finalizeRender();
+    return;
+  }
+
+  if (state.phase === 'achievements') {
+    hud.innerHTML = renderAchievementsPanel(state);
+    actions.innerHTML = '';
     log.innerHTML = state.log.slice().reverse().map(line => '<div class="logLine">' + esc(line) + '</div>').join('');
     finalizeRender();
     return;
