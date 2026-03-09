@@ -33,7 +33,9 @@ function extractAchievementData(state) {
     equipment: state.player?.equipment ?? legacy.equipment,
     perfectCombat: state.gameStats?.perfectCombat ?? legacy.perfectCombat,
     shopPurchases: state.gameStats?.shopPurchases ?? legacy.shopPurchases,
-    bossesDefeated: state.gameStats?.bossesDefeated ?? legacy.bossesDefeated
+    bossesDefeated: state.gameStats?.bossesDefeated ?? legacy.bossesDefeated,
+    highestTavernStreak: state.gameStats?.highestTavernStreak ?? 0,
+    tavernBusts: state.gameStats?.tavernBusts ?? 0
   };
 }
 
@@ -267,6 +269,22 @@ const ACHIEVEMENTS = [
     category: 'quests',
     condition: (data) => data.completedQuests.length >= 10,
     getProgress: (data) => data.completedQuests.length
+  },
+  {
+    id: 'high_roller',
+    name: 'High Roller',
+    description: 'Achieve a 3-win streak in the Tavern Dice game',
+    category: 'collection',
+    condition: (data) => data.highestTavernStreak >= 3,
+    getProgress: (data) => data.highestTavernStreak
+  },
+  {
+    id: 'house_always_wins',
+    name: 'The House Always Wins',
+    description: 'Lose a pot in the Tavern Dice game',
+    category: 'collection',
+    condition: (data) => data.tavernBusts >= 1,
+    getProgress: (data) => data.tavernBusts
   }
 ];
 

@@ -42,6 +42,7 @@ export function startTavernDice(state, wagerAmount) {
 
 export function guessTavernDice(state, guess) {
   if (!state.tavernDice?.isActive) return state;
+  const gameStats = state.gameStats || {};
 
   const { seed: nextSeed, value: rngValue } = nextRng(state.rngSeed || Date.now());
   const nextRoll = (rngValue % 6) + 1;
@@ -58,6 +59,10 @@ export function guessTavernDice(state, guess) {
     return {
       ...state,
       rngSeed: nextSeed,
+      gameStats: {
+        ...gameStats,
+        highestTavernStreak: Math.max(gameStats.highestTavernStreak || 0, newStreak),
+      },
       tavernDice: {
         ...state.tavernDice,
         currentRoll: nextRoll,
@@ -70,6 +75,10 @@ export function guessTavernDice(state, guess) {
     return {
       ...state,
       rngSeed: nextSeed,
+      gameStats: {
+        ...gameStats,
+        tavernBusts: (gameStats.tavernBusts || 0) + 1,
+      },
       tavernDice: {
         isActive: false,
         pot: 0,
