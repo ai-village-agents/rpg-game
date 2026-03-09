@@ -8,10 +8,19 @@ import { EXPLORATION_QUESTS } from '../src/data/exploration-quests.js';
 
 function has(obj, k) { return Object.prototype.hasOwnProperty.call(obj, k); }
 
-// Build quick lookup for exploration locations if available
-const EXPLORE_LOCATIONS = new Set(
-  Object.keys(EXPLORATION_QUESTS || {})
-);
+// Build consolidated lookup for exploration locations from all known sources.
+const ALL_LOCATIONS = new Set(Object.keys(EXPLORATION_QUESTS || {}));
+for (const quest of Object.values(QUESTS || {})) {
+  const stages = Array.isArray(quest?.stages) ? quest.stages : [];
+  stages.forEach(stage => {
+    const objectives = Array.isArray(stage?.objectives) ? stage.objectives : [];
+    objectives.forEach(obj => {
+      if (obj && typeof obj.locationId === 'string' && obj.locationId.length > 0) {
+        ALL_LOCATIONS.add(obj.locationId);
+      }
+    });
+  });
+}
 
 function assertNpcExists(npcId, ctx) {
   assert.ok(npcId && has(NPCS, npcId), `Missing NPC \"${npcId}\" referenced by ${ctx}`);
@@ -23,8 +32,8 @@ function assertEnemyExists(enemyId, ctx) {
 
 function validateExploreLocation(id, ctx) {
   // If we have a registry of locations, ensure it appears there; otherwise ensure it looks like a non-empty string.
-  if (EXPLORE_LOCATIONS.size > 0) {
-    assert.ok(EXPLORE_LOCATIONS.has(id), `Unknown explore location \"${id}\" referenced by ${ctx}`);
+  if (ALL_LOCATIONS.size > 0) {
+    assert.ok(ALL_LOCATIONS.has(id), `Unknown explore location \"${id}\" referenced by ${ctx}`);
   } else {
     assert.ok(typeof id === 'string' && id.length > 0, `Invalid explore location for ${ctx}`);
   }
@@ -48,7 +57,7 @@ for (const [questId, quest] of Object.entries(QUESTS)) {
         const npcId = get(objective, ['npcId', 'id', 'target']);
         assertNpcExists(npcId, ctx);
       } else if (type === 'KILL' || type === 'DEFEAT') {
-        const enemyId = get(objective, ['enemyId', 'enemy', 'target']);
+        const enemyId = get(objective, ['enemyId', 'enemy', 'target', 'enemyType']);
         assertEnemyExists(enemyId, ctx);
       } else if (type === 'EXPLORE') {
         const locId = get(objective, ['locationId', 'location', 'room']);
