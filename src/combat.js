@@ -11,6 +11,14 @@ import { getGoldMultiplier, getMpCostMultiplier, getDamageMultiplier } from './w
 import { recordEncounter, recordDefeat } from './bestiary.js';
 import { rollLootDrop, applyLootToState } from './loot-tables.js';
 import { logCombatVictory, logBossDefeat } from './journal.js';
+import {
+  companionsCombatTurn,
+  selectEnemyTarget,
+  enemyAttackCompanion,
+  processCompanionCombatRewards,
+  processCompanionDefeatPenalty,
+  autoReviveCompanionsAfterCombat,
+} from './companion-combat.js';
 
 // Minimal deterministic RNG (Park-Miller LCG)
 export function nextRng(seed) {
@@ -124,10 +132,15 @@ function applyVictoryDefeat(state) {
     if (state.enemy.isBoss) {
       state = logBossDefeat(state, state.enemy.name);
     }
+    // Companion combat rewards: loyalty adjustments + auto-revive
+    state = processCompanionCombatRewards(state);
+    state = autoReviveCompanionsAfterCombat(state);
   }
   if (state.player.hp <= 0) {
     state = { ...state, phase: 'defeat' };
     state = pushLog(state, `Defeat... You collapse.`);
+    // Companion defeat penalty: all companions lose loyalty
+    state = processCompanionDefeatPenalty(state);
   }
   return state;
 }
@@ -185,6 +198,12 @@ export function playerAttack(state) {
   };
 
   state = pushLog(state, `You strike for ${damage} damage.`);
+  // Companions attack after player
+  if (state.enemy.hp > 0) {
+    const companionResult = companionsCombatTurn(state, state.rngSeed ?? 1);
+    state = companionResult.state;
+    state = { ...state, rngSeed: companionResult.seed };
+  }
   state = applyVictoryDefeat(state);
   if (state.phase === 'victory' || state.phase === 'defeat') return state;
   state = processTurnStart(state, 'enemy');
@@ -512,24 +531,38 @@ export function enemyAct(state) {
     state = { ...state, turn: state.turn + 1 };
     state = applyVictoryDefeat(state);
   } else if (result.action === 'attack') {
-    // Apply equipment bonuses to player's defense stat
-    const defenderStats = getEffectiveCombatStats(state.player);
-    const damage = computeDamage({
-      attackerAtk: state.enemy.atk,
-      targetDef: defenderStats.def,
-      targetDefending: state.player.defending,
-      worldEvent: state.worldEvent || null,
-    });
+    // Select target: player or companion
+    const targetResult = selectEnemyTarget(state, state.rngSeed ?? 1);
+    state = { ...state, rngSeed: targetResult.seed };
 
-    const playerHp = clamp(state.player.hp - damage, 0, state.player.maxHp);
-    state = {
-      ...state,
-      player: { ...state.player, hp: playerHp, defending: false },
-      enemy: { ...state.enemy, defending: false },
-      turn: state.turn + 1,
-    };
+    if (targetResult.targetType === 'companion' && targetResult.targetId) {
+      // Enemy attacks a companion
+      state = enemyAttackCompanion(state, targetResult.targetId, state.enemy.atk);
+      state = {
+        ...state,
+        enemy: { ...state.enemy, defending: false },
+        turn: state.turn + 1,
+      };
+    } else {
+      // Apply equipment bonuses to player's defense stat
+      const defenderStats = getEffectiveCombatStats(state.player);
+      const damage = computeDamage({
+        attackerAtk: state.enemy.atk,
+        targetDef: defenderStats.def,
+        targetDefending: state.player.defending,
+        worldEvent: state.worldEvent || null,
+      });
 
-    state = pushLog(state, `${state.enemy.name} slams you for ${damage} damage.`);
+      const playerHp = clamp(state.player.hp - damage, 0, state.player.maxHp);
+      state = {
+        ...state,
+        player: { ...state.player, hp: playerHp, defending: false },
+        enemy: { ...state.enemy, defending: false },
+        turn: state.turn + 1,
+      };
+
+      state = pushLog(state, `${state.enemy.name} slams you for ${damage} damage.`);
+    }
     state = applyVictoryDefeat(state);
   }
 
