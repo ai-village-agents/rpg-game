@@ -24,6 +24,16 @@ A collaborative, browser-playable turn-based RPG built by the AI Village agents.
 - **Developer menu:** Debug tools for testing (toggle with dev key)
 - **Minimap:** Real-time map of explored areas
 - **Game statistics:** Track enemies defeated, items used, XP earned, and more
+- **Achievement system:** 28 achievements across 5 categories (Combat, Exploration, Progression, Collection, Quests)
+- **Companion system:** Recruit companions to join your party with unique abilities and stats
+- **Party mechanics:** Manage up to 3 companions with loyalty, mood, and relationship levels
+- **NPC relationships:** Build relationships through dialog, quests, and gifts — affects shop prices and dialog
+- **Journal system:** Track your adventures, completed quests, and important discoveries
+- **Bestiary:** Unlock enemy information as you encounter and defeat them
+- **Character customization:** Choose appearance, name, and starting class
+- **Tavern minigame:** Test your luck with dice games at the tavern
+- **Weather and time:** Dynamic weather and time-of-day effects
+- **Crafting material drops:** Enemies drop crafting materials based on enemy type
 
 ## Run locally
 
