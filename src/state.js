@@ -6,6 +6,7 @@ import { getEncounter, getEnemy } from './data/enemies.js';
 import { createWorldState } from './map.js';
 import { createWeatherState } from './weather.js';
 import { createBestiaryState } from './bestiary.js';
+import { createCompanionState } from './companions.js';
 
 export function initialState() {
   const playerBase = characters.player;
@@ -41,6 +42,7 @@ export function initialState() {
     weatherState: createWeatherState(),
     bestiary: createBestiaryState(),
     tavernDice: createTavernDiceState(),
+    ...createCompanionState(),
   };
 }
 
@@ -98,6 +100,7 @@ export function initialStateWithClass(classId) {
     weatherState: createWeatherState(),
     bestiary: createBestiaryState(),
     tavernDice: createTavernDiceState(),
+    ...createCompanionState(),
   };
 }
 

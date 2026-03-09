@@ -3,6 +3,7 @@ import { createGameStats, recordDamageDealt, recordTurnPlayed, recordItemUsed, r
 import { getCraftingMaterialDrops, lookupItem } from '../crafting.js';
 import { addItemToInventory } from '../items.js';
 import { trackAchievements } from '../achievements.js';
+import { companionAutoAct, getCompanionBonuses } from '../companions.js';
 
 /**
  * Handles combat-related actions dispatched during 'player-turn'.
@@ -90,10 +91,18 @@ export function handleEnemyTurnLogic(state) {
     applyCraftingMaterialDrops(next);
     
     if (dmgReceived > 0) {
-      const gs = recordDamageReceived(next.gameStats || createGameStats(), dmgReceived);
-      return { ...next, gameStats: gs };
+      let withGs = { ...next, gameStats: recordDamageReceived(next.gameStats || createGameStats(), dmgReceived) };
+      // Companions auto-act after enemy turn (if still in combat)
+      if (withGs.phase === 'player-turn' || withGs.phase === 'enemy-turn') {
+        withGs = companionAutoAct(withGs);
+      }
+      return withGs;
     }
     
+    // Companions auto-act after enemy turn (if still in combat)
+    if (next.phase === 'player-turn' || next.phase === 'enemy-turn') {
+      return companionAutoAct(next);
+    }
     return next;
 }
 

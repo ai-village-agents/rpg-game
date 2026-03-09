@@ -14,6 +14,7 @@ import { loadSettings, updateSetting, resetSettings, saveSettings } from '../set
 import { createShopState, buyItem, sellItem } from '../shop.js';
 import { createCraftingState, craftItem } from '../crafting.js';
 import { createTalentState, allocateTalent, deallocateTalent, resetAllTalents } from '../talents.js';
+import { recruitCompanion, dismissCompanion } from '../companions.js';
 
 function getRoomDescription(worldState) {
   const room = getCurrentRoom(worldState);
@@ -373,6 +374,29 @@ export function handleUIAction(state, action) {
     if (state.phase !== 'talents') return null;
     const returnPhase = state.previousPhase || 'exploration';
     return { ...state, phase: returnPhase };
+  }
+
+  // Companions
+  if (type === 'OPEN_COMPANIONS') {
+    if (state.phase === 'class-select') return null;
+    return { ...state, phase: 'companions', previousPhase: state.phase };
+  }
+
+  if (type === 'CLOSE_COMPANIONS') {
+    if (state.phase !== 'companions') return null;
+    return { ...state, phase: state.previousPhase || 'exploration' };
+  }
+
+  if (type === 'RECRUIT_COMPANION') {
+    if (!action.companionId) return null;
+    const result = recruitCompanion(state, action.companionId);
+    return result;
+  }
+
+  if (type === 'DISMISS_COMPANION') {
+    if (!action.companionId) return null;
+    const result = dismissCompanion(state, action.companionId);
+    return result;
   }
 
   // Bestiary

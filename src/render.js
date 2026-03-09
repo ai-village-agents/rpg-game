@@ -25,6 +25,7 @@ import { isMinimapHidden } from './world-events.js';
 import { hasShop } from './shop.js';
 import { renderBestiaryPanel } from './bestiary-ui.js';
 import { renderJournalPanel, renderJournalBadge } from './journal-ui.js';
+import { renderCompanionPanel, renderCompanionHUD, renderCompanionBadge } from './companions-ui.js';
 
 function hpLine(entity) {
   const pct = Math.round((entity.hp / entity.maxHp) * 100);
@@ -254,6 +255,7 @@ export function render(state, dispatch) {
         <button id="btnTalents">Talents ⭐</button>
         <button id="btnTavern">Tavern 🍺</button>
         <button id="btnJournal">Journal 📔${renderJournalBadge(state)}</button>
+        <button id="btnCompanions">Companions 🤝${renderCompanionBadge(state)}</button>
       </div>
     `;
 
@@ -272,6 +274,7 @@ export function render(state, dispatch) {
     document.getElementById('btnHelp').onclick = () => dispatch({ type: 'TOGGLE_HELP' });
     document.getElementById('btnTavern').onclick = () => dispatch({ type: 'VIEW_TAVERN' });
     document.getElementById('btnJournal').onclick = () => dispatch({ type: 'OPEN_JOURNAL' });
+    document.getElementById('btnCompanions').onclick = () => dispatch({ type: 'OPEN_COMPANIONS' });
 
     hud.querySelectorAll('.npc-talk-btn').forEach((btn) => {
       btn.onclick = () => dispatch({ type: 'TALK_TO_NPC', npcId: btn.dataset.npcid });
@@ -326,6 +329,8 @@ export function render(state, dispatch) {
             <div>Turn</div><div><b>${state.turn}</b></div>
           </div>
         </div>
+
+        ${renderCompanionHUD(state)}
       </div>
     `;
 
@@ -1014,7 +1019,25 @@ if (state.phase === 'achievements') {
     return;
   }
 
-  if (state.phase === 'bestiary') {
+  if (state.phase === 'companions') {
+    hud.innerHTML = renderCompanionPanel(state);
+    actions.innerHTML = '<div class="buttons"><button id="btnCloseCompanions">Close</button></div>';
+    const closeBtn = document.getElementById('btnCloseCompanions');
+    if (closeBtn) closeBtn.onclick = () => dispatch({ type: 'CLOSE_COMPANIONS' });
+    // Wire recruit buttons
+    hud.querySelectorAll('[data-action="RECRUIT_COMPANION"]').forEach(btn => {
+      btn.onclick = () => dispatch({ type: 'RECRUIT_COMPANION', companionId: btn.dataset.companionId });
+    });
+    // Wire dismiss buttons
+    hud.querySelectorAll('[data-action="DISMISS_COMPANION"]').forEach(btn => {
+      btn.onclick = () => dispatch({ type: 'DISMISS_COMPANION', companionId: btn.dataset.companionId });
+    });
+    log.innerHTML = state.log.slice().reverse().map(line => '<div class="logLine">' + esc(line) + '</div>').join('');
+    finalizeRender();
+    return;
+  }
+
+    if (state.phase === 'bestiary') {
     hud.innerHTML = renderBestiaryPanel(state);
     actions.innerHTML = '<div class="buttons"><button id="btnCloseBestiary">Close Bestiary</button></div>';
     // Wire close button
