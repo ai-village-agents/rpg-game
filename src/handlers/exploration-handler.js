@@ -1,13 +1,14 @@
 import { movePlayer, getCurrentRoom, getRoomExits } from '../map.js';
 import { nextRng, startNewEncounter } from '../combat.js';
 import { markRoomVisited } from '../minimap.js';
-import { onRoomEnter, onNPCTalk } from '../quest-integration.js';
+import { onRoomEnter, onNPCTalk, onNPCDeliver } from '../quest-integration.js';
 import { buildPendingRewards, hasPendingRewards } from '../quest-rewards.js';
 import { getNPCsInRoom, createDialogState } from '../npc-dialog.js';
 import { pushLog } from '../state.js';
 import { advanceTime, tryChangeWeather, hasWeatherSystem } from '../weather.js';
 import { logLocationDiscovery } from '../journal.js';
 import { createNPCRelationshipManager, ReputationEvent, RelationshipLevel } from '../npc-relationships.js';
+import { removeItemFromInventory } from '../items.js';
 import {
   tryTriggerWorldEvent,
   tickWorldEvent,
@@ -209,6 +210,32 @@ export function handleExplorationAction(state, action) {
       if (newRewards.length > 0) {
         const existing = next.pendingQuestRewards || [];
         next = { ...next, pendingQuestRewards: [...existing, ...newRewards] };
+      }
+    }
+
+    // Quest DELIVER objective integration
+    if (next.questState && next.player?.inventory) {
+      const deliverResult = onNPCDeliver(next.questState, npc.id, next.player.inventory);
+      next = { ...next, questState: deliverResult.questState };
+
+      for (const msg of deliverResult.messages) {
+        next = pushLog(next, msg);
+      }
+
+      // Consume delivered items from player inventory
+      if (deliverResult.itemsConsumed.length > 0) {
+        let newInventory = { ...next.player.inventory };
+        for (const { itemId, quantity } of deliverResult.itemsConsumed) {
+          newInventory = removeItemFromInventory(newInventory, itemId, quantity);
+        }
+        next = { ...next, player: { ...next.player, inventory: newInventory } };
+      }
+
+      // Queue pending quest rewards
+      const newDeliverRewards = buildPendingRewards(deliverResult.completedQuests);
+      if (newDeliverRewards.length > 0) {
+        const existing = next.pendingQuestRewards || [];
+        next = { ...next, pendingQuestRewards: [...existing, ...newDeliverRewards] };
       }
     }
 
