@@ -20,6 +20,20 @@ export const LOYALTY_TIERS = [
   { name: 'Soulbound',   threshold: 100, label: 'Unbreakable bond' },
 ];
 
+/** Ordered tier names (ascending) — single source of truth for tier comparisons. */
+export const LOYALTY_TIER_ORDER = LOYALTY_TIERS.map(t => t.name);
+
+/**
+ * Get the index of the loyalty tier for a given loyalty value.
+ * Uses LOYALTY_TIER_ORDER as the single source of truth.
+ * @param {number} loyalty - Current loyalty (0-100).
+ * @returns {number} Tier index (0 = Abandoned, 5 = Soulbound).
+ */
+export function getLoyaltyTierIndex(loyalty) {
+  const tier = getLoyaltyTier(loyalty);
+  return LOYALTY_TIER_ORDER.indexOf(tier.name);
+}
+
 /**
  * Get the loyalty tier for a given loyalty value.
  * @param {number} loyalty - Current loyalty (0-100).
