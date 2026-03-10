@@ -144,8 +144,8 @@ export function handleEnemyTurnLogic(state) {
     if (withGs.phase === 'player-turn' || withGs.phase === 'enemy-turn') {
       const enemyHpBeforeCompanion = withGs.enemy?.hp ?? 0;
       const playerHpBeforeCompanion = withGs.player?.hp ?? 0;
-      const autoResult = companionAutoAct(withGs);
-      withGs = { ...autoResult.state, combatStats: cs };
+      const afterCompanion = companionAutoAct(withGs);
+      withGs = { ...afterCompanion, combatStats: cs };
       if (cs) {
         const enemyHpAfterCompanion = withGs.enemy?.hp ?? enemyHpBeforeCompanion;
         const playerHpAfterCompanion = withGs.player?.hp ?? playerHpBeforeCompanion;
@@ -167,8 +167,7 @@ export function handleEnemyTurnLogic(state) {
   if (next.phase === 'player-turn' || next.phase === 'enemy-turn') {
     const enemyHpBeforeCompanion = next.enemy?.hp ?? 0;
     const playerHpBeforeCompanion = next.player?.hp ?? 0;
-    const autoResult = companionAutoAct(next);
-    let withCompanion = autoResult.state;
+    let withCompanion = companionAutoAct(next);
     if (cs) {
       const enemyHpAfterCompanion = withCompanion.enemy?.hp ?? enemyHpBeforeCompanion;
       const playerHpAfterCompanion = withCompanion.player?.hp ?? playerHpBeforeCompanion;
