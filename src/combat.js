@@ -1,3 +1,4 @@
+import { recordShieldBroken, recordWeaknessHit, recordDefeatedWhileBroken } from './game-stats.js';
 import { clamp, pushLog } from './state.js';
 import { items } from './data/items.js';
 import { removeItemFromInventory, hasItem } from './items.js';
@@ -116,6 +117,7 @@ function applyVictoryDefeat(state) {
         gold: (state.player.gold ?? 0) + goldGained,
       },
     };
+    if (state.enemy.isBroken) { state = { ...state, _defeatedWhileBroken: true }; }
     if (state.bestiary && state.currentEnemyId) { state = { ...state, bestiary: recordDefeat(state.bestiary, state.currentEnemyId) }; }
     // Generate loot drops
     if (state.currentEnemyId) {
@@ -196,9 +198,13 @@ export function playerAttack(state) {
   });
 
   if ((state.enemy.weaknesses || []).includes('physical') && !state.enemy.isBroken) {
+    if ((state.enemy.weaknesses || []).includes('physical')) {
+      state = { ...state, _hitWeakness: true };
+    }
     const shieldResult = applyShieldDamage(state.enemy, 1);
     state = { ...state, enemy: { ...state.enemy, ...shieldResult } };
     if (shieldResult.triggeredBreak) {
+      state = { ...state, _triggeredShieldBreak: true };
       state = pushLog(state, 'Enemy shields broken!');
     }
   }
@@ -358,6 +364,9 @@ export function playerUseAbility(state, abilityId) {
         abilityPower: ability.power,
         worldEvent: state.worldEvent || null,
       });
+      if ((state.enemy.weaknesses ?? []).includes(abilityElement)) {
+        state = { ...state, _hitWeakness: true };
+      }
 
       const enemyHp = clamp(state.enemy.hp - damage, 0, state.enemy.maxHp);
       state = {

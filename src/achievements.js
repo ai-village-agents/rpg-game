@@ -37,7 +37,10 @@ function extractAchievementData(state) {
     highestTavernStreak: state.gameStats?.highestTavernStreak ?? 0,
     tavernBusts: state.gameStats?.tavernBusts ?? 0,
     lastCombatRating: state.combatStatsSummary?.sections?.[0]?.rating || null,
-    lastBattleMaxHit: state.combatStats?.maxSingleHit || 0
+    lastBattleMaxHit: state.combatStats?.maxSingleHit || 0,
+    shieldsBroken: state.gameStats?.shieldsBroken ?? 0,
+    weaknessHits: state.gameStats?.weaknessHits ?? 0,
+    defeatedWhileBroken: state.gameStats?.defeatedWhileBroken ?? 0
   };
 }
 
@@ -115,6 +118,46 @@ const ACHIEVEMENTS = [
     category: 'combat',
     condition: (data) => data.bossesDefeated >= 1,
     getProgress: (data) => data.bossesDefeated
+  },
+  {
+    id: 'shield_breaker',
+    name: 'Shield Breaker',
+    description: 'Break an enemy shield',
+    category: 'combat',
+    condition: (data) => data.shieldsBroken >= 1,
+    getProgress: (data) => data.shieldsBroken
+  },
+  {
+    id: 'weakness_exploiter',
+    name: 'Weakness Exploiter',
+    description: 'Hit enemy weaknesses 10 times',
+    category: 'combat',
+    condition: (data) => data.weaknessHits >= 10,
+    getProgress: (data) => data.weaknessHits
+  },
+  {
+    id: 'shield_master',
+    name: 'Shield Master',
+    description: 'Break 25 enemy shields',
+    category: 'combat',
+    condition: (data) => data.shieldsBroken >= 25,
+    getProgress: (data) => data.shieldsBroken
+  },
+  {
+    id: 'elemental_tactician',
+    name: 'Elemental Tactician',
+    description: 'Hit enemy weaknesses 50 times',
+    category: 'combat',
+    condition: (data) => data.weaknessHits >= 50,
+    getProgress: (data) => data.weaknessHits
+  },
+  {
+    id: 'break_specialist',
+    name: 'Break Specialist',
+    description: 'Defeat 10 enemies while they are broken',
+    category: 'combat',
+    condition: (data) => data.defeatedWhileBroken >= 10,
+    getProgress: (data) => data.defeatedWhileBroken
   },
 
   // Exploration achievements

@@ -1,5 +1,5 @@
 import { playerAttack, playerDefend, playerFlee, playerUsePotion, playerUseAbility, playerUseItem, enemyAct } from '../combat.js';
-import { createGameStats, recordDamageDealt, recordTurnPlayed, recordItemUsed, recordAbilityUsed, recordDamageReceived } from '../game-stats.js';
+import { createGameStats, recordDamageDealt, recordTurnPlayed, recordItemUsed, recordAbilityUsed, recordDamageReceived, recordShieldBroken, recordWeaknessHit, recordDefeatedWhileBroken } from '../game-stats.js';
 import { getCraftingMaterialDrops, lookupItem } from '../crafting.js';
 import { addItemToInventory } from '../items.js';
 import { trackAchievements } from '../achievements.js';
@@ -32,6 +32,9 @@ export function handleCombatAction(state, action) {
     let gs = next.gameStats || createGameStats();
     if (dmgDealt > 0) gs = recordDamageDealt(gs, dmgDealt);
     gs = recordTurnPlayed(gs);
+    if (next._triggeredShieldBreak) gs = recordShieldBroken(gs);
+    if (next._hitWeakness) gs = recordWeaknessHit(gs);
+    if (next._defeatedWhileBroken) gs = recordDefeatedWhileBroken(gs);
     applyCraftingMaterialDrops(next);
 
     if (cs) {
@@ -89,6 +92,9 @@ export function handleCombatAction(state, action) {
     gs = recordAbilityUsed(gs, action.abilityId);
     if (dmgDealt > 0) gs = recordDamageDealt(gs, dmgDealt);
     gs = recordTurnPlayed(gs);
+    if (next._triggeredShieldBreak) gs = recordShieldBroken(gs);
+    if (next._hitWeakness) gs = recordWeaknessHit(gs);
+    if (next._defeatedWhileBroken) gs = recordDefeatedWhileBroken(gs);
     applyCraftingMaterialDrops(next);
 
     const healingDone = Math.max(0, (next.player?.hp ?? 0) - (state.player?.hp ?? 0));

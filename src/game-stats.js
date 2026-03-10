@@ -17,6 +17,9 @@ export function createGameStats() {
     battlesWon: 0,
     battlesFled: 0,
     turnsPlayed: 0,
+    shieldsBroken: 0,
+    weaknessHits: 0,
+    defeatedWhileBroken: 0,
   };
 }
 
@@ -90,6 +93,27 @@ export function recordTurnPlayed(stats) {
   return {
     ...stats,
     turnsPlayed: stats.turnsPlayed + 1,
+  };
+}
+
+export function recordShieldBroken(stats) {
+  return {
+    ...stats,
+    shieldsBroken: stats.shieldsBroken + 1,
+  };
+}
+
+export function recordWeaknessHit(stats) {
+  return {
+    ...stats,
+    weaknessHits: stats.weaknessHits + 1,
+  };
+}
+
+export function recordDefeatedWhileBroken(stats) {
+  return {
+    ...stats,
+    defeatedWhileBroken: stats.defeatedWhileBroken + 1,
   };
 }
 
