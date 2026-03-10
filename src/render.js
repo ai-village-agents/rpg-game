@@ -30,6 +30,7 @@ import { renderCompanionPanel, renderCompanionHUD, renderCompanionBadge } from '
 import { renderDungeonPanel, renderDungeonActions, attachDungeonHandlers, getDungeonStyles, shouldShowDungeonEntrance } from './dungeon-ui.js';
 import { renderProvisionsPanel, renderProvisionBuffs, attachProvisionsHandlers, getProvisionsStyles } from './provisions-ui.js';
 import { renderShieldBreakHUD } from './shield-break-ui.js';
+import { renderCombatStatsHtml } from './battle-summary.js';
 
 function hpLine(entity) {
   const pct = Math.round((entity.hp / entity.maxHp) * 100);
@@ -579,6 +580,7 @@ export function render(state, dispatch) {
           ${lootHtml}
           ${levelUpHtml ? '<h3 class="good">Level Up!</h3>' + levelUpHtml : ''}
         </div>
+        ${bs.combatStatsDisplay ? '<div class="card">' + renderCombatStatsHtml(bs.combatStatsDisplay) + '</div>' : ''}
       </div>
     `;
     actions.innerHTML = '<div class="buttons"><button id="btnContinueAfterBattle">Continue →</button></div>';
