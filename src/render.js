@@ -5,6 +5,7 @@ import { DEFAULT_WORLD_DATA, getRoomExits } from './map.js';
 import { getCategorizedInventory, getEquipmentDisplay, getItemDetails, INVENTORY_SCREENS, EQUIPMENT_SLOTS, getEquipmentBonuses } from './inventory.js';
 import { getEffectiveCombatStats, getEquipmentBonusDisplay, hasEquipmentBonuses } from './combat/equipment-bonuses.js';
 import { getCurrentLevelUp, getStatDiffs, formatStatName, xpForNextLevel } from './level-up.js';
+import { formatAbilityName } from './specialization-ui.js';
 import { getNPCsInRoom, getCurrentDialogLine, getDialogProgress } from './npc-dialog.js';
 import { getActiveQuestsSummary, getAvailableQuestsInRoom } from './quest-integration.js';
 import { getAbilityDisplayInfo } from './combat/abilities.js';
@@ -383,6 +384,62 @@ export function render(state, dispatch) {
       .reverse()
       .map((line) => `<div class="logLine">${esc(line)}</div>`)
       .join('');
+    finalizeRender();
+    return;
+  }
+
+
+  // --- Specialization Phase ---
+  if (state.phase === 'specialization' && state.specializationState) {
+    const specState = state.specializationState;
+    const choices = specState.choices || [];
+    const playerName = esc(specState.playerName || 'Hero');
+    const classId = specState.classId || '';
+    const className = classId.charAt(0).toUpperCase() + classId.slice(1);
+
+    const choiceCards = choices.map((choice, idx) => {
+      const statLines = choice.statBonuses.map(sb => {
+        const color = sb.value > 0 ? '#4f4' : '#f44';
+        return '<div style="color:' + color + ';">' + esc(sb.formatted) + '</div>';
+      }).join('');
+      const abilityLines = choice.abilities.map(a =>
+        '<div>\u2694\uFE0F ' + esc(a.name) + '</div>'
+      ).join('');
+      const passiveHtml = choice.passive
+        ? '<div style="margin-top:6px;"><b>\u2728 ' + esc(choice.passive.name) + '</b></div>'
+          + '<div style="font-size:0.85em;opacity:0.8;">' + esc(choice.passive.description) + '</div>'
+        : '';
+      return '<div class="card" style="flex:1;min-width:220px;cursor:pointer;border:2px solid #555;" '
+        + 'id="specChoice' + idx + '">'
+        + '<h3 style="color:#ffd700;">' + esc(choice.name) + '</h3>'
+        + '<div style="font-size:0.9em;opacity:0.85;margin-bottom:8px;">' + esc(choice.description) + '</div>'
+        + '<div style="margin-bottom:6px;"><b>Stat Bonuses:</b></div>' + statLines
+        + '<div style="margin-top:6px;margin-bottom:6px;"><b>New Abilities:</b></div>' + abilityLines
+        + passiveHtml
+        + '</div>';
+    }).join('');
+
+    hud.innerHTML = '<div class="row">'
+      + '<div class="card" style="width:100%;text-align:center;">'
+      + '<h2 style="color:#ffd700;">\u2B50 Specialization Unlocked!</h2>'
+      + '<div>' + playerName + ' the ' + esc(className) + ' has reached Level 5!</div>'
+      + '<div style="margin-top:4px;">Choose your path wisely — this choice is permanent.</div>'
+      + '</div></div>'
+      + '<div class="row" style="gap:12px;">' + choiceCards + '</div>';
+
+    actions.innerHTML = '';
+
+    // Wire up click handlers
+    choices.forEach((choice, idx) => {
+      const el = document.getElementById('specChoice' + idx);
+      if (el) {
+        el.onmouseenter = () => { el.style.borderColor = '#ffd700'; };
+        el.onmouseleave = () => { el.style.borderColor = '#555'; };
+        el.onclick = () => dispatch({ type: 'CHOOSE_SPECIALIZATION', specId: choice.id, specName: choice.name });
+      }
+    });
+
+    log.innerHTML = state.log.slice().reverse().map(line => '<div class="logLine">' + esc(line) + '</div>').join('');
     finalizeRender();
     return;
   }

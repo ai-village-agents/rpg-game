@@ -15,6 +15,7 @@ import { createShopState, buyItem, sellItem } from '../shop.js';
 import { createCraftingState, craftItem } from '../crafting.js';
 import { createTalentState, allocateTalent, deallocateTalent, resetAllTalents } from '../talents.js';
 import { recruitCompanion, dismissCompanion } from '../companions.js';
+import { shouldShowSpecialization, createSpecializationState, applySpecialization } from '../specialization-ui.js';
 
 function getRoomDescription(worldState) {
   const room = getCurrentRoom(worldState);
@@ -135,6 +136,18 @@ export function handleUIAction(state, action) {
     if (done) {
       const returnPhase = state.levelUpState.returnPhase || 'victory';
       if (returnPhase === 'battle-summary-done') {
+        // Check if player needs to choose a specialization
+        if (shouldShowSpecialization(state.player)) {
+          const specState = createSpecializationState(state.player);
+          let next2 = {
+            ...state,
+            phase: 'specialization',
+            specializationState: specState,
+            levelUpState: undefined,
+          };
+          next2 = pushLog(next2, 'You have reached the level of mastery! Choose your specialization path.');
+          return next2;
+        }
         const exits = getRoomExits(state.world);
         let next2 = {
           ...state,
@@ -163,6 +176,20 @@ export function handleUIAction(state, action) {
       return { ...state, phase: 'level-up', levelUpState: luState };
     }
     
+    // Check if player needs to choose a specialization (reached level 5+ without pending level-ups)
+    if (shouldShowSpecialization(state.player)) {
+      const specState = createSpecializationState(state.player);
+      let next = {
+        ...state,
+        phase: 'specialization',
+        specializationState: specState,
+        battleSummary: undefined,
+        pendingLevelUps: undefined,
+      };
+      next = pushLog(next, 'You have reached the level of mastery! Choose your specialization path.');
+      return next;
+    }
+
     // Return to exploration
     const exits = getRoomExits(state.world);
     let gs = state.gameStats || createGameStats();
@@ -425,6 +452,38 @@ export function handleUIAction(state, action) {
   }
   if (type === 'TAVERN_CASH_OUT') {
     return cashOutTavernDice(state);
+  }
+
+  // Specialization Choice
+  if (type === 'CHOOSE_SPECIALIZATION') {
+    if (state.phase !== 'specialization') return null;
+    const specId = action.specId;
+    if (!specId) return null;
+    
+    const updatedPlayer = applySpecialization(state.player, specId);
+    if (!updatedPlayer) return null;
+    
+    const exits = getRoomExits(state.world);
+    let gs = state.gameStats || createGameStats();
+    gs = recordBattleWon(gs);
+    if (state.enemy?.name) gs = recordEnemyDefeated(gs, state.enemy.name);
+    if ((state.xpGained ?? 0) > 0) gs = recordXPEarned(gs, state.xpGained);
+    if ((state.goldGained ?? 0) > 0) gs = recordGoldEarned(gs, state.goldGained);
+    
+    let next = {
+      ...state,
+      phase: 'exploration',
+      player: { ...updatedPlayer, defending: false },
+      specializationState: undefined,
+      battleSummary: undefined,
+      pendingLevelUps: undefined,
+      gameStats: gs,
+    };
+    const specName = action.specName || specId;
+    next = pushLog(next, 'You have chosen the path of the ' + specName + '!');
+    next = pushLog(next, 'New abilities and stat bonuses have been applied.');
+    next = pushLog(next, `${getRoomDescription(state.world)} Exits: ${exits.join(', ') || 'none'}.`);
+    return next;
   }
 
   return null;
