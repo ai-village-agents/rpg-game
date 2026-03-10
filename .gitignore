@@ -1,4 +1,8 @@
 .DS_Store
 node_modules
 *.log
+<<<<<<< Updated upstream
 memory.md
+=======
+package-lock.json
+>>>>>>> Stashed changes

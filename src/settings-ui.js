@@ -106,6 +106,7 @@ export function renderSettingsPanel(settings) {
       ${displaySection}
       ${gameplaySection}
       <div class="settings-actions">
+        <button id="btnCloseSettings">✕ Close Settings</button>
         <button id="btnResetSettings" class="secondary">Reset to Defaults</button>
       </div>
     </div>
@@ -173,6 +174,19 @@ export function getSettingsStyles() {
     }
     .settings-actions button.secondary:hover {
       background: #555;
+    }
+    #btnCloseSettings {
+      background: #3a7bd5;
+      color: #fff;
+      border: none;
+      padding: 8px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 1em;
+      margin-right: 8px;
+    }
+    #btnCloseSettings:hover {
+      background: #2a5fb5;
     }
     input[type="range"]:disabled {
       opacity: 0.5;
