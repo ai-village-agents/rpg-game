@@ -28,6 +28,7 @@ import { renderBestiaryPanel } from './bestiary-ui.js';
 import { renderJournalPanel, renderJournalBadge } from './journal-ui.js';
 import { renderCompanionPanel, renderCompanionHUD, renderCompanionBadge } from './companions-ui.js';
 import { renderDungeonPanel, renderDungeonActions, attachDungeonHandlers, getDungeonStyles, shouldShowDungeonEntrance } from './dungeon-ui.js';
+import { renderProvisionsPanel, renderProvisionBuffs, attachProvisionsHandlers, getProvisionsStyles } from './provisions-ui.js';
 
 function hpLine(entity) {
   const pct = Math.round((entity.hp / entity.maxHp) * 100);
@@ -133,6 +134,13 @@ export function render(state, dispatch) {
     craftingStyleEl.id = 'crafting-styles';
     craftingStyleEl.textContent = getCraftingStyles();
     document.head.appendChild(craftingStyleEl);
+  }
+
+  if (!document.getElementById('provisions-styles')) {
+    const provisionsStyleEl = document.createElement('style');
+    provisionsStyleEl.id = 'provisions-styles';
+    provisionsStyleEl.textContent = getProvisionsStyles();
+    document.head.appendChild(provisionsStyleEl);
   }
 
   if (!document.getElementById('talent-tree-styles')) {
@@ -259,6 +267,7 @@ export function render(state, dispatch) {
         <button id="btnTavern">Tavern 🍺</button>
         <button id="btnJournal">Journal 📔${renderJournalBadge(state)}</button>
         <button id="btnCompanions">Companions 🤝${renderCompanionBadge(state)}</button>
+        <button id="btnProvisions">Provisions 🍖</button>
       </div>
     `;
 
@@ -280,6 +289,7 @@ export function render(state, dispatch) {
     document.getElementById('btnTavern').onclick = () => dispatch({ type: 'VIEW_TAVERN' });
     document.getElementById('btnJournal').onclick = () => dispatch({ type: 'OPEN_JOURNAL' });
     document.getElementById('btnCompanions').onclick = () => dispatch({ type: 'OPEN_COMPANIONS' });
+    document.getElementById('btnProvisions').onclick = () => dispatch({ type: 'OPEN_PROVISIONS' });
 
     hud.querySelectorAll('.npc-talk-btn').forEach((btn) => {
       btn.onclick = () => dispatch({ type: 'TALK_TO_NPC', npcId: btn.dataset.npcid });
@@ -296,6 +306,7 @@ export function render(state, dispatch) {
 
   // --- Combat Phases (player-turn, enemy-turn) ---
   if (state.phase === 'player-turn' || state.phase === 'enemy-turn') {
+    const provisionBuffBar = renderProvisionBuffs(state);
     hud.innerHTML = `
       <div class="row">
         <div class="card">
@@ -1189,7 +1200,29 @@ if (state.phase === 'achievements') {
     return;
   }
 
-  if (state.phase === 'tavern-dice') {
+  if (state.phase === 'provisions') {
+    const provisionsHtml = renderProvisionsPanel(state);
+    hud.innerHTML = provisionsHtml;
+
+    actions.innerHTML = `
+      <div class="buttons">
+        <button id="btnCloseProvisions">Close Provisions</button>
+      </div>
+    `;
+
+    attachProvisionsHandlers(dispatch);
+    document.getElementById('btnCloseProvisions').onclick = () => dispatch({ type: 'CLOSE_PROVISIONS' });
+
+    log.innerHTML = state.log
+      .slice()
+      .reverse()
+      .map((line) => `<div class="logLine">${esc(line)}</div>`)
+      .join('');
+    finalizeRender();
+    return;
+  }
+
+    if (state.phase === 'tavern-dice') {
     hud.innerHTML = renderTavernDicePanel(state);
     actions.innerHTML = '<div class="buttons"><button id="btnCloseTavern">Leave Tavern</button></div>';
     
