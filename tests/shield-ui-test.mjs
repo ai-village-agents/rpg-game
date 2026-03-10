@@ -1,123 +1,134 @@
-/**
- * Shield UI Tests — AI Village RPG
- * Run: node tests/shield-ui-test.mjs
- *
- * Test stubs created Day 343 (Opus 4.5 Claude Code from #voted-out)
- * Day 344 implementers: Fill in assertions after creating shield UI components
- *
- * Reference: docs/day-344-task-assignments.md (Task 4)
- * Reference: docs/shield-break-quick-reference.md (UI examples)
- */
+import { describe, test } from 'node:test';
+import assert from 'node:assert/strict';
 
-// TODO: Uncomment when shield UI functions are created
-// import {
-//   renderShieldDisplay,
-//   renderWeaknessIcons,
-//   renderBreakState,
-//   getShieldIconClass,
-//   animateShieldBreak
-// } from '../src/ui/shield-ui.js';
+import {
+  renderShieldDisplay,
+  renderWeaknessIcons,
+  renderBreakState,
+  getShieldIconClass,
+  animateShieldBreak,
+  renderShieldBreakHUD
+} from '../src/shield-break-ui.js';
 
-let passed = 0;
-let failed = 0;
+describe('renderShieldDisplay', () => {
+  test('returns empty string for null or undefined enemy', () => {
+    assert.equal(renderShieldDisplay(null), '');
+    assert.equal(renderShieldDisplay(undefined), '');
+  });
 
-function assert(condition, msg) {
-  if (condition) {
-    passed++;
-    console.log(`  ✅ ${msg}`);
-  } else {
-    failed++;
-    console.error(`  ❌ FAIL: ${msg}`);
-  }
-}
+  test('renders full shields when current equals max', () => {
+    const enemy = { maxShields: 3, currentShields: 3, isBroken: false };
+    const output = renderShieldDisplay(enemy);
+    assert.equal((output.match(/🛡/g) || []).length, 3);
+    assert.equal((output.match(/○/g) || []).length, 0);
+  });
 
-// Mock enemy state for UI testing
-function createMockEnemy(overrides = {}) {
-  return {
-    name: 'Goblin',
-    maxShields: 3,
-    currentShields: 2,
-    weaknesses: ['fire', 'holy'],
-    immunities: [],
-    isBroken: false,
-    breakTurnsRemaining: 0,
-    ...overrides
-  };
-}
+  test('renders mix of full and empty shields', () => {
+    const enemy = { maxShields: 3, currentShields: 1, isBroken: false };
+    const output = renderShieldDisplay(enemy);
+    assert.equal((output.match(/🛡/g) || []).length, 1);
+    assert.equal((output.match(/○/g) || []).length, 2);
+  });
 
-// ── Test: Shield Count Display ──────────────────────────────────────────
-console.log('\n--- Shield Count Display ---');
+  test('renders all empty when broken', () => {
+    const enemy = { maxShields: 3, currentShields: 3, isBroken: true };
+    const output = renderShieldDisplay(enemy);
+    assert.equal((output.match(/🛡/g) || []).length, 0);
+    assert.equal((output.match(/○/g) || []).length, 3);
+  });
 
-// TODO: Implement these tests
-// const enemy1 = createMockEnemy({ currentShields: 3, maxShields: 3 });
-// const display1 = renderShieldDisplay(enemy1);
-// assert(display1.includes('🛡'), 'Display includes shield icon');
-// assert((display1.match(/🛡/g) || []).length === 3, 'Shows 3 filled shields');
-// assert(!display1.includes('○'), 'No empty shields at full');
+  test('returns div with empty content when maxShields is 0', () => {
+    const enemy = { maxShields: 0, currentShields: 0, isBroken: false };
+    const output = renderShieldDisplay(enemy);
+    assert.equal(output, '<div class="shield-display"></div>');
+  });
+});
 
-// const enemy2 = createMockEnemy({ currentShields: 1, maxShields: 3 });
-// const display2 = renderShieldDisplay(enemy2);
-// assert((display2.match(/🛡/g) || []).length === 1, 'Shows 1 filled shield');
-// assert((display2.match(/○/g) || []).length === 2, 'Shows 2 empty shields');
+describe('renderWeaknessIcons', () => {
+  test('returns empty string for empty array', () => {
+    assert.equal(renderWeaknessIcons([]), '');
+  });
 
-console.log('  (4 test stubs - implement after creating shield UI)');
+  test('returns empty string for null', () => {
+    assert.equal(renderWeaknessIcons(null), '');
+  });
 
-// ── Test: Weakness Icon Rendering ───────────────────────────────────────
-console.log('\n--- Weakness Icon Rendering ---');
+  test('renders single weakness icon with class', () => {
+    const output = renderWeaknessIcons(['fire']);
+    assert.match(output, /🔥/);
+    assert.match(output, /weakness-icon/);
+  });
 
-// TODO: Implement these tests
-// const icons1 = renderWeaknessIcons(['fire', 'ice']);
-// assert(icons1.includes('🔥'), 'Fire weakness shows fire icon');
-// assert(icons1.includes('❄'), 'Ice weakness shows ice icon');
+  test('renders multiple weakness icons', () => {
+    const output = renderWeaknessIcons(['fire', 'ice']);
+    assert.match(output, /🔥/);
+    assert.match(output, /❄️/);
+  });
+});
 
-// const icons2 = renderWeaknessIcons(['holy', 'lightning', 'shadow']);
-// assert(icons2.includes('✨'), 'Holy weakness shows holy icon');
-// assert(icons2.includes('⚡'), 'Lightning weakness shows lightning icon');
-// assert(icons2.includes('🌑'), 'Shadow weakness shows shadow icon');
+describe('renderBreakState', () => {
+  test('returns empty string for non-broken enemy', () => {
+    const enemy = { isBroken: false };
+    assert.equal(renderBreakState(enemy), '');
+  });
 
-// const icons3 = renderWeaknessIcons(['nature']);
-// assert(icons3.includes('🌿'), 'Nature weakness shows nature icon');
+  test('renders broken state text with turn wording', () => {
+    const enemy = { isBroken: true, breakTurnsRemaining: 1 };
+    const output = renderBreakState(enemy);
+    assert.match(output, /BROKEN/);
+    assert.match(output, /turn/);
+  });
 
-// const icons4 = renderWeaknessIcons([]);
-// assert(icons4 === '' || icons4 === 'None', 'Empty weaknesses handled');
+  test('shows remaining turns when broken', () => {
+    const enemy = { isBroken: true, breakTurnsRemaining: 2 };
+    const output = renderBreakState(enemy);
+    assert.match(output, /2/);
+  });
+});
 
-console.log('  (4 test stubs - implement after creating shield UI)');
+describe('getShieldIconClass', () => {
+  test('returns expected class names', () => {
+    assert.equal(getShieldIconClass('full'), 'shield-full');
+    assert.equal(getShieldIconClass('empty'), 'shield-empty');
+    assert.equal(getShieldIconClass('broken'), 'shield-broken');
+  });
 
-// ── Test: Break State Visual Indicators ─────────────────────────────────
-console.log('\n--- Break State Indicators ---');
+  test('returns default class for unknown type', () => {
+    assert.equal(getShieldIconClass('unknown'), 'shield-full');
+  });
+});
 
-// TODO: Implement these tests
-// const brokenEnemy = createMockEnemy({ isBroken: true, breakTurnsRemaining: 2 });
-// const breakDisplay = renderBreakState(brokenEnemy);
-// assert(breakDisplay.includes('BROKEN') || breakDisplay.includes('Break'), 'Shows BROKEN text');
-// assert(breakDisplay.includes('2'), 'Shows turns remaining');
+describe('animateShieldBreak', () => {
+  test('returns empty string for non-broken enemy', () => {
+    const enemy = { isBroken: false };
+    assert.equal(animateShieldBreak(enemy), '');
+  });
 
-// const normalEnemy = createMockEnemy({ isBroken: false });
-// const normalDisplay = renderBreakState(normalEnemy);
-// assert(!normalDisplay.includes('BROKEN'), 'Normal enemy has no break indicator');
+  test('returns animation class for broken enemy', () => {
+    const enemy = { isBroken: true };
+    assert.equal(animateShieldBreak(enemy), 'shield-break-animation');
+  });
 
-// const recoveringEnemy = createMockEnemy({ isBroken: true, breakTurnsRemaining: 1 });
-// const recoverDisplay = renderBreakState(recoveringEnemy);
-// assert(recoverDisplay.includes('1'), 'Shows 1 turn remaining');
+  test('returns empty string for null enemy', () => {
+    assert.equal(animateShieldBreak(null), '');
+  });
+});
 
-console.log('  (4 test stubs - implement after creating shield UI)');
+describe('renderShieldBreakHUD', () => {
+  test('returns empty string for null enemy', () => {
+    assert.equal(renderShieldBreakHUD(null), '');
+  });
 
-// ── Test: Shield Icon CSS Classes ───────────────────────────────────────
-console.log('\n--- Shield Icon CSS Classes ---');
+  test('renders hud container for normal enemy', () => {
+    const enemy = { maxShields: 3, currentShields: 3, isBroken: false, weaknesses: [] };
+    const output = renderShieldBreakHUD(enemy);
+    assert.match(output, /shield-break-hud/);
+  });
 
-// TODO: Implement these tests
-// assert(getShieldIconClass('full') === 'shield-full' || getShieldIconClass('full').includes('full'), 'Full shield has correct class');
-// assert(getShieldIconClass('empty') === 'shield-empty' || getShieldIconClass('empty').includes('empty'), 'Empty shield has correct class');
-// assert(getShieldIconClass('broken') === 'shield-broken' || getShieldIconClass('broken').includes('broken'), 'Broken state has correct class');
-
-console.log('  (3 test stubs - implement after creating shield UI)');
-
-// ── Summary ─────────────────────────────────────────────────────────────
-console.log('\n========================================');
-console.log(`Shield UI Tests: ${passed} passed, ${failed} failed`);
-console.log('========================================');
-console.log('\nNOTE: This is a test stub file created Day 343.');
-console.log('Day 344 implementers: Uncomment tests after creating shield UI components');
-console.log('Total test stubs: 15 (minimum required: 15)');
-
-if (failed > 0) process.exit(1);
+  test('includes shield display and break state for broken enemy', () => {
+    const enemy = { maxShields: 2, currentShields: 1, isBroken: true, breakTurnsRemaining: 1, weaknesses: [] };
+    const output = renderShieldBreakHUD(enemy);
+    assert.match(output, /shield-display/);
+    assert.match(output, /break-state-display/);
+  });
+});

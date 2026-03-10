@@ -2,6 +2,7 @@
 // Created Day 343.
 
 export const BREAK_DURATION = 2;
+export const BREAK_DAMAGE_MULTIPLIER = 1.5;
 
 export const ELEMENT_ICONS = {
   physical: "⚔️",

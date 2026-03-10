@@ -19,6 +19,7 @@ import {
   processCompanionDefeatPenalty,
   autoReviveCompanionsAfterCombat,
 } from './companion-combat.js';
+import { getEnemyShieldData, checkWeakness, applyShieldDamage, processBreakState, BREAK_DAMAGE_MULTIPLIER } from './shield-break.js';
 
 // Minimal deterministic RNG (Park-Miller LCG)
 export function nextRng(seed) {
@@ -28,12 +29,12 @@ export function nextRng(seed) {
   return { seed: next, value: next / m };
 }
 
-function computeDamage({ attackerAtk, targetDef, targetDefending, worldEvent }) {
+function computeDamage({ attackerAtk, targetDef, targetDefending, worldEvent, targetIsBroken }) {
   const defendBonus = targetDefending ? 3 : 0;
   const raw = attackerAtk - (targetDef + defendBonus);
   const baseDamage = Math.max(1, raw);
   const mult = getDamageMultiplier(worldEvent);
-  return Math.max(1, Math.floor(baseDamage * mult));
+  return Math.max(1, Math.floor(baseDamage * mult * (targetIsBroken ? BREAK_DAMAGE_MULTIPLIER : 1)));
 }
 
 function isStunned(entity) {
@@ -155,6 +156,9 @@ export function startNewEncounter(state, zoneLevel = 1) {
     maxHp: enemyBase.maxHp ?? enemyBase.hp,
     defending: false,
     statusEffects: [],
+    ...getEnemyShieldData(enemyId),
+    isBroken: false,
+    breakTurnsRemaining: 0,
   };
 
   let next = {
@@ -188,7 +192,16 @@ export function playerAttack(state) {
     targetDef: state.enemy.def,
     targetDefending: state.enemy.defending,
     worldEvent: state.worldEvent || null,
+    targetIsBroken: state.enemy.isBroken,
   });
+
+  if ((state.enemy.weaknesses || []).includes('physical') && !state.enemy.isBroken) {
+    const shieldResult = applyShieldDamage(state.enemy, 1);
+    state = { ...state, enemy: { ...state.enemy, ...shieldResult } };
+    if (shieldResult.triggeredBreak) {
+      state = pushLog(state, 'Enemy shields broken!');
+    }
+  }
 
   const enemyHp = clamp(state.enemy.hp - damage, 0, state.enemy.maxHp);
   state = {
@@ -512,6 +525,16 @@ export function enemyAct(state) {
     state = processTurnStart(state, 'player');
     if (state.phase === 'victory' || state.phase === 'defeat') return state;
     state = pushLog(state, `Your turn.`);
+    return { ...state, phase: 'player-turn' };
+  }
+
+  if (state.enemy.isBroken && state.enemy.breakTurnsRemaining > 0) {
+    const breakResult = processBreakState(state.enemy);
+    state = { ...state, enemy: { ...state.enemy, ...breakResult } };
+    state = pushLog(state, `${state.enemy.name} is recovering from the break and cannot act!`);
+    state = processTurnStart(state, 'player');
+    if (state.phase === 'victory' || state.phase === 'defeat') return state;
+    state = pushLog(state, 'Your turn.');
     return { ...state, phase: 'player-turn' };
   }
 
