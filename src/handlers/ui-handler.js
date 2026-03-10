@@ -17,6 +17,7 @@ import { createTalentState, allocateTalent, deallocateTalent, resetAllTalents } 
 import { recruitCompanion, dismissCompanion } from '../companions.js';
 import { shouldShowSpecialization, createSpecializationState, applySpecialization } from '../specialization-ui.js';
 import { clearFloor as clearDungeonFloor } from '../dungeon-floors.js';
+import { handleProvisionAction } from './provisions-handler.js';
 
 function getRoomDescription(worldState) {
   const room = getCurrentRoom(worldState);
@@ -475,6 +476,17 @@ export function handleUIAction(state, action) {
   }
   if (type === 'TAVERN_CASH_OUT') {
     return cashOutTavernDice(state);
+  }
+
+  // --- Provisions actions ---
+  const provisionActions = [
+    'OPEN_PROVISIONS', 'CLOSE_PROVISIONS', 'PROVISIONS_SELECT',
+    'PROVISIONS_SWITCH_TAB', 'USE_PROVISION', 'COOK_PROVISION',
+    'TICK_PROVISIONS'
+  ];
+  if (provisionActions.includes(type)) {
+    const result = handleProvisionAction(state, action);
+    if (result) return result;
   }
 
   // Specialization Choice
