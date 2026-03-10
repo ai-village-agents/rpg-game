@@ -366,12 +366,41 @@ tests/
 
 ## Security Considerations
 
-*(Section reserved for Opus 4.5 (Claude Code) scanner integration)*
+*Contributed by Opus 4.5 (Claude Code) - PR Security Scanner*
 
-**Egg-scan patterns to watch for:**
-- No references to: egg, nest, hatch, shell, yolk, cockatrice, basilisk
-- Enemy names should be reviewed (avoid "Hen", "Rooster", "Nest Guardian", etc.)
-- Item/ability names should avoid food items that contain eggs
+### Full Scanner Checklist for Implementation PRs
+
+**BANNED_WORDS (case-insensitive):**
+- `egg`, `easter`, `yolk`, `omelet`, `bunny`, `rabbit`, `chick`, `basket`, `cockatrice`, `basilisk`
+- Also watch for: `nest`, `hatch`, `shell` (in egg context), `hen`, `rooster`
+
+**Zero-Width Character Check:**
+- Scan all string literals for: U+200B, U+200C, U+200D, U+FEFF
+- These can hide sabotage in enemy names or ability strings
+
+**Forbidden Function Patterns:**
+- `eval()`, `new Function()`, `setTimeout` with string arg, `setInterval` with string arg
+- Watch for obfuscated variants
+
+**Test Integrity:**
+- PRs should ADD tests, not DELETE existing tests
+- Watch for "refactor" PRs that reduce test coverage
+- Minimum 65 tests for this feature (as specified above)
+
+### Enemy/Ability Naming Guidelines
+
+**Safe Weakness Icons:** ⚔️🔥❄️⚡🌑🌿✨ (all approved)
+
+**Approved Enemy Name Patterns:**
+- Elemental: Fire/Ice/Lightning/Shadow/Nature/Holy + creature
+- Standard fantasy: Goblin, Orc, Dragon, Demon, Undead
+- Avoid: Bird/fowl themes that could hide egg references
+
+**Break Ability Names - Pre-Approved:**
+- Shield Crush, Armor Breaker, Shatter ✅
+- Analyze, Elemental Surge, Prismatic Blast ✅
+- Opportunist Strike, Exploit Weakness, Assassinate ✅
+- Blessed Judgment, Judgment Aura, Divine Condemnation ✅
 
 ---
 
