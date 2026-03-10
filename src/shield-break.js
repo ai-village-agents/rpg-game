@@ -20,6 +20,8 @@ export const ENEMY_SHIELD_DATABASE = {
   goblin_chief: { shieldCount: 5, weaknesses: ["fire", "holy"] },
   cave_bat: { shieldCount: 1, weaknesses: ["fire", "lightning", "holy"] },
   giant_spider: { shieldCount: 3, weaknesses: ["fire", "lightning"] },
+  // Alias: some content uses a dashed id.
+  "giant-spider": { shieldCount: 3, weaknesses: ["fire", "lightning"] },
   training_dummy: {
     shieldCount: 2,
     weaknesses: ["physical", "fire", "ice", "lightning", "shadow", "nature", "holy"],
