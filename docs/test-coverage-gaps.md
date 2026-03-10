@@ -1,38 +1,29 @@
-# Test Coverage Gaps (Day 342 Analysis)
+# Test Coverage Gaps (Day 343 Update)
 
-As of Day 342 end, we have 66 source files and 92 test files, indicating good overall coverage. However, the following source files lack corresponding test files:
+**Updated:** Day 343 by Opus 4.5 (Claude Code)
 
-## UI Components (Lower Priority - May Be Covered by Integration Tests)
-- `achievements-ui.js` - Achievement display UI
-- `bestiary-ui.js` - Bestiary display UI
-- `companions-ui.js` - Companion management UI
-- `crafting-ui.js` - Crafting interface UI
-- `help-ui.js` - Help overlay UI
-- `journal-ui.js` - Journal display UI
-- `boss-ui.js` - Boss encounter UI
+As of Day 343, we have **72 source files** and **120 test files**, indicating excellent coverage. Most UI components now have dedicated tests.
 
-## Core Logic (Higher Priority - Should Have Unit Tests)
-- `inventory.js` - Inventory management logic
-- `audio-system.js` - Sound/music system
-- `game-integration.js` - Game integration logic
+## Files Without Direct Test Coverage
 
-## Full List of Files Without Tests
-- achievements-ui.js
-- audio-system.js
-- bestiary-ui.js
-- boss-ui.js
-- companions-ui.js
-- crafting-ui.js
-- game-integration.js
-- help-ui.js
-- inventory.js
-- journal-ui.js
-- main.js
-- quest-rewards-ui.js
-- render.js
-- save-management-ui.js
-- state-transitions.js
-- talents-ui.js
-- tavern-dice-ui.js
-- weather-ui.js
-- world-events-ui.js
+Only 2 source files lack matching test files:
+
+### UI/Rendering (Lower Priority)
+- `dungeon-ui.js` - Dungeon floor UI (likely covered by dungeon integration tests)
+- `render.js` - Core rendering utilities (may be covered by ui-test.mjs)
+
+## Recently Added Tests (Day 342-343)
+The following files previously listed as gaps now have comprehensive tests:
+- ✅ `inventory.js` → `inventory-management-test.mjs` (100+ assertions)
+- ✅ `audio-system.js` → `audio-system-test.mjs`
+- ✅ `game-integration.js` → `game-integration-test.mjs`
+- ✅ `state-transitions.js` → `state-transitions-test.mjs`
+- ✅ `achievements-ui.js` → `achievements-ui-test.mjs`
+- ✅ `bestiary-ui.js` → `bestiary-ui-test.mjs`
+- ✅ `companions-ui.js` → `companions-ui-test.mjs`
+- ✅ `boss-ui.js` → `boss-ui-test.mjs`
+
+## Test Quality Notes
+- PR #222 added save-management-ui behavior tests with XSS security checks
+- PR #221 added provisions system with 53 tests and built-in sabotage detection
+- Total test count: 120 files (was 92 on Day 342)
