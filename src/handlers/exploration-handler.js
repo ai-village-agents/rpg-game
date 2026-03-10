@@ -9,6 +9,8 @@ import { advanceTime, tryChangeWeather, hasWeatherSystem } from '../weather.js';
 import { logLocationDiscovery } from '../journal.js';
 import { createNPCRelationshipManager, ReputationEvent, RelationshipLevel } from '../npc-relationships.js';
 import { removeItemFromInventory } from '../items.js';
+import { getExplorationQuest } from '../data/exploration-quests.js';
+import { processQuestCompletionWithBonus, generateQuestCompletionMessages } from '../quest-relationship-bridge.js';
 import {
   tryTriggerWorldEvent,
   tickWorldEvent,
@@ -34,6 +36,92 @@ function getRoomDescription(worldState) {
 
 function getAvailableExits(worldState) {
   return getRoomExits(worldState);
+}
+
+function mapLevelToDifficulty(level) {
+  const lvl = Number(level);
+  if (!Number.isFinite(lvl)) return 'normal';
+  if (lvl <= 1) return 'trivial';
+  if (lvl === 2) return 'easy';
+  if (lvl === 3) return 'normal';
+  if (lvl === 4) return 'hard';
+  if (lvl === 5) return 'epic';
+  return 'legendary';
+}
+
+function inferQuestRelationshipInfo(questDef, fallbackName) {
+  if (!questDef) return null;
+
+  const objectiveNpcIds = new Set();
+  for (const stage of questDef.stages || []) {
+    for (const objective of stage.objectives || []) {
+      if (objective.npcId) objectiveNpcIds.add(objective.npcId);
+      if (objective.targetNpcId) objectiveNpcIds.add(objective.targetNpcId);
+    }
+  }
+
+  let npcId = questDef.questGiver || questDef.npcId || null;
+  if (!npcId && objectiveNpcIds.size === 1) {
+    npcId = [...objectiveNpcIds][0];
+  }
+
+  const objectiveNpcList = [...objectiveNpcIds];
+  let beneficiaryNpcs = questDef.beneficiaryNpcs;
+  if (!beneficiaryNpcs && objectiveNpcList.length > 0) {
+    if (objectiveNpcList.length > 1) {
+      beneficiaryNpcs = objectiveNpcList.filter((id) => id !== npcId);
+    } else if (!npcId) {
+      beneficiaryNpcs = objectiveNpcList;
+    }
+  }
+
+  const difficulty = questDef.difficulty || mapLevelToDifficulty(questDef.level);
+
+  return {
+    id: questDef.id,
+    name: questDef.name || fallbackName || questDef.id,
+    npcId,
+    difficulty,
+    beneficiaryNpcs,
+  };
+}
+
+function applyQuestRelationshipEffects(nextState, completedQuests) {
+  if (!completedQuests || completedQuests.length === 0) return nextState;
+
+  let state = nextState;
+  let manager = nextState.npcRelationshipManager;
+  let managerUsed = false;
+
+  for (const completed of completedQuests) {
+    if (!completed?.questId) continue;
+    const questDef = getExplorationQuest(completed.questId);
+    if (!questDef) continue;
+
+    const relationshipInfo = inferQuestRelationshipInfo(questDef, completed.questName);
+    if (!relationshipInfo) continue;
+
+    const hasBeneficiaries = relationshipInfo.beneficiaryNpcs && relationshipInfo.beneficiaryNpcs.length > 0;
+    if (!relationshipInfo.npcId && !hasBeneficiaries) continue;
+
+    if (!managerUsed) {
+      manager = manager ?? createNPCRelationshipManager();
+      state = { ...state, npcRelationshipManager: manager };
+      managerUsed = true;
+    }
+
+    const result = processQuestCompletionWithBonus(manager, relationshipInfo);
+    const messages = generateQuestCompletionMessages(result);
+    for (const msg of messages) {
+      state = pushLog(state, msg);
+    }
+  }
+
+  if (managerUsed && state.npcRelationshipManager !== manager) {
+    state = { ...state, npcRelationshipManager: manager };
+  }
+
+  return state;
 }
 
 export function handleExplorationAction(state, action) {
@@ -84,6 +172,7 @@ export function handleExplorationAction(state, action) {
         const existing = next.pendingQuestRewards || [];
         next = { ...next, pendingQuestRewards: [...existing, ...newRewards] };
       }
+      next = applyQuestRelationshipEffects(next, questResult.completedQuests);
     }
 
     const room = getCurrentRoom(result.worldState);
@@ -173,6 +262,7 @@ export function handleExplorationAction(state, action) {
         const existing = next.pendingQuestRewards || [];
         next = { ...next, pendingQuestRewards: [...existing, ...newRewards] };
       }
+      next = applyQuestRelationshipEffects(next, questResult.completedQuests);
     }
 
     const logs = next.log;
@@ -211,6 +301,7 @@ export function handleExplorationAction(state, action) {
         const existing = next.pendingQuestRewards || [];
         next = { ...next, pendingQuestRewards: [...existing, ...newRewards] };
       }
+      next = applyQuestRelationshipEffects(next, questResult.completedQuests);
     }
 
     // Quest DELIVER objective integration
@@ -237,6 +328,7 @@ export function handleExplorationAction(state, action) {
         const existing = next.pendingQuestRewards || [];
         next = { ...next, pendingQuestRewards: [...existing, ...newDeliverRewards] };
       }
+      next = applyQuestRelationshipEffects(next, deliverResult.completedQuests);
     }
 
     // NPC relationship greeting/reputation
