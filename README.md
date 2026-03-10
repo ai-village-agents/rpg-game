@@ -15,7 +15,7 @@ A collaborative, browser-playable turn-based RPG built by the AI Village agents.
 - **Shop system:** Buy and sell items with dynamic pricing
 - **Crafting system:** Discover and craft recipes from collected materials
 - **Talent trees:** Allocate skill points across multiple talent branches
-- **Quest system:** Accept, track, and complete quests with rewards
+- **Quest system:** Accept, track, and complete multi-stage objectives (KILL/EXPLORE/TALK/DELIVER) with rewards
 - **World events:** Dynamic events like Merchant Caravan, Monster Horde, Fog of War, and more
 - **NPC dialog system:** Story-driven conversations with NPCs
 - **Save/load system:** 5 save slots with full state persistence
@@ -56,7 +56,7 @@ Keyboard movement is ignored when focus is inside an `input`/`textarea` or a con
 - Smoke test: `npm test`
 - Full suite: `npm run test:all`
 
-CI runs the full suite on every PR. The test suite includes 500+ tests covering combat, items, equipment, crafting, talents, quests, world events, bosses, UI contracts, and defensive easter-egg detection.
+CI runs the full suite on every PR. The test suite includes 1100+ tests covering combat, items, equipment, crafting, talents, quests, world events, bosses, UI contracts, and defensive easter-egg detection (forbidden motifs, whitespace/audio whitespace guards, and zero-width character guard).
 
 ## Project structure
 
@@ -67,34 +67,53 @@ src/
   main.js                 — bootstraps app, wires state + render
   state.js                — initial state + store helpers
   engine.js               — save/load system (5 slots)
+  save-system.js          — save logic shared across flows
   render.js               — DOM renderer
   input.js                — keyboard input handling
   combat.js               — turn resolution + enemy AI
   inventory.js            — inventory + equipment + bonuses
   items.js                — item use/add/remove helpers
   equipment-sets.js       — equipment set bonus calculations
+  achievements.js / achievements-ui.js — achievements tracking and UI
+  companions.js / companions-ui.js — companion recruiting and management
+  companion-loyalty-events.js / companion-combat.js — loyalty, mood, and combat hooks for companions
   shop.js / shop-ui.js    — shop logic and UI
   crafting.js / crafting-ui.js — crafting logic and UI
+  crafting-integration.js — crafting hooks for quests and drops
   talents.js / talents-ui.js   — talent tree logic and UI
   quest-integration.js    — quest tracking and completion
+  quest-relationship-bridge.js — links quests to relationships
+  quest-reputation-notifications.js — reputation notifications for quest outcomes
   quest-rewards.js / quest-rewards-ui.js — quest reward handling
   world-events.js / world-events-ui.js   — dynamic world events
   boss.js / boss-ui.js    — boss encounter logic and UI
   npc-dialog.js           — NPC conversation system
+  npc-relationships.js    — relationship progression with NPCs
+  relationship-dialog.js  — dialog adjustments from relationships
+  relationship-shop-discounts.js — shop price adjustments from relationships
+  relationship-achievements.js — achievements tied to relationships
   level-up.js             — level progression and stat gains
   minimap.js              — minimap rendering
+  map.js                  — map scene interactions
   game-stats.js           — gameplay statistics tracking
   battle-summary.js       — post-combat summary
   settings.js / settings-ui.js — game settings
+  save-management-ui.js   — save/load UI and management
   save-slots-ui.js        — save slot UI
   stats-display.js        — player stats display
+  character-creation.js   — character builder
   status-effect-ui.js     — status effect badges + tooltips
   combat-tooltips.js      — combat action tooltips
+  journal.js / journal-ui.js — journal tracking for quests and discoveries
+  bestiary.js / bestiary-ui.js — bestiary entries and UI
   help-ui.js              — help/keybindings overlay
+  weather.js / weather-ui.js — weather effects and UI
+  tavern-dice.js / tavern-dice-ui.js — tavern dice minigame
   dev-menu.js             — developer debug menu
   state-transitions.js    — game phase transitions
   enemy-abilities.js      — enemy AI ability selection
   audio-system.js         — audio management
+  loot-tables.js          — loot table configuration
   game-integration.js     — cross-system integration
   characters/
     classes.js            — class definitions (Warrior, Mage, Rogue, Cleric)
@@ -127,7 +146,7 @@ src/
   story/                  — story/dialog engine
   ui/                     — shared UI utilities
   audio/                  — audio assets/utilities
-tests/                    — 60+ test files, 500+ tests
+tests/                    — 90+ test files, 1100+ tests
 scripts/
   run-tests.mjs           — test runner
 ```
