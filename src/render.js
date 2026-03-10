@@ -27,6 +27,7 @@ import { hasShop } from './shop.js';
 import { renderBestiaryPanel } from './bestiary-ui.js';
 import { renderJournalPanel, renderJournalBadge } from './journal-ui.js';
 import { renderCompanionPanel, renderCompanionHUD, renderCompanionBadge } from './companions-ui.js';
+import { renderDungeonPanel, renderDungeonActions, attachDungeonHandlers, getDungeonStyles, shouldShowDungeonEntrance } from './dungeon-ui.js';
 
 function hpLine(entity) {
   const pct = Math.round((entity.hp / entity.maxHp) * 100);
@@ -246,6 +247,7 @@ export function render(state, dispatch) {
         <button id="btnWest">West</button>
         <button id="btnEast">East</button>
         <button id="btnSeek">Seek Battle</button>
+        ${shouldShowDungeonEntrance(state) ? '<button id="btnEnterDungeon" class="dungeon-enter-btn">Enter Dungeon \u26CF\uFE0F</button>' : ''}
         <button id="btnInventory">Inventory</button>
         <button id="btnQuests">Quests 📜</button>
         <button id="btnViewStats">Stats 📊</button>
@@ -265,6 +267,8 @@ export function render(state, dispatch) {
     document.getElementById('btnWest').onclick = () => dispatch({ type: 'EXPLORE', direction: 'west' });
     document.getElementById('btnEast').onclick = () => dispatch({ type: 'EXPLORE', direction: 'east' });
     document.getElementById('btnSeek').onclick = () => dispatch({ type: 'SEEK_ENCOUNTER' });
+    const dungeonBtn = document.getElementById('btnEnterDungeon');
+    if (dungeonBtn) dungeonBtn.onclick = () => dispatch({ type: 'ENTER_DUNGEON' });
     document.getElementById('btnInventory').onclick = () => dispatch({ type: 'VIEW_INVENTORY' });
     document.getElementById('btnQuests').onclick = () => dispatch({ type: 'VIEW_QUESTS' });
     document.getElementById('btnViewStats').onclick = () => dispatch({ type: 'VIEW_STATS' });
@@ -1157,6 +1161,29 @@ if (state.phase === 'achievements') {
     // Also wire data-action close button from bestiary-ui
     const dataCloseBtn = hud.querySelector('[data-action="close-bestiary"]');
     if (dataCloseBtn) dataCloseBtn.onclick = () => dispatch({ type: 'CLOSE_BESTIARY' });
+    log.innerHTML = state.log.slice().reverse().map(line => '<div class="logLine">' + esc(line) + '</div>').join('');
+    finalizeRender();
+    return;
+  }
+
+  if (state.phase === 'dungeon') {
+    const dungeonHtml = renderDungeonPanel(state);
+    hud.innerHTML = `
+      <div class="row">
+        <div class="card">
+          <h2>${esc(state.player.name)}</h2>
+          <div class="kv">
+            <div>Class</div><div><b>${esc(state.player.classId ? state.player.classId[0].toUpperCase() + state.player.classId.slice(1) : 'Adventurer')}</b></div>
+            <div>HP</div><div><b>${hpLine(state.player)}</b></div>
+            <div>MP</div><div><b>${state.player.mp ?? 0} / ${state.player.maxMp ?? 0}</b></div>
+            <div>Level</div><div><b>${state.player.level ?? 1}</b></div>
+          </div>
+        </div>
+        ${dungeonHtml}
+      </div>
+    `;
+    actions.innerHTML = renderDungeonActions(state);
+    attachDungeonHandlers(dispatch);
     log.innerHTML = state.log.slice().reverse().map(line => '<div class="logLine">' + esc(line) + '</div>').join('');
     finalizeRender();
     return;

@@ -4,6 +4,7 @@ import { handleCombatAction, handleEnemyTurnLogic } from './handlers/combat-hand
 import { handleExplorationAction } from './handlers/exploration-handler.js';
 import { handleSystemAction } from './handlers/system-handler.js';
 import { handleUIAction } from './handlers/ui-handler.js';
+import { handleDungeonAction } from './handlers/dungeon-handler.js';
 import { handleStateTransitions } from './state-transitions.js';
 import { initAudio } from './audio-system.js';
 
@@ -47,6 +48,7 @@ function setState(next) {
 function dispatch(action) {
   // Try each handler in order
   const next = handleCombatAction(state, action) ||
+               handleDungeonAction(state, action) ||
                handleExplorationAction(state, action) ||
                handleSystemAction(state, action) ||
                handleUIAction(state, action);

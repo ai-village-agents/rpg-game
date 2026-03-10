@@ -16,6 +16,7 @@ import { createCraftingState, craftItem } from '../crafting.js';
 import { createTalentState, allocateTalent, deallocateTalent, resetAllTalents } from '../talents.js';
 import { recruitCompanion, dismissCompanion } from '../companions.js';
 import { shouldShowSpecialization, createSpecializationState, applySpecialization } from '../specialization-ui.js';
+import { clearFloor as clearDungeonFloor } from '../dungeon-floors.js';
 
 function getRoomDescription(worldState) {
   const room = getCurrentRoom(worldState);
@@ -190,13 +191,35 @@ export function handleUIAction(state, action) {
       return next;
     }
 
-    // Return to exploration
-    const exits = getRoomExits(state.world);
+    // Track battle stats
     let gs = state.gameStats || createGameStats();
     gs = recordBattleWon(gs);
     if (state.enemy?.name) gs = recordEnemyDefeated(gs, state.enemy.name);
     if ((state.xpGained ?? 0) > 0) gs = recordXPEarned(gs, state.xpGained);
     if ((state.goldGained ?? 0) > 0) gs = recordGoldEarned(gs, state.goldGained);
+
+    // Return to dungeon if in dungeon combat
+    if (state.inDungeonCombat && state.dungeonState?.inDungeon) {
+      let dungeonState = state.dungeonState;
+      if (state.dungeonBossFight) {
+        dungeonState = clearDungeonFloor(dungeonState);
+      }
+      const { inDungeonCombat, dungeonBossFight, ...rest } = state;
+      let next = {
+        ...rest,
+        dungeonState,
+        phase: 'dungeon',
+        player: { ...state.player, defending: false },
+        battleSummary: undefined,
+        pendingLevelUps: undefined,
+        gameStats: gs,
+      };
+      next = pushLog(next, 'You continue exploring the dungeon.');
+      return next;
+    }
+
+    // Return to exploration
+    const exits = getRoomExits(state.world);
     
     let next = {
       ...state,
