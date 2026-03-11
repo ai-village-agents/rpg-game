@@ -65,6 +65,14 @@ export function getHelpStyles() {
     .close-help-btn:hover {
       background: #555;
     }
+    .help-tip {
+      background: #2a2a3a;
+      border-left: 3px solid #6a6aff;
+      padding: 8px 12px;
+      margin-top: 15px;
+      font-size: 0.9em;
+      color: #aaf;
+    }
   `;
 }
 
@@ -75,7 +83,7 @@ export function renderHelpModal() {
         <h2>Game Controls & Help</h2>
         
         <div class="help-section">
-          <h3>Exploration</h3>
+          <h3>Movement</h3>
           <div class="key-list">
             <div><span class="key-badge">W</span> / <span class="key-badge">↑</span></div>
             <div>Move North</div>
@@ -88,9 +96,17 @@ export function renderHelpModal() {
             
             <div><span class="key-badge">D</span> / <span class="key-badge">→</span></div>
             <div>Move East</div>
+          </div>
+        </div>
+
+        <div class="help-section">
+          <h3>Quick Access</h3>
+          <div class="key-list">
+            <div><span class="key-badge">B</span></div>
+            <div>Open Bestiary</div>
             
-            <div><span class="key-badge">?</span></div>
-            <div>Toggle Help</div>
+            <div><span class="key-badge">?</span> / <span class="key-badge">H</span></div>
+            <div>Toggle Help Menu</div>
           </div>
         </div>
 
@@ -98,13 +114,26 @@ export function renderHelpModal() {
           <h3>Combat</h3>
           <div class="key-list">
             <div><span class="key-badge">Click</span></div>
-            <div>Select Actions / Targets</div>
+            <div>Select Actions & Targets</div>
           </div>
+          <p style="color:#888;font-size:0.9em;margin-top:8px;">
+            Hover over abilities to see damage, MP cost, and effects.
+            Use the battle log to track combat events.
+          </p>
         </div>
 
         <div class="help-section">
-          <h3>General</h3>
-          <p>Explore the world, fight monsters, and gather loot. Use the buttons on screen or keyboard shortcuts to navigate.</p>
+          <h3>Game Systems</h3>
+          <p style="color:#ccc;font-size:0.9em;">
+            <b>Shield/Break:</b> Enemies have elemental shields. Hit weaknesses to break shields and deal bonus damage!<br><br>
+            <b>Companions:</b> Recruit allies to fight alongside you. Build loyalty through combat and gifts.<br><br>
+            <b>Crafting:</b> Combine materials to create powerful equipment and consumables.<br><br>
+            <b>Quests:</b> Accept quests from NPCs to earn rewards and reputation.
+          </p>
+        </div>
+
+        <div class="help-tip">
+          💡 <b>Tip:</b> Check the Bestiary to learn enemy weaknesses and plan your strategy!
         </div>
 
         <button id="btnHelpClose" class="close-help-btn">Close</button>
