@@ -10,6 +10,7 @@ import { handleUIAction } from './handlers/ui-handler.js';
 import { handleDungeonAction } from './handlers/dungeon-handler.js';
 import { handleStateTransitions } from './state-transitions.js';
 import { initAudio } from './audio-system.js';
+import { createTutorialState } from './tutorial.js';
 
 const IS_BROWSER = typeof window !== 'undefined' && typeof document !== 'undefined';
 
@@ -17,7 +18,7 @@ if (IS_BROWSER) {
   // Initialize theme from settings
   const initialSettings = loadSettings();
   applyTheme(initialSettings.display?.theme || 'midnight');
-  let state = { phase: 'class-select', log: ['Welcome to AI Village RPG! Select your class.'] };
+  let state = { phase: 'class-select', log: ['Welcome to AI Village RPG! Select your class.'], tutorialState: createTutorialState() };
 
   // Initialize audio system on first interaction
   const startAudio = async () => {

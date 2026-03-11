@@ -36,6 +36,8 @@ import { triggerFloatingTextFromLog, getFloatingTextStyles } from './floating-te
 import { renderBattleLogPanel, getBattleLogStyles } from './battle-log-ui.js';
 import { getBattleLogEntries } from './combat-battle-log-integration.js';
 import { filterAndSortItems, renderSortFilterControls, SORT_MODES, FILTER_MODES } from './inventory-sort-filter.js';
+import { renderTutorialHint, attachTutorialHandlers, getTutorialStyles } from './tutorial-ui.js';
+import { getTutorialHint } from './tutorial.js';
 import { BACKGROUND_ORDER, BACKGROUNDS } from './data/backgrounds.js';
 
 /** Track previous log for floating text diff */
@@ -286,6 +288,12 @@ export function render(state, dispatch) {
     blStyleEl.textContent = getBattleLogStyles();
     document.head.appendChild(blStyleEl);
   }
+  if (!document.getElementById('tutorial-styles')) {
+    const tutStyleEl = document.createElement('style');
+    tutStyleEl.id = 'tutorial-styles';
+    tutStyleEl.textContent = getTutorialStyles();
+    document.head.appendChild(tutStyleEl);
+  }
 
   const finalizeRender = () => {
     if (state.showHelp) {
@@ -303,6 +311,35 @@ export function render(state, dispatch) {
       triggerFloatingTextFromLog(state.log, _previousLog);
     }
     _previousLog = state.log ? [...state.log] : [];
+
+    // Tutorial hint triggers
+    if (state.tutorialState && state.tutorialState.hintsEnabled) {
+      let triggerEvent = null;
+      if (state.phase === 'class-select' && !state.tutorialState.completedSteps.includes('welcome')) triggerEvent = 'class-select';
+      else if (state.phase === 'exploration' && !state.tutorialState.completedSteps.includes('exploration-basics')) triggerEvent = 'first-exploration';
+      else if ((state.phase === 'player-turn' || state.phase === 'enemy-turn') && !state.tutorialState.completedSteps.includes('combat-intro')) triggerEvent = 'first-combat';
+      else if (state.phase === 'inventory' && !state.tutorialState.completedSteps.includes('inventory-intro')) triggerEvent = 'first-inventory';
+      else if (state.phase === 'shop' && !state.tutorialState.completedSteps.includes('shop-intro')) triggerEvent = 'first-shop';
+      else if (state.phase === 'dungeon' && !state.tutorialState.completedSteps.includes('dungeon-intro')) triggerEvent = 'first-dungeon';
+      else if (state.phase === 'level-up' && !state.tutorialState.completedSteps.includes('level-up-intro')) triggerEvent = 'first-level-up';
+      else if (state.phase === 'quests' && !state.tutorialState.completedSteps.includes('quest-intro')) triggerEvent = 'first-quest';
+      else if (state.phase === 'crafting' && !state.tutorialState.completedSteps.includes('crafting-intro')) triggerEvent = 'first-crafting';
+      else if (state.phase === 'companions' && !state.tutorialState.completedSteps.includes('companion-intro')) triggerEvent = 'first-companion';
+
+      if (triggerEvent) {
+        const hint = getTutorialHint(state.tutorialState, triggerEvent);
+        if (hint && state.tutorialState.currentHint?.id !== hint.id) {
+          dispatch({ type: 'TUTORIAL_SHOW', stepId: hint.id });
+        }
+      }
+    }
+
+    // Render tutorial overlay
+    const tutorialHtml = renderTutorialHint(state.tutorialState);
+    if (tutorialHtml) {
+      hud.innerHTML += tutorialHtml;
+      attachTutorialHandlers(dispatch);
+    }
   };
 
   // --- Class Select Phase ---
