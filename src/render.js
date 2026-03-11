@@ -366,25 +366,7 @@ export function render(state, dispatch) {
       `;
     }).join('');
 
-    hud.innerHTML = `
-      <div class="row">
-        <div class="card" style="flex: 2;">
-          <h2>Quests Log</h2>
-          ${filterControlsHtml}
-          <div class="quest-list-container" style="max-height: 400px; overflow-y: auto;">
-            ${questsHtml}
-          </div>
-        </div>
-        <div class="card" style="flex: 1;">
-          <h2>Quest Stats</h2>
-          <div class="kv">
-            <div>Active</div><div><b>${summary.length}</b></div>
-            <div>Completed</div><div><b>${completedCount}</b></div>
-            <div>Available Here</div><div><b>${availableQuests.length}</b></div>
-          </div>
-        </div>
-      </div>
-    `;
+    hud.innerHTML = `<div class="card"><h2>Choose Your Name</h2><input id="class-select-name" type="text" maxlength="24" placeholder="Enter your character name" autocomplete="off" /></div><div class="row">${cards}</div>`;
     actions.innerHTML = '';
 
     const nameInput = hud.querySelector('#class-select-name');
