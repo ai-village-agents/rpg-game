@@ -161,14 +161,24 @@ export function getCompanionBonuses(state) {
 export function companionAutoAct(state, rngSeed) {
   const companions = getCompanionList(state);
   let working = state;
-  let seed = rngSeed;
+  let seed = Number.isFinite(rngSeed) ? rngSeed : working?.rngSeed;
+  let companionActed = false;
+
+  if (!Number.isFinite(seed)) {
+    seed = Date.now() % 2147483647;
+  }
 
   for (const companion of companions) {
     if (!companion.alive) continue;
+    companionActed = true;
     const result = companionAttack(working, companion.id, seed);
     working = result.state;
     seed = result.seed;
   }
 
-  return { state: working, seed };
+  if (companionActed && Number.isFinite(seed)) {
+    working = { ...working, rngSeed: seed };
+  }
+
+  return working;
 }

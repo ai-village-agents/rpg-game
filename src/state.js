@@ -7,6 +7,7 @@ import { createWorldState } from './map.js';
 import { createWeatherState } from './weather.js';
 import { createBestiaryState } from './bestiary.js';
 import { createCompanionState } from './companions.js';
+import { createNPCRelationshipManager } from './npc-relationships.js';
 
 export function initialState() {
   const playerBase = characters.player;
@@ -43,22 +44,19 @@ export function initialState() {
     bestiary: createBestiaryState(),
     tavernDice: createTavernDiceState(),
     ...createCompanionState(),
+    npcRelationshipManager: createNPCRelationshipManager(),
   };
 }
 
-export function initialStateWithClass(classId) {
+export function initialStateWithClass(classId, characterName = '') {
   if (!CLASS_DEFINITIONS[classId]) {
     throw new Error(`Unknown classId: ${classId}`);
   }
 
-  const name = classId === 'warrior'
-    ? 'Warrior'
-    : classId === 'mage'
-      ? 'Mage'
-      : classId === 'rogue'
-        ? 'Rogue'
-        : 'Cleric';
   const classDef = CLASS_DEFINITIONS[classId];
+  const name = typeof characterName === 'string' && characterName.trim()
+    ? characterName.trim()
+    : classDef.name;
   const character = createCharacter({ name, classId });
 
   const encounter = getEncounter(1);
@@ -101,6 +99,7 @@ export function initialStateWithClass(classId) {
     bestiary: createBestiaryState(),
     tavernDice: createTavernDiceState(),
     ...createCompanionState(),
+    npcRelationshipManager: createNPCRelationshipManager(),
   };
 }
 

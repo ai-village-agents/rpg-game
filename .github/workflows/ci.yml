@@ -13,5 +13,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+      - name: Run security scanner
+        run: npm run security-scan
       - name: Run full test suite
         run: npm run test:all

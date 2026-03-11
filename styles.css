@@ -13,8 +13,14 @@
 body {
   margin: 0;
   font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
-  background: var(--bg);
   color: var(--text);
+  background-color: var(--bg);
+  background-image:
+    radial-gradient(circle at 0% 0%, color-mix(in srgb, var(--accent) 2%, transparent) 0%, transparent 45%),
+    radial-gradient(circle at 100% 100%, color-mix(in srgb, var(--good) 1%, transparent) 0%, transparent 45%),
+    repeating-linear-gradient(0deg, rgba(255,255,255,0.02), rgba(255,255,255,0.02) 1px, transparent 1px, transparent 20px),
+    repeating-linear-gradient(90deg, rgba(255,255,255,0.02), rgba(255,255,255,0.02) 1px, transparent 1px, transparent 20px);
+  background-attachment: fixed;
 }
 
 .header {
@@ -146,3 +152,128 @@ button:disabled { opacity: 0.45; cursor: not-allowed; }
 .shop-buy-btn:hover:not(:disabled), .shop-sell-btn:hover { background: #3a6a3a; }
 .shop-buy-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 .shop-empty { color: #888; font-style: italic; padding: 20px 0; text-align: center; }
+
+/* === Bestiary Panel Styles === */
+.bestiary-panel { max-width: 700px; margin: 0 auto; }
+.bestiary-summary { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; margin-bottom: 12px; background: rgba(122,162,255,0.08); border-radius: 8px; font-size: 0.9em; color: var(--muted); }
+.bestiary-list { display: flex; flex-direction: column; gap: 8px; max-height: 420px; overflow-y: auto; padding-right: 4px; }
+.bestiary-entry { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.07); border-radius: 8px; padding: 10px 12px; transition: border-color 0.2s; }
+.bestiary-entry:hover { border-color: rgba(122,162,255,0.3); }
+.bestiary-unknown { opacity: 0.5; }
+.bestiary-boss { border-color: rgba(255,107,107,0.3); background: rgba(255,107,107,0.04); }
+.bestiary-boss:hover { border-color: rgba(255,107,107,0.5); }
+.bestiary-entry-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+.bestiary-name { font-weight: 700; font-size: 1em; color: var(--text); }
+.bestiary-boss-tag { font-size: 0.75em; color: var(--bad); font-weight: 700; padding: 2px 6px; background: rgba(255,107,107,0.12); border-radius: 4px; }
+.bestiary-element { font-size: 0.8em; color: var(--muted); text-transform: capitalize; }
+.bestiary-description { font-size: 0.85em; color: var(--muted); font-style: italic; margin-bottom: 6px; padding: 4px 8px; background: rgba(255,255,255,0.02); border-radius: 4px; }
+.bestiary-stats { font-size: 0.85em; color: var(--accent); margin-bottom: 4px; }
+.bestiary-rewards { font-size: 0.85em; color: #fc0; margin-bottom: 4px; }
+.bestiary-defeats { font-size: 0.8em; color: var(--good); }
+.bestiary-close-btn { display: block; margin: 12px auto 0; padding: 8px 24px; font-size: 0.95em; }
+
+/* === Bestiary Shield Info === */
+.bestiary-shield-info { margin-top: 8px; padding: 8px 10px; background: rgba(122,162,255,0.06); border: 1px solid rgba(122,162,255,0.15); border-radius: 6px; font-size: 0.85em; display: flex; flex-direction: column; gap: 4px; }
+.bestiary-shield-info > div { display: flex; align-items: center; gap: 6px; color: var(--muted); }
+.bestiary-element-tag { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 50%; font-size: 14px; border: 1px solid rgba(255,255,255,0.1); }
+.bestiary-el-fire { background: rgba(255,80,40,0.2); border-color: rgba(255,80,40,0.4); }
+.bestiary-el-ice { background: rgba(100,180,255,0.2); border-color: rgba(100,180,255,0.4); }
+.bestiary-el-lightning { background: rgba(255,220,60,0.2); border-color: rgba(255,220,60,0.4); }
+.bestiary-el-holy { background: rgba(255,240,180,0.2); border-color: rgba(255,240,180,0.4); }
+.bestiary-el-shadow { background: rgba(130,60,200,0.2); border-color: rgba(130,60,200,0.4); }
+.bestiary-el-nature { background: rgba(80,200,80,0.2); border-color: rgba(80,200,80,0.4); }
+.bestiary-el-physical { background: rgba(180,180,180,0.2); border-color: rgba(180,180,180,0.4); }
+
+/* === Shield Break Combat UI === */
+.shield-break-hud { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 6px 10px; margin: 6px 0; background: rgba(122,162,255,0.06); border: 1px solid rgba(122,162,255,0.12); border-radius: 6px; }
+.shield-display { font-size: 18px; letter-spacing: 2px; }
+.shield-full { color: var(--accent); }
+.shield-empty { color: rgba(255,255,255,0.2); }
+.shield-broken { color: var(--bad); }
+.weakness-icon { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 50%; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); font-size: 13px; margin: 0 1px; }
+.break-state-display { padding: 4px 10px; border-radius: 4px; font-size: 0.85em; font-weight: 700; }
+.break-active { background: rgba(255,107,107,0.15); color: var(--bad); border: 1px solid rgba(255,107,107,0.3); animation: break-pulse 1s ease-in-out infinite; }
+.break-active span { font-weight: 400; color: var(--muted); margin-left: 6px; font-size: 0.9em; }
+
+/* Shield break animation */
+@keyframes break-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
+@keyframes shield-break-flash { 0% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.2); opacity: 0.5; color: var(--bad); } 100% { transform: scale(1); opacity: 1; } }
+.shield-break-animation { animation: shield-break-flash 0.5s ease-in-out; }
+
+/* ========================================
+   Combat Log Formatter Styles
+   Added by Claude Opus 4.6 (Day 343)
+   ======================================== */
+.log-damage-dealt { color: #4CAF50; }
+.log-damage-received { color: #f44336; }
+.log-healing { color: #2196F3; }
+.log-status { color: #FF9800; }
+.log-shield { color: #9C27B0; }
+.log-ability { color: #E91E63; }
+.log-flee { color: #FFC107; }
+.log-victory { color: #FFD700; font-weight: bold; }
+.log-defeat { color: #B71C1C; font-weight: bold; }
+.log-companion { color: #00BCD4; }
+.log-item { color: #8BC34A; }
+.log-info { color: #9E9E9E; }
+.log-icon {
+  margin-right: 6px;
+  font-size: 0.9em;
+  display: inline-block;
+  width: 1.2em;
+  text-align: center;
+}
+
+/* Gradient Button Styles */
+button.gradient,
+.btn-gradient {
+  appearance: none;
+  background: linear-gradient(135deg, var(--gradient-start, var(--accent)), var(--gradient-end, var(--panel)));
+  border: 1px solid rgba(255,255,255,0.2);
+  color: var(--text);
+  padding: 10px 16px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+button.gradient:hover,
+.btn-gradient:hover {
+  filter: brightness(1.15);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  transform: translateY(-1px);
+}
+
+button.gradient:active,
+.btn-gradient:active {
+  filter: brightness(0.95);
+  transform: translateY(1px);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+}
+
+button.gradient:disabled,
+.btn-gradient:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  filter: saturate(0.5);
+  transform: none;
+  box-shadow: none;
+}
+
+/* Gradient button variants */
+button.gradient-success,
+.btn-gradient-success {
+  background: linear-gradient(135deg, #2d8a4e, var(--good, #57d38c));
+}
+
+button.gradient-danger,
+.btn-gradient-danger {
+  background: linear-gradient(135deg, #c44a4a, var(--bad, #ff6b6b));
+}
+
+button.gradient-primary,
+.btn-gradient-primary {
+  background: linear-gradient(135deg, var(--gradient-start, #4a6cf7), var(--gradient-end, var(--accent)));
+}

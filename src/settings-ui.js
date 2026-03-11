@@ -4,6 +4,7 @@
  */
 
 import { getDefaultSettings } from './settings.js';
+import { getThemeList } from './data/themes.js';
 
 /**
  * HTML-escape a string
@@ -59,6 +60,28 @@ export function renderCheckbox(id, label, checked) {
 }
 
 /**
+ * Render a select dropdown control
+ * @param {string} id - Control ID
+ * @param {string} label - Display label
+ * @param {Array<{id: string, name: string}>} options - Available options
+ * @param {string} selected - Currently selected option ID
+ * @returns {string} HTML string
+ */
+export function renderSelect(id, label, options, selected) {
+  const optionsHtml = options.map(opt => 
+    `<option value="${esc(opt.id)}" ${opt.id === selected ? 'selected' : ''}>${esc(opt.name)}</option>`
+  ).join('');
+  return `
+    <div class="setting-row">
+      <label for="${esc(id)}">${esc(label)}</label>
+      <select id="${esc(id)}" class="setting-select">
+        ${optionsHtml}
+      </select>
+    </div>
+  `;
+}
+
+/**
  * Render a section header
  * @param {string} title - Section title
  * @param {string} icon - Emoji icon
@@ -76,6 +99,7 @@ export function renderSectionHeader(title, icon) {
 export function renderSettingsPanel(settings) {
   const defaults = getDefaultSettings();
   const s = settings || defaults;
+  const themes = getThemeList();
   
   const audioSection = `
     ${renderSectionHeader('Audio', '🔊')}
@@ -87,6 +111,7 @@ export function renderSettingsPanel(settings) {
   
   const displaySection = `
     ${renderSectionHeader('Display', '🖥️')}
+    ${renderSelect('setting-theme', 'Color Theme', themes, s.display?.theme ?? 'midnight')}
     ${renderCheckbox('setting-damage-numbers', 'Show Damage Numbers', s.display?.showDamageNumbers ?? true)}
     ${renderCheckbox('setting-status-icons', 'Show Status Icons', s.display?.showStatusIcons ?? true)}
     ${renderCheckbox('setting-compact-log', 'Compact Combat Log', s.display?.compactLog ?? false)}
@@ -106,6 +131,7 @@ export function renderSettingsPanel(settings) {
       ${displaySection}
       ${gameplaySection}
       <div class="settings-actions">
+        <button id="btnCloseSettings">✕ Close Settings</button>
         <button id="btnResetSettings" class="secondary">Reset to Defaults</button>
       </div>
     </div>
@@ -161,6 +187,18 @@ export function getSettingsStyles() {
       width: 20px;
       height: 20px;
     }
+    .setting-select {
+      padding: 6px 10px;
+      border-radius: 6px;
+      border: 1px solid rgba(255,255,255,0.15);
+      background: rgba(255,255,255,0.06);
+      color: var(--text);
+      font-size: 14px;
+      cursor: pointer;
+    }
+    .setting-select:hover {
+      border-color: var(--accent);
+    }
     .settings-actions {
       margin-top: 16px;
       padding-top: 16px;
@@ -173,6 +211,19 @@ export function getSettingsStyles() {
     }
     .settings-actions button.secondary:hover {
       background: #555;
+    }
+    #btnCloseSettings {
+      background: #3a7bd5;
+      color: #fff;
+      border: none;
+      padding: 8px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 1em;
+      margin-right: 8px;
+    }
+    #btnCloseSettings:hover {
+      background: #2a5fb5;
     }
     input[type="range"]:disabled {
       opacity: 0.5;
@@ -213,6 +264,14 @@ export function attachSettingsHandlers(settings, onUpdate, onReset) {
         onUpdate(path, parseInt(el.value, 10) / 100);
       };
     }
+  }
+  
+  // Theme selector
+  const themeEl = document.getElementById('setting-theme');
+  if (themeEl) {
+    themeEl.onchange = () => {
+      onUpdate('display.theme', themeEl.value);
+    };
   }
   
   // Display checkboxes

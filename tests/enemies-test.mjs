@@ -60,13 +60,25 @@ assert(lvl1.length === 1 && lvl1[0] === 'slime', 'Encounter arrays are independe
 const lvl3 = withMockedRandom(0, () => getEncounter('3'));
 assert(lvl3[0] === 'orc', 'String level 3 resolves to orc encounter');
 
-// Clamp high level to tier 5
+// Clamp high level to tier 15
 const lvl99 = withMockedRandom(0, () => getEncounter(99));
-assert(lvl99[0] === 'dragon', 'Level 99 clamps to tier 5 (dragon pick)');
+assert(lvl99[0] === 'oblivion-lord', 'Level 99 clamps to tier 15 (oblivion-lord pick)');
 
 // Random index selection across options
 const lvl2 = withMockedRandom(0.5, () => getEncounter(2));
 assert(lvl2.length === 2 && lvl2.includes('wolf') && lvl2.includes('goblin'), 'Random selection picks a valid tier 2 group');
+
+// abyss_overlord boss enemy
+{
+  const boss = getEnemy('abyss_overlord');
+  assert(boss !== null, 'abyss_overlord exists in enemy registry');
+  assert(boss.hp === 280, 'abyss_overlord has 280 hp');
+  assert(boss.isBoss === true, 'abyss_overlord is flagged as boss');
+  assert(boss.aiBehavior === 'boss', 'abyss_overlord has boss AI behavior');
+  assert(boss.element === 'shadow', 'abyss_overlord is shadow element');
+  assert(boss.abilities.includes('void-eruption'), 'abyss_overlord has void-eruption');
+  assert(boss.abilities.includes('soul-drain'), 'abyss_overlord has soul-drain');
+}
 
 console.log('\n========================================');
 console.log('Results: ' + passed + ' passed, ' + failed + ' failed');

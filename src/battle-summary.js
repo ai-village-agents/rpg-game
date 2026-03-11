@@ -3,6 +3,8 @@
  * Displays XP gained, gold earned, items looted, and level-ups after a combat victory.
  */
 
+import { computeDerivedStats, formatCombatStatsDisplay } from './combat-stats-tracker.js';
+
 /**
  * Create a battle summary object from the victory state.
  * @param {object} state - The current game state (should be in 'victory' phase)
@@ -15,13 +17,20 @@ export function createBattleSummary(state) {
   const lootedItems = Array.isArray(state.lootedItems) ? [...state.lootedItems] : [];
   const levelUps = Array.isArray(state.pendingLevelUps) ? [...state.pendingLevelUps] : [];
 
-  return {
+  const summary = {
     xpGained,
     goldGained,
     enemyName,
     lootedItems,
     levelUps,
   };
+
+  summary.combatStats = state.combatStats ?? null;
+  summary.combatStatsDisplay = state.combatStats
+    ? formatCombatStatsDisplay(state.combatStats)
+    : null;
+
+  return summary;
 }
 
 /**
@@ -53,4 +62,89 @@ export function formatBattleSummary(summary) {
     hasLevelUps: summary.levelUps.length > 0,
     hasLoot: summary.lootedItems.length > 0,
   };
+}
+
+function escapeHtml(value) {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+export function renderCombatStatsHtml(combatStatsDisplay) {
+  if (!combatStatsDisplay || !Array.isArray(combatStatsDisplay.sections) || combatStatsDisplay.sections.length === 0) {
+    return '';
+  }
+
+  const ratingColors = {
+    S: '#d4af37',
+    A: '#4f4',
+    B: '#4af',
+    C: '#999',
+    D: '#f44',
+  };
+
+  const sectionsHtml = combatStatsDisplay.sections.map((section) => {
+    if (section?.type === 'header') {
+      const rating = escapeHtml(section.rating ?? '');
+      const title = escapeHtml(section.title ?? '');
+      const subtitle = escapeHtml(section.subtitle ?? '');
+      const color = ratingColors[section.rating] ?? '#999';
+
+      return `
+        <div style="display:flex;align-items:center;gap:12px;margin:10px 0;">
+          <div style="font-size:40px;font-weight:700;line-height:1;color:${color};min-width:36px;text-align:center;">
+            ${rating}
+          </div>
+          <div>
+            <div style="font-size:18px;font-weight:700;">${title}</div>
+            <div style="font-size:13px;opacity:0.8;">${subtitle}</div>
+          </div>
+        </div>
+      `;
+    }
+
+    if (section?.type === 'stats') {
+      const title = escapeHtml(section.title ?? '');
+      const rows = Array.isArray(section.rows) ? section.rows : [];
+      const rowsHtml = rows.map((row) => {
+        const label = escapeHtml(row.label ?? '');
+        const value = escapeHtml(row.value ?? '');
+        const style = row.style === 'good'
+          ? 'good'
+          : row.style === 'bad'
+            ? 'bad'
+            : '';
+        const valueStyle = row.style === 'good'
+          ? 'color:#4f4;'
+          : row.style === 'bad'
+            ? 'color:#f44;'
+            : '';
+
+        return `
+          <div style="display:flex;justify-content:space-between;gap:12px;padding:2px 0;">
+            <div>${label}</div>
+            <div class="${style}" style="${valueStyle}">${value}</div>
+          </div>
+        `;
+      }).join('');
+
+      return `
+        <div style="margin:12px 0;">
+          <h3 style="margin:0 0 6px 0;font-size:16px;">${title}</h3>
+          <div>${rowsHtml}</div>
+        </div>
+      `;
+    }
+
+    return '';
+  }).join('');
+
+  return `
+    <div class="combat-stats-panel" style="margin-top:12px;padding:12px;border:1px solid rgba(255,255,255,0.2);border-radius:8px;background:rgba(0,0,0,0.25);">
+      ${sectionsHtml}
+    </div>
+  `;
 }

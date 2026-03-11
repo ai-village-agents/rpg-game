@@ -31,7 +31,8 @@ export const LOYALTY_TIER_ORDER = LOYALTY_TIERS.map(t => t.name);
  */
 export function getLoyaltyTierIndex(loyalty) {
   const tier = getLoyaltyTier(loyalty);
-  return LOYALTY_TIER_ORDER.indexOf(tier.name);
+  const idx = LOYALTY_TIER_ORDER.indexOf(tier.name);
+  return idx !== -1 ? idx : 0;
 }
 
 /**

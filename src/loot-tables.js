@@ -7,6 +7,7 @@
 
 import { nextRng } from './combat.js';
 import { items } from './data/items.js';
+import { getItemDropMultiplier } from './world-events.js';
 
 /**
  * Enemy-specific drop tables.
@@ -220,6 +221,303 @@ export const ENEMY_DROP_TABLES = Object.freeze({
     ],
     bonusRarityWeights: { Common: 10, Uncommon: 20, Rare: 30, Epic: 25, Legendary: 15 },
   },
+
+  abyss_overlord: {
+    dropChance: 0.98,
+    maxDrops: 4,
+    drops: [
+      { itemId: 'abyssalShard', weight: 20 },
+      { itemId: 'abyssalRing', weight: 10 },
+      { itemId: 'abyssalMail', weight: 15 },
+      { itemId: 'phoenixPinion', weight: 8 },
+      { itemId: 'voidblade', weight: 12 },
+      { itemId: 'abyssalScepter', weight: 10 },
+      { itemId: 'megaPotion', weight: 15 },
+      { itemId: 'lightningOrb', weight: 10 },
+    ],
+    bonusRarityWeights: { Common: 5, Uncommon: 15, Rare: 25, Epic: 35, Legendary: 20 },
+  },
+
+  'frost-revenant': {
+    dropChance: 0.60,
+    maxDrops: 2,
+    drops: [
+      { itemId: 'frostbiteRapier', weight: 20 },
+      { itemId: 'frostwardAmulet', weight: 15 },
+      { itemId: 'hiPotion', weight: 30 },
+      { itemId: 'ether', weight: 20 },
+      { itemId: 'potion', weight: 15 },
+    ],
+    bonusRarityWeights: { Common: 30, Uncommon: 35, Rare: 25, Epic: 8, Legendary: 2 },
+  },
+  'blood-fiend': {
+    dropChance: 0.55,
+    maxDrops: 2,
+    drops: [
+      { itemId: 'bloodthornWhip', weight: 20 },
+      { itemId: 'hiPotion', weight: 30 },
+      { itemId: 'antidote', weight: 25 },
+      { itemId: 'bomb', weight: 15 },
+      { itemId: 'potion', weight: 10 },
+    ],
+    bonusRarityWeights: { Common: 35, Uncommon: 30, Rare: 25, Epic: 8, Legendary: 2 },
+  },
+  'shadow-weaver': {
+    dropChance: 0.55,
+    maxDrops: 1,
+    drops: [
+      { itemId: 'cursedEdge', weight: 15 },
+      { itemId: 'shadowCloak', weight: 20 },
+      { itemId: 'ether', weight: 30 },
+      { itemId: 'wardingTalisman', weight: 15 },
+      { itemId: 'hiPotion', weight: 20 },
+    ],
+    bonusRarityWeights: { Common: 30, Uncommon: 30, Rare: 25, Epic: 12, Legendary: 3 },
+  },
+  'storm-elemental': {
+    dropChance: 0.65,
+    maxDrops: 2,
+    drops: [
+      { itemId: 'stormrenderAxe', weight: 10 },
+      { itemId: 'flashpowderDagger', weight: 20 },
+      { itemId: 'ether', weight: 25 },
+      { itemId: 'hiPotion', weight: 25 },
+      { itemId: 'bomb', weight: 20 },
+    ],
+    bonusRarityWeights: { Common: 25, Uncommon: 30, Rare: 30, Epic: 12, Legendary: 3 },
+  },
+  'plague-bearer': {
+    dropChance: 0.60,
+    maxDrops: 2,
+    drops: [
+      { itemId: 'antidote', weight: 30 },
+      { itemId: 'wardingTalisman', weight: 15 },
+      { itemId: 'silencersMace', weight: 15 },
+      { itemId: 'hiPotion', weight: 25 },
+      { itemId: 'potion', weight: 15 },
+    ],
+    bonusRarityWeights: { Common: 30, Uncommon: 30, Rare: 25, Epic: 12, Legendary: 3 },
+  },
+  'infernal-knight': {
+    dropChance: 0.75,
+    maxDrops: 2,
+    drops: [
+      { itemId: 'silencersMace', weight: 15 },
+      { itemId: 'cursedEdge', weight: 15 },
+      { itemId: 'chainmail', weight: 20 },
+      { itemId: 'hiPotion', weight: 25 },
+      { itemId: 'bomb', weight: 15 },
+      { itemId: 'frostbiteRapier', weight: 10 },
+    ],
+    bonusRarityWeights: { Common: 20, Uncommon: 25, Rare: 30, Epic: 18, Legendary: 7 },
+  },
+  'glacial-wyrm': {
+    dropChance: 0.85,
+    maxDrops: 3,
+    drops: [
+      { itemId: 'frostbiteRapier', weight: 15 },
+      { itemId: 'stormrenderAxe', weight: 10 },
+      { itemId: 'frostwardAmulet', weight: 15 },
+      { itemId: 'arcaneStaff', weight: 10 },
+      { itemId: 'hiPotion', weight: 25 },
+      { itemId: 'amuletOfVigor', weight: 15 },
+      { itemId: 'dragon-scale', weight: 10 },
+    ],
+    bonusRarityWeights: { Common: 10, Uncommon: 20, Rare: 30, Epic: 25, Legendary: 15 },
+  },
+  'void-stalker': {
+    dropChance: 0.70,
+    maxDrops: 2,
+    drops: [
+      { itemId: 'cursedEdge', weight: 20 },
+      { itemId: 'bloodthornWhip', weight: 15 },
+      { itemId: 'shadowCloak', weight: 15 },
+      { itemId: 'flashpowderDagger', weight: 15 },
+      { itemId: 'hiPotion', weight: 20 },
+      { itemId: 'wardingTalisman', weight: 15 },
+    ],
+    bonusRarityWeights: { Common: 20, Uncommon: 25, Rare: 30, Epic: 18, Legendary: 7 },
+
+  },
+  'crystal-sentinel': {
+    dropChance: 0.70,
+    maxDrops: 2,
+    drops: [
+      { itemId: 'guardian-bark', weight: 30 },
+      { itemId: 'chainmail', weight: 25 },
+      { itemId: 'hiPotion', weight: 25 },
+      { itemId: 'amuletOfVigor', weight: 20 },
+    ],
+    bonusRarityWeights: { Common: 30, Uncommon: 35, Rare: 25, Epic: 8, Legendary: 2 },
+  },
+  'ember-drake': {
+    dropChance: 0.68,
+    maxDrops: 2,
+    drops: [
+      { itemId: 'fire-gem', weight: 30 },
+      { itemId: 'dragon-scale', weight: 20 },
+      { itemId: 'hiPotion', weight: 25 },
+      { itemId: 'bomb', weight: 25 },
+    ],
+    bonusRarityWeights: { Common: 30, Uncommon: 30, Rare: 25, Epic: 12, Legendary: 3 },
+  },
+  'phantom-assassin': {
+    dropChance: 0.72,
+    maxDrops: 2,
+    drops: [
+      { itemId: 'cursedEdge', weight: 25 },
+      { itemId: 'shadowCloak', weight: 20 },
+      { itemId: 'flashpowderDagger', weight: 20 },
+      { itemId: 'ether', weight: 35 },
+    ],
+    bonusRarityWeights: { Common: 25, Uncommon: 30, Rare: 30, Epic: 12, Legendary: 3 },
+  },
+  'arcane-guardian': {
+    dropChance: 0.75,
+    maxDrops: 2,
+    drops: [
+      { itemId: 'arcaneStaff', weight: 25 },
+      { itemId: 'mageRobe', weight: 20 },
+      { itemId: 'ether', weight: 30 },
+      { itemId: 'wardingTalisman', weight: 25 },
+    ],
+    bonusRarityWeights: { Common: 25, Uncommon: 30, Rare: 30, Epic: 12, Legendary: 3 },
+  },
+  'crimson-berserker': {
+    dropChance: 0.80,
+    maxDrops: 2,
+    drops: [
+      { itemId: 'cursedEdge', weight: 20 },
+      { itemId: 'chainmail', weight: 20 },
+      { itemId: 'hiPotion', weight: 30 },
+      { itemId: 'bomb', weight: 15 },
+      { itemId: 'amuletOfVigor', weight: 15 },
+    ],
+    bonusRarityWeights: { Common: 20, Uncommon: 30, Rare: 30, Epic: 15, Legendary: 5 },
+  },
+  'frost-archon': {
+    dropChance: 0.78,
+    maxDrops: 2,
+    drops: [
+      { itemId: 'frostbiteRapier', weight: 20 },
+      { itemId: 'frostwardAmulet', weight: 20 },
+      { itemId: 'ether', weight: 30 },
+      { itemId: 'hiPotion', weight: 30 },
+    ],
+    bonusRarityWeights: { Common: 20, Uncommon: 30, Rare: 30, Epic: 15, Legendary: 5 },
+  },
+  'void-knight': {
+    dropChance: 0.85,
+    maxDrops: 3,
+    drops: [
+      { itemId: 'voidblade', weight: 15 },
+      { itemId: 'abyssalMail', weight: 15 },
+      { itemId: 'shadowCloak', weight: 20 },
+      { itemId: 'megaPotion', weight: 25 },
+      { itemId: 'amuletOfVigor', weight: 25 },
+    ],
+    bonusRarityWeights: { Common: 15, Uncommon: 25, Rare: 30, Epic: 20, Legendary: 10 },
+  },
+  'thunder-titan': {
+    dropChance: 0.82,
+    maxDrops: 3,
+    drops: [
+      { itemId: 'stormrenderAxe', weight: 20 },
+      { itemId: 'lightningOrb', weight: 15 },
+      { itemId: 'ether', weight: 30 },
+      { itemId: 'megaPotion', weight: 25 },
+      { itemId: 'bomb', weight: 10 },
+    ],
+    bonusRarityWeights: { Common: 15, Uncommon: 25, Rare: 30, Epic: 20, Legendary: 10 },
+  },
+  'infernal-sorcerer': {
+    dropChance: 0.80,
+    maxDrops: 3,
+    drops: [
+      { itemId: 'abyssalScepter', weight: 15 },
+      { itemId: 'fire-gem', weight: 25 },
+      { itemId: 'arcaneStaff', weight: 15 },
+      { itemId: 'ether', weight: 25 },
+      { itemId: 'megaPotion', weight: 20 },
+    ],
+    bonusRarityWeights: { Common: 15, Uncommon: 25, Rare: 30, Epic: 20, Legendary: 10 },
+  },
+  'abyssal-warden': {
+    dropChance: 0.88,
+    maxDrops: 3,
+    drops: [
+      { itemId: 'abyssalMail', weight: 20 },
+      { itemId: 'voidblade', weight: 15 },
+      { itemId: 'abyssalShard', weight: 15 },
+      { itemId: 'megaPotion', weight: 25 },
+      { itemId: 'amuletOfVigor', weight: 25 },
+    ],
+    bonusRarityWeights: { Common: 10, Uncommon: 20, Rare: 30, Epic: 25, Legendary: 15 },
+  },
+  'celestial-wyrm': {
+    dropChance: 0.90,
+    maxDrops: 3,
+    drops: [
+      { itemId: 'dragonSpear', weight: 15 },
+      { itemId: 'dragon-scale', weight: 20 },
+      { itemId: 'arcaneStaff', weight: 15 },
+      { itemId: 'megaPotion', weight: 25 },
+      { itemId: 'ringOfFortune', weight: 15 },
+      { itemId: 'amuletOfVigor', weight: 10 },
+    ],
+    bonusRarityWeights: { Common: 10, Uncommon: 20, Rare: 30, Epic: 25, Legendary: 15 },
+  },
+  'chaos-spawn': {
+    dropChance: 0.85,
+    maxDrops: 3,
+    drops: [
+      { itemId: 'cursedEdge', weight: 20 },
+      { itemId: 'shadowCloak', weight: 20 },
+      { itemId: 'shadow-essence', weight: 25 },
+      { itemId: 'megaPotion', weight: 20 },
+      { itemId: 'ether', weight: 15 },
+    ],
+    bonusRarityWeights: { Common: 10, Uncommon: 20, Rare: 30, Epic: 25, Legendary: 15 },
+  },
+  'eternal-guardian': {
+    dropChance: 0.92,
+    maxDrops: 3,
+    drops: [
+      { itemId: 'abyssalMail', weight: 20 },
+      { itemId: 'guardian-bark', weight: 25 },
+      { itemId: 'amuletOfVigor', weight: 20 },
+      { itemId: 'megaPotion', weight: 25 },
+      { itemId: 'wardingTalisman', weight: 10 },
+    ],
+    bonusRarityWeights: { Common: 8, Uncommon: 17, Rare: 30, Epic: 28, Legendary: 17 },
+  },
+  'primordial-phoenix': {
+    dropChance: 0.90,
+    maxDrops: 3,
+    drops: [
+      { itemId: 'phoenixPinion', weight: 10 },
+      { itemId: 'fire-gem', weight: 25 },
+      { itemId: 'dragonSpear', weight: 15 },
+      { itemId: 'megaPotion', weight: 25 },
+      { itemId: 'arcaneStaff', weight: 15 },
+      { itemId: 'dragon-scale', weight: 10 },
+    ],
+    bonusRarityWeights: { Common: 8, Uncommon: 17, Rare: 30, Epic: 28, Legendary: 17 },
+  },
+  'oblivion-lord': {
+    dropChance: 0.99,
+    maxDrops: 4,
+    drops: [
+      { itemId: 'phoenixPinion', weight: 12 },
+      { itemId: 'abyssalRing', weight: 15 },
+      { itemId: 'voidblade', weight: 15 },
+      { itemId: 'abyssalShard', weight: 20 },
+      { itemId: 'abyssalMail', weight: 15 },
+      { itemId: 'megaPotion', weight: 15 },
+      { itemId: 'lightningOrb', weight: 8 },
+    ],
+    bonusRarityWeights: { Common: 5, Uncommon: 10, Rare: 25, Epic: 35, Legendary: 25 },
+  },
 });
 
 /**
@@ -263,7 +561,7 @@ export function getDropTable(enemyId) {
  * @param {number} seed - RNG seed
  * @returns {{lootedItems: Array<{itemId:string, name:string, rarity:string}>, seed: number}}
  */
-export function rollLootDrop(enemyId, seed) {
+export function rollLootDrop(enemyId, seed, worldEvent = null) {
   const table = ENEMY_DROP_TABLES[enemyId];
   if (!table) {
     return { lootedItems: [], seed };
@@ -280,11 +578,13 @@ export function rollLootDrop(enemyId, seed) {
   rng = nextRng(seed);
   seed = rng.seed;
   const numDrops = Math.min(table.maxDrops, 1 + Math.floor(rng.value * table.maxDrops));
+  const dropMultiplier = getItemDropMultiplier(worldEvent);
+  const effectiveNumDrops = Math.min(table.maxDrops * 2, Math.ceil(numDrops * dropMultiplier));
 
   const lootedItems = [];
   const seenIds = new Set();
 
-  for (let i = 0; i < numDrops; i++) {
+  for (let i = 0; i < effectiveNumDrops; i++) {
     // Roll for item selection
     rng = nextRng(seed);
     seed = rng.seed;

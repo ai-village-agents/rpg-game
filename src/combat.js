@@ -1,16 +1,35 @@
+import { recordShieldBroken, recordWeaknessHit, recordDefeatedWhileBroken } from './game-stats.js';
 import { clamp, pushLog } from './state.js';
 import { items } from './data/items.js';
 import { removeItemFromInventory, hasItem } from './items.js';
 import { getEnemy, getEncounter } from './data/enemies.js';
 import { getAbility, getAbilityDisplayInfo } from './combat/abilities.js';
 import { calculateDamage, calculateHeal, getElementMultiplier } from './combat/damage-calc.js';
-import { StatusEffect } from './combat/status-effects.js';
+import { StatusEffect, isFrozen, isBlinded, isSilenced, isCursed } from './combat/status-effects.js';
 import { selectEnemyAction, executeEnemyAbility } from './enemy-abilities.js';
+import { selectTacticalAction } from './enemy-ai.js';
 import { getEffectiveCombatStats } from './combat/equipment-bonuses.js';
-import { getGoldMultiplier, getMpCostMultiplier, getDamageMultiplier } from './world-events.js';
+import {
+  getGoldMultiplier,
+  getMpCostMultiplier,
+  getDamageMultiplier,
+  getItemDropMultiplier,
+  isEnemyAttacksFirst,
+  getHealMultiplier,
+} from './world-events.js';
 import { recordEncounter, recordDefeat } from './bestiary.js';
 import { rollLootDrop, applyLootToState } from './loot-tables.js';
 import { logCombatVictory, logBossDefeat } from './journal.js';
+import {
+  companionsCombatTurn,
+  selectEnemyTarget,
+  enemyAttackCompanion,
+  processCompanionCombatRewards,
+  processCompanionDefeatPenalty,
+  autoReviveCompanionsAfterCombat,
+} from './companion-combat.js';
+import { getEnemyShieldData, checkWeakness, applyShieldDamage, processBreakState, BREAK_DAMAGE_MULTIPLIER } from './shield-break.js';
+import { initCombatBattleLog, logPlayerAttack, logPlayerAbility, logDamageDealt, logDamageReceived, logHealing, logItemUsed, logStatusApplied, logStatusExpired, logTurnStart, logTurnEnd, logVictory, logDefeat } from './combat-battle-log-integration.js';
 
 // Minimal deterministic RNG (Park-Miller LCG)
 export function nextRng(seed) {
@@ -20,18 +39,23 @@ export function nextRng(seed) {
   return { seed: next, value: next / m };
 }
 
-function computeDamage({ attackerAtk, targetDef, targetDefending, worldEvent }) {
+function computeDamage({ attackerAtk, targetDef, targetDefending, worldEvent, targetIsBroken, targetIsCursed }) {
   const defendBonus = targetDefending ? 3 : 0;
   const raw = attackerAtk - (targetDef + defendBonus);
   const baseDamage = Math.max(1, raw);
   const mult = getDamageMultiplier(worldEvent);
-  return Math.max(1, Math.floor(baseDamage * mult));
+  const curseMult = targetIsCursed ? 1.25 : 1;
+  return Math.max(1, Math.floor(baseDamage * mult * (targetIsBroken ? BREAK_DAMAGE_MULTIPLIER : 1) * curseMult));
 }
 
 function isStunned(entity) {
   return (entity.statusEffects ?? []).some(
     (effect) => effect.type === 'stun' && effect.duration >= 0
   );
+}
+
+function isIncapacitated(entity) {
+  return isStunned(entity) || isFrozen(entity);
 }
 
 export function addStatusEffect(state, targetKey, effect) {
@@ -42,6 +66,45 @@ export function addStatusEffect(state, targetKey, effect) {
     ...state,
     [targetKey]: { ...target, statusEffects: [...statusEffects, { ...effect }] },
   };
+}
+
+
+/**
+ * Check if the player's equipped weapon has an onHitStatus effect and apply it.
+ * @param {Object} state - combat state
+ * @returns {Object} updated state
+ */
+function applyWeaponOnHitStatus(state) {
+  const weapon = state.player?.equipment?.weapon;
+  if (!weapon) return state;
+  const itemDef = items[weapon];
+  if (!itemDef?.effect?.onHitStatus) return state;
+  const { type, name, duration, power, chance } = itemDef.effect.onHitStatus;
+  if (!type || !chance) return state;
+
+  const { seed: hitSeed, value: hitRoll } = nextRng(state.rngSeed);
+  state = { ...state, rngSeed: hitSeed };
+
+  if (hitRoll < chance) {
+    const effect = { type, name: name ?? type, duration: duration ?? 1, power: power ?? 0, source: 'weapon' };
+    state = addStatusEffect(state, 'enemy', effect);
+    state = pushLog(state, `Your ${itemDef.name} inflicts ${effect.name}!`);
+  }
+  return state;
+}
+
+/**
+ * Get the player's total status resistance for a given effect type from equipped accessories.
+ * @param {Object} player - player object
+ * @param {string} effectType - status effect type
+ * @returns {number} resistance chance (0-1)
+ */
+export function getPlayerStatusResist(player, effectType) {
+  const accessory = player?.equipment?.accessory;
+  if (!accessory) return 0;
+  const itemDef = items[accessory];
+  if (!itemDef?.effect?.statusResist) return 0;
+  return itemDef.effect.statusResist[effectType] ?? 0;
 }
 
 function processTurnStart(state, actorKey) {
@@ -58,6 +121,7 @@ function processTurnStart(state, actorKey) {
     const duration = effect.duration ?? 0;
     if (duration <= 0) {
       nextState = pushLog(nextState, `${actorPossessive} ${effect.type} wears off.`);
+      logStatusExpired(effect.type, actorKey === 'player' ? 'Player' : state.enemy.name);
       continue;
     }
 
@@ -71,8 +135,15 @@ function processTurnStart(state, actorKey) {
         const source = effect.type === 'poison' ? 'poison' : 'burn';
         nextState = pushLog(nextState, `${actorName} ${verb} ${damage} ${source} damage.`);
       }
+    } else if (effect.type === 'bleed') {
+      const damage = Math.max(0, effect.power ?? 0);
+      if (damage > 0) {
+        hp = clamp(hp - damage, 0, actor.maxHp);
+        nextState = pushLog(nextState, `${actorName} ${verb} ${damage} bleed damage.`);
+      }
     } else if (effect.type === 'regen') {
-      const heal = Math.max(0, effect.power ?? 0);
+      const baseHeal = Math.max(0, effect.power ?? 0);
+      const heal = actorKey === 'player' ? Math.ceil(baseHeal * getHealMultiplier(state.worldEvent)) : baseHeal;
       if (heal > 0) {
         hp = clamp(hp + heal, 0, actor.maxHp);
         nextState = pushLog(nextState, `${actorName} ${healVerb} ${heal} HP.`);
@@ -107,27 +178,39 @@ function applyVictoryDefeat(state) {
         gold: (state.player.gold ?? 0) + goldGained,
       },
     };
+    if (state.enemy.isBroken) { state = { ...state, _defeatedWhileBroken: true }; }
     if (state.bestiary && state.currentEnemyId) { state = { ...state, bestiary: recordDefeat(state.bestiary, state.currentEnemyId) }; }
     // Generate loot drops
     if (state.currentEnemyId) {
       const lootSeed = state.rngSeed ?? Date.now();
-      const { lootedItems, seed: newSeed } = rollLootDrop(state.currentEnemyId, lootSeed);
+      const { lootedItems, seed: newSeed } = rollLootDrop(
+        state.currentEnemyId,
+        lootSeed,
+        state.worldEvent
+      );
       state = applyLootToState(state, lootedItems);
       state = { ...state, rngSeed: newSeed };
       for (const loot of lootedItems) {
         state = pushLog(state, `Loot: ${loot.name} (${loot.rarity})`);
       }
     }
+    logVictory(state.enemy.name, xpGained, goldGained);
     state = pushLog(state, `Victory! The ${state.enemy.name} dissolves.`);
     // Log to journal
     state = logCombatVictory(state, state.enemy.name, goldGained, xpGained);
     if (state.enemy.isBoss) {
       state = logBossDefeat(state, state.enemy.name);
     }
+    // Companion combat rewards: loyalty adjustments + auto-revive
+    state = processCompanionCombatRewards(state);
+    state = autoReviveCompanionsAfterCombat(state);
   }
   if (state.player.hp <= 0) {
     state = { ...state, phase: 'defeat' };
+    logDefeat();
     state = pushLog(state, `Defeat... You collapse.`);
+    // Companion defeat penalty: all companions lose loyalty
+    state = processCompanionDefeatPenalty(state);
   }
   return state;
 }
@@ -142,6 +225,9 @@ export function startNewEncounter(state, zoneLevel = 1) {
     maxHp: enemyBase.maxHp ?? enemyBase.hp,
     defending: false,
     statusEffects: [],
+    ...getEnemyShieldData(enemyId),
+    isBroken: false,
+    breakTurnsRemaining: 0,
   };
 
   let next = {
@@ -151,9 +237,14 @@ export function startNewEncounter(state, zoneLevel = 1) {
     turn: 1,
     player: { ...state.player, defending: false, statusEffects: [] },
   };
+  if (isEnemyAttacksFirst(next.worldEvent || state.worldEvent)) {
+    next = { ...next, phase: 'enemy-turn' };
+    next = pushLog(next, 'The veil of shadows grants the enemy the element of surprise!');
+  }
   next = { ...next, currentEnemyId: enemyId, bestiary: recordEncounter(next.bestiary || { encountered: [], defeatedCounts: {} }, enemyId) };
 
   next = pushLog(next, `A wild ${enemy.name} appears.`);
+  initCombatBattleLog();
   next = pushLog(next, `Your turn.`);
   return next;
 }
@@ -161,11 +252,24 @@ export function startNewEncounter(state, zoneLevel = 1) {
 export function playerAttack(state) {
   if (state.phase !== 'player-turn') return state;
 
-  if (isStunned(state.player)) {
-    state = pushLog(state, 'Player is stunned!');
+  if (isIncapacitated(state.player)) {
+    const reason = isFrozen(state.player) ? 'frozen solid' : 'stunned';
+    state = pushLog(state, `You are ${reason} and cannot act!`);
     state = processTurnStart(state, 'enemy');
     if (state.phase === 'victory' || state.phase === 'defeat') return state;
     return { ...state, phase: 'enemy-turn' };
+  }
+
+  // Blind: 50% miss chance on physical attacks
+  if (isBlinded(state.player)) {
+    const { seed: blindSeed, value: blindRoll } = nextRng(state.rngSeed);
+    state = { ...state, rngSeed: blindSeed };
+    if (blindRoll < 0.5) {
+      state = pushLog(state, 'Your attack misses! (Blinded)');
+      state = processTurnStart(state, 'enemy');
+      if (state.phase === 'victory' || state.phase === 'defeat') return state;
+      return { ...state, phase: 'enemy-turn' };
+    }
   }
 
   // Apply equipment bonuses to player's attack stat
@@ -175,7 +279,21 @@ export function playerAttack(state) {
     targetDef: state.enemy.def,
     targetDefending: state.enemy.defending,
     worldEvent: state.worldEvent || null,
+    targetIsBroken: state.enemy.isBroken,
+    targetIsCursed: isCursed(state.enemy),
   });
+
+  if ((state.enemy.weaknesses || []).includes('physical') && !state.enemy.isBroken) {
+    if ((state.enemy.weaknesses || []).includes('physical')) {
+      state = { ...state, _hitWeakness: true };
+    }
+    const shieldResult = applyShieldDamage(state.enemy, 1);
+    state = { ...state, enemy: { ...state.enemy, ...shieldResult } };
+    if (shieldResult.triggeredBreak) {
+      state = { ...state, _triggeredShieldBreak: true };
+      state = pushLog(state, 'Enemy shields broken!');
+    }
+  }
 
   const enemyHp = clamp(state.enemy.hp - damage, 0, state.enemy.maxHp);
   state = {
@@ -185,6 +303,19 @@ export function playerAttack(state) {
   };
 
   state = pushLog(state, `You strike for ${damage} damage.`);
+  logPlayerAttack(damage, state.enemy.name);
+
+  // Apply weapon on-hit status effect (e.g., freeze, bleed, blind)
+  if (state.enemy.hp > 0) {
+    state = applyWeaponOnHitStatus(state);
+  }
+
+  // Companions attack after player
+  if (state.enemy.hp > 0) {
+    const companionResult = companionsCombatTurn(state, state.rngSeed ?? 1);
+    state = companionResult.state;
+    state = { ...state, rngSeed: companionResult.seed };
+  }
   state = applyVictoryDefeat(state);
   if (state.phase === 'victory' || state.phase === 'defeat') return state;
   state = processTurnStart(state, 'enemy');
@@ -194,8 +325,9 @@ export function playerAttack(state) {
 
 export function playerDefend(state) {
   if (state.phase !== 'player-turn') return state;
-  if (isStunned(state.player)) {
-    state = pushLog(state, 'Player is stunned!');
+  if (isIncapacitated(state.player)) {
+    const reason = isFrozen(state.player) ? 'frozen solid' : 'stunned';
+    state = pushLog(state, `You are ${reason} and cannot act!`);
     state = processTurnStart(state, 'enemy');
     if (state.phase === 'victory' || state.phase === 'defeat') return state;
     return { ...state, phase: 'enemy-turn' };
@@ -212,8 +344,9 @@ export function playerDefend(state) {
 
 export function playerFlee(state) {
   if (state.phase !== 'player-turn') return state;
-  if (isStunned(state.player)) {
-    state = pushLog(state, 'Player is stunned!');
+  if (isIncapacitated(state.player)) {
+    const reason = isFrozen(state.player) ? 'frozen solid' : 'stunned';
+    state = pushLog(state, `You are ${reason} and cannot act!`);
     state = processTurnStart(state, 'enemy');
     if (state.phase === 'victory' || state.phase === 'defeat') return state;
     return { ...state, phase: 'enemy-turn' };
@@ -236,8 +369,9 @@ export function playerFlee(state) {
 export function playerUsePotion(state) {
   if (state.phase !== 'player-turn') return state;
 
-  if (isStunned(state.player)) {
-    state = pushLog(state, 'Player is stunned!');
+  if (isIncapacitated(state.player)) {
+    const reason = isFrozen(state.player) ? 'frozen solid' : 'stunned';
+    state = pushLog(state, `You are ${reason} and cannot act!`);
     state = processTurnStart(state, 'enemy');
     if (state.phase === 'victory' || state.phase === 'defeat') return state;
     return { ...state, phase: 'enemy-turn' };
@@ -278,6 +412,11 @@ export function playerUseAbility(state, abilityId) {
   const playerAbilities = state.player.abilities ?? [];
   if (!playerAbilities.includes(abilityId)) {
     return pushLog(state, `You don't know ${ability.name}.`);
+  }
+
+  // Silence blocks ability usage
+  if (isSilenced(state.player)) {
+    return pushLog(state, 'You are silenced and cannot use abilities!');
   }
 
   // Check MP
@@ -326,6 +465,9 @@ export function playerUseAbility(state, abilityId) {
         abilityPower: ability.power,
         worldEvent: state.worldEvent || null,
       });
+      if ((state.enemy.weaknesses ?? []).includes(abilityElement)) {
+        state = { ...state, _hitWeakness: true };
+      }
 
       const enemyHp = clamp(state.enemy.hp - damage, 0, state.enemy.maxHp);
       state = {
@@ -335,36 +477,40 @@ export function playerUseAbility(state, abilityId) {
       let msg = `${state.enemy.name} takes ${damage} ${abilityElement} damage!`;
       if (critical) msg += ' Critical hit!';
       state = pushLog(state, msg);
+      logPlayerAbility(ability.name, damage, abilityElement, state.enemy.name);
     }
 
     // Apply status effect to enemy
     if (ability.statusEffect) {
       state = addStatusEffect(state, 'enemy', ability.statusEffect);
       state = pushLog(state, `${state.enemy.name} is afflicted with ${ability.statusEffect.name}!`);
+      logStatusApplied(ability.statusEffect.name, state.enemy.name, ability.statusEffect.duration ?? 3);
     }
   } else if (ability.targetType === 'single-ally' || ability.targetType === 'all-allies' || ability.targetType === 'self') {
     // Healing ability targeting player
     if (ability.healPower > 0) {
-      const healAmount = ability.healPower;
+      const multipliedHeal = Math.ceil(ability.healPower * getHealMultiplier(state.worldEvent));
       const oldHp = state.player.hp;
-      const newHp = clamp(oldHp + healAmount, 0, state.player.maxHp);
+      const newHp = clamp(oldHp + multipliedHeal, 0, state.player.maxHp);
       state = {
         ...state,
         player: { ...state.player, hp: newHp },
       };
       state = pushLog(state, `You are healed for ${newHp - oldHp} HP!`);
+      logHealing(newHp - oldHp, ability.name);
     }
 
     // Apply buff/status to player
     if (ability.statusEffect) {
       state = addStatusEffect(state, 'player', ability.statusEffect);
       state = pushLog(state, `You gain ${ability.statusEffect.name}!`);
+      logStatusApplied(ability.statusEffect.name, 'Player', ability.statusEffect.duration ?? 3);
     }
 
     // Handle purify special: remove negative status effects
     if (ability.special === 'cleanse') {
       const currentEffects = state.player.statusEffects ?? [];
-      const debuffTypes = ['poison', 'burn', 'stun', 'sleep', 'atk-down', 'def-down', 'spd-down'];
+      const debuffTypes = ['poison', 'burn', 'stun', 'sleep', 'freeze', 'bleed', 'blind', 'silence', 'curse', 'atk-down', 'def-down', 'spd-down'];
       const cleaned = currentEffects.filter(e => !debuffTypes.includes(e.type));
       state = {
         ...state,
@@ -383,8 +529,9 @@ export function playerUseAbility(state, abilityId) {
 export function playerUseItem(state, itemId) {
   if (state.phase !== 'player-turn') return state;
 
-  if (isStunned(state.player)) {
-    state = pushLog(state, 'Player is stunned!');
+  if (isIncapacitated(state.player)) {
+    const reason = isFrozen(state.player) ? 'frozen solid' : 'stunned';
+    state = pushLog(state, `You are ${reason} and cannot act!`);
     state = processTurnStart(state, 'enemy');
     if (state.phase === 'victory' || state.phase === 'defeat') return state;
     return { ...state, phase: 'enemy-turn' };
@@ -418,13 +565,15 @@ export function playerUseItem(state, itemId) {
   const healAmount = effect.heal ?? item.heal;
   if (healAmount !== undefined && healAmount !== null && healAmount > 0) {
     const oldHp = state.player.hp;
-    const newHp = clamp(oldHp + healAmount, 0, state.player.maxHp);
+    const multipliedHeal = Math.ceil(healAmount * getHealMultiplier(state.worldEvent));
+    const newHp = clamp(oldHp + multipliedHeal, 0, state.player.maxHp);
     const actualHeal = newHp - oldHp;
     state = {
       ...state,
       player: { ...state.player, hp: newHp },
     };
     state = pushLog(state, `You use ${item.name} and restore ${actualHeal} HP.`);
+    logItemUsed(item.name, `Restored ${actualHeal} HP`);
   }
 
   // Handle mana restoration (ether)
@@ -439,6 +588,7 @@ export function playerUseItem(state, itemId) {
       player: { ...state.player, mp: newMp },
     };
     state = pushLog(state, `You use ${item.name} and restore ${actualRestore} MP.`);
+    logItemUsed(item.name, `Restored ${actualRestore} MP`);
   }
 
   // Handle damage items (bomb)
@@ -451,6 +601,7 @@ export function playerUseItem(state, itemId) {
       enemy: { ...state.enemy, hp: enemyHp },
     };
     state = pushLog(state, `You throw ${item.name} for ${damage} ${element} damage!`);
+    logItemUsed(item.name, `Dealt ${damage} ${element} damage to ${state.enemy.name}`);
     state = applyVictoryDefeat(state);
     if (state.phase === 'victory' || state.phase === 'defeat') return state;
   }
@@ -466,6 +617,7 @@ export function playerUseItem(state, itemId) {
     };
     if (removed > 0) {
       state = pushLog(state, `You use ${item.name} and cure ${effect.cleanse.join(', ')}!`);
+      logItemUsed(item.name, `Cured ${effect.cleanse.join(', ')}`);
     } else {
       state = pushLog(state, `You use ${item.name}, but there was nothing to cure.`);
     }
@@ -484,20 +636,38 @@ export function enemyAct(state) {
   const wasEnemyStunned = (state.enemy.statusEffects ?? []).some(
     (effect) => effect.type === 'stun' && (effect.duration ?? 0) > 0
   );
+  const wasEnemyFrozen = isFrozen(state.enemy);
 
   state = processTurnStart(state, 'enemy');
   if (state.phase === 'victory' || state.phase === 'defeat') return state;
 
-  if (wasEnemyStunned) {
-    state = pushLog(state, `${state.enemy.name} is stunned and cannot act!`);
+  if (wasEnemyStunned || wasEnemyFrozen) {
+    const reason = wasEnemyFrozen ? 'frozen' : 'stunned';
+    state = pushLog(state, `${state.enemy.name} is ${reason} and cannot act!`);
     state = processTurnStart(state, 'player');
     if (state.phase === 'victory' || state.phase === 'defeat') return state;
     state = pushLog(state, `Your turn.`);
     return { ...state, phase: 'player-turn' };
   }
 
-  const result = selectEnemyAction(state.enemy, state.player, state.rngSeed);
+  if (state.enemy.isBroken && state.enemy.breakTurnsRemaining > 0) {
+    const breakResult = processBreakState(state.enemy);
+    state = { ...state, enemy: { ...state.enemy, ...breakResult } };
+    state = pushLog(state, `${state.enemy.name} is recovering from the break and cannot act!`);
+    state = processTurnStart(state, 'player');
+    if (state.phase === 'victory' || state.phase === 'defeat') return state;
+    state = pushLog(state, 'Your turn.');
+    return { ...state, phase: 'player-turn' };
+  }
+
+  let result = selectTacticalAction(state.enemy, state.player, state.rngSeed, state.turn ?? 0);
   state = { ...state, rngSeed: result.newSeed };
+
+  // Silenced enemies cannot use abilities — forced to basic attack
+  if (result.action === 'ability' && isSilenced(state.enemy)) {
+    result = { ...result, action: 'attack' };
+    state = pushLog(state, `${state.enemy.name} is silenced and cannot use abilities!`);
+  }
 
   if (result.action === 'defend') {
     state = {
@@ -512,24 +682,58 @@ export function enemyAct(state) {
     state = { ...state, turn: state.turn + 1 };
     state = applyVictoryDefeat(state);
   } else if (result.action === 'attack') {
-    // Apply equipment bonuses to player's defense stat
-    const defenderStats = getEffectiveCombatStats(state.player);
-    const damage = computeDamage({
-      attackerAtk: state.enemy.atk,
-      targetDef: defenderStats.def,
-      targetDefending: state.player.defending,
-      worldEvent: state.worldEvent || null,
-    });
+    // Select target: player or companion
+    const targetResult = selectEnemyTarget(state, state.rngSeed ?? 1);
+    state = { ...state, rngSeed: targetResult.seed };
 
-    const playerHp = clamp(state.player.hp - damage, 0, state.player.maxHp);
-    state = {
-      ...state,
-      player: { ...state.player, hp: playerHp, defending: false },
-      enemy: { ...state.enemy, defending: false },
-      turn: state.turn + 1,
-    };
+    if (targetResult.targetType === 'companion' && targetResult.targetId) {
+      // Enemy attacks a companion
+      state = enemyAttackCompanion(state, targetResult.targetId, state.enemy.atk);
+      state = {
+        ...state,
+        enemy: { ...state.enemy, defending: false },
+        turn: state.turn + 1,
+      };
+    } else {
+      // Blind: 50% miss chance on enemy attacks
+      if (isBlinded(state.enemy)) {
+        const { seed: blindSeed, value: blindRoll } = nextRng(state.rngSeed ?? 1);
+        state = { ...state, rngSeed: blindSeed };
+        if (blindRoll < 0.5) {
+          state = pushLog(state, `${state.enemy.name}'s attack misses! (Blinded)`);
+          state = {
+            ...state,
+            enemy: { ...state.enemy, defending: false },
+            turn: state.turn + 1,
+          };
+          state = processTurnStart(state, 'player');
+          if (state.phase === 'victory' || state.phase === 'defeat') return state;
+          state = pushLog(state, 'Your turn.');
+          return { ...state, phase: 'player-turn' };
+        }
+      }
 
-    state = pushLog(state, `${state.enemy.name} slams you for ${damage} damage.`);
+      // Apply equipment bonuses to player's defense stat
+      const defenderStats = getEffectiveCombatStats(state.player);
+      const damage = computeDamage({
+        attackerAtk: state.enemy.atk,
+        targetDef: defenderStats.def,
+        targetDefending: state.player.defending,
+        worldEvent: state.worldEvent || null,
+        targetIsCursed: isCursed(state.player),
+      });
+
+      const playerHp = clamp(state.player.hp - damage, 0, state.player.maxHp);
+      state = {
+        ...state,
+        player: { ...state.player, hp: playerHp, defending: false },
+        enemy: { ...state.enemy, defending: false },
+        turn: state.turn + 1,
+      };
+
+      state = pushLog(state, `${state.enemy.name} slams you for ${damage} damage.`);
+      logDamageReceived(damage, state.enemy.name);
+    }
     state = applyVictoryDefeat(state);
   }
 

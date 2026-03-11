@@ -3,7 +3,7 @@
 
 import { items as itemsData } from './data/items.js';
 import { addItemToInventory, removeItemFromInventory, getItemCount } from './items.js';
-import { getShopDiscount } from './world-events.js';
+import { getShopDiscount, getShopPriceIncrease } from './world-events.js';
 
 // Sell price is 50% of item value (standard RPG convention)
 const SELL_MULTIPLIER = 0.5;
@@ -152,7 +152,11 @@ export function buyItem(player, shopState, itemId, quantity = 1, worldEvent = nu
 
   const basePrice = getBuyPrice(itemId);
   const discount = getShopDiscount(worldEvent);
-  const discountedPrice = Math.max(1, Math.floor(basePrice * (1 - discount)));
+  const priceIncrease = getShopPriceIncrease(worldEvent);
+  const discountedPrice = Math.max(
+    1,
+    Math.floor(basePrice * (1 - discount) * (1 + priceIncrease))
+  );
   const totalCost = discountedPrice * quantity;
   const playerGold = player.gold ?? 0;
   if (playerGold < totalCost) {

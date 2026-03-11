@@ -1,3 +1,4 @@
+import { applyTheme } from '../data/themes.js';
 import { startTavernDice, guessTavernDice, cashOutTavernDice } from '../tavern-dice.js';
 import { updateAudioSettings } from '../audio-system.js';
 import { createInventoryState, handleInventoryAction } from '../inventory.js';
@@ -15,6 +16,10 @@ import { createShopState, buyItem, sellItem } from '../shop.js';
 import { createCraftingState, craftItem } from '../crafting.js';
 import { createTalentState, allocateTalent, deallocateTalent, resetAllTalents } from '../talents.js';
 import { recruitCompanion, dismissCompanion } from '../companions.js';
+import { shouldShowSpecialization, createSpecializationState, applySpecialization } from '../specialization-ui.js';
+import { clearFloor as clearDungeonFloor } from '../dungeon-floors.js';
+import { handleProvisionAction } from './provisions-handler.js';
+import { BESTIARY_FILTER_DEFAULT, BESTIARY_SORT_DEFAULT } from '../bestiary-ui.js';
 
 function getRoomDescription(worldState) {
   const room = getCurrentRoom(worldState);
@@ -24,6 +29,7 @@ function getRoomDescription(worldState) {
 
 export function handleUIAction(state, action) {
   const type = action.type;
+  const isPreAdventure = state.phase === 'class-select' || state.phase === 'background-select';
 
   if (type === "TOGGLE_HELP") {
     return { ...state, showHelp: !state.showHelp };
@@ -35,7 +41,7 @@ export function handleUIAction(state, action) {
 
   // Journal
   if (type === 'OPEN_JOURNAL') {
-    if (state.phase === 'class-select') return null;
+    if (isPreAdventure) return null;
     const next = markAllRead(state);
     return { ...next, phase: 'journal', previousPhase: state.phase };
   }
@@ -47,7 +53,7 @@ export function handleUIAction(state, action) {
 
   // Settings
   if (type === 'VIEW_SETTINGS') {
-    if (state.phase === 'class-select') return null;
+    if (isPreAdventure) return null;
     return { ...state, phase: 'settings', previousPhase: state.phase, settings: loadSettings() };
   }
 
@@ -58,7 +64,7 @@ export function handleUIAction(state, action) {
 
   // Achievements
   if (type === 'VIEW_ACHIEVEMENTS') {
-    if (state.phase === 'class-select') return null;
+    if (isPreAdventure) return null;
     return { ...state, phase: 'achievements', previousPhase: state.phase };
   }
 
@@ -72,6 +78,7 @@ export function handleUIAction(state, action) {
     const newSettings = updateSetting(state.settings || {}, action.path, action.value);
     saveSettings(newSettings);
     updateAudioSettings(newSettings);
+    if (action.path === 'display.theme') applyTheme(action.value);
     return { ...state, settings: newSettings };
   }
 
@@ -79,13 +86,14 @@ export function handleUIAction(state, action) {
     if (state.phase !== 'settings') return null;
     const newSettings = resetSettings();
     updateAudioSettings(newSettings);
+    if (action.path === 'display.theme') applyTheme(action.value);
     return pushLog({ ...state, settings: newSettings }, 'Settings reset to defaults.');
   }
 
 
   // Inventory
   if (type === 'VIEW_INVENTORY') {
-    if (state.phase === 'class-select') return null;
+    if (isPreAdventure) return null;
     return { ...state, phase: 'inventory', inventoryState: createInventoryState(state.phase) };
   }
 
@@ -96,12 +104,12 @@ export function handleUIAction(state, action) {
 
   // Quests / Quest Log
   if (type === 'VIEW_QUESTS' || type === 'VIEW_QUEST_LOG') {
-    if (state.phase === 'class-select') return null;
+    if (isPreAdventure) return null;
     return { ...state, phase: 'quests', previousPhase: state.phase };
   }
 
   if (type === 'VIEW_STATS') {
-    if (state.phase === 'class-select') return null;
+    if (isPreAdventure) return null;
     return { ...state, phase: 'stats', previousPhase: state.phase };
   }
 
@@ -135,6 +143,18 @@ export function handleUIAction(state, action) {
     if (done) {
       const returnPhase = state.levelUpState.returnPhase || 'victory';
       if (returnPhase === 'battle-summary-done') {
+        // Check if player needs to choose a specialization
+        if (shouldShowSpecialization(state.player)) {
+          const specState = createSpecializationState(state.player);
+          let next2 = {
+            ...state,
+            phase: 'specialization',
+            specializationState: specState,
+            levelUpState: undefined,
+          };
+          next2 = pushLog(next2, 'You have reached the level of mastery! Choose your specialization path.');
+          return next2;
+        }
         const exits = getRoomExits(state.world);
         let next2 = {
           ...state,
@@ -163,13 +183,49 @@ export function handleUIAction(state, action) {
       return { ...state, phase: 'level-up', levelUpState: luState };
     }
     
-    // Return to exploration
-    const exits = getRoomExits(state.world);
+    // Check if player needs to choose a specialization (reached level 5+ without pending level-ups)
+    if (shouldShowSpecialization(state.player)) {
+      const specState = createSpecializationState(state.player);
+      let next = {
+        ...state,
+        phase: 'specialization',
+        specializationState: specState,
+        battleSummary: undefined,
+        pendingLevelUps: undefined,
+      };
+      next = pushLog(next, 'You have reached the level of mastery! Choose your specialization path.');
+      return next;
+    }
+
+    // Track battle stats
     let gs = state.gameStats || createGameStats();
     gs = recordBattleWon(gs);
     if (state.enemy?.name) gs = recordEnemyDefeated(gs, state.enemy.name);
     if ((state.xpGained ?? 0) > 0) gs = recordXPEarned(gs, state.xpGained);
     if ((state.goldGained ?? 0) > 0) gs = recordGoldEarned(gs, state.goldGained);
+
+    // Return to dungeon if in dungeon combat
+    if (state.inDungeonCombat && state.dungeonState?.inDungeon) {
+      let dungeonState = state.dungeonState;
+      if (state.dungeonBossFight) {
+        dungeonState = clearDungeonFloor(dungeonState);
+      }
+      const { inDungeonCombat, dungeonBossFight, ...rest } = state;
+      let next = {
+        ...rest,
+        dungeonState,
+        phase: 'dungeon',
+        player: { ...state.player, defending: false },
+        battleSummary: undefined,
+        pendingLevelUps: undefined,
+        gameStats: gs,
+      };
+      next = pushLog(next, 'You continue exploring the dungeon.');
+      return next;
+    }
+
+    // Return to exploration
+    const exits = getRoomExits(state.world);
     
     let next = {
       ...state,
@@ -294,7 +350,7 @@ export function handleUIAction(state, action) {
 
   // Crafting Actions
   if (type === 'VIEW_CRAFTING') {
-    if (state.phase === 'class-select') return null;
+    if (isPreAdventure) return null;
     if (!state.crafting) {
       state = { ...state, crafting: createCraftingState() };
     }
@@ -339,7 +395,7 @@ export function handleUIAction(state, action) {
 
   // Talents
   if (type === 'VIEW_TALENTS') {
-    if (state.phase === 'class-select') return null;
+    if (isPreAdventure) return null;
     if (!state.talentState) {
       state = { ...state, talentState: createTalentState() };
     }
@@ -378,7 +434,7 @@ export function handleUIAction(state, action) {
 
   // Companions
   if (type === 'OPEN_COMPANIONS') {
-    if (state.phase === 'class-select') return null;
+    if (isPreAdventure) return null;
     return { ...state, phase: 'companions', previousPhase: state.phase };
   }
 
@@ -401,16 +457,36 @@ export function handleUIAction(state, action) {
 
   // Bestiary
   if (type === 'VIEW_BESTIARY') {
-    if (state.phase === 'class-select') return null;
+    if (isPreAdventure) return null;
     return { ...state, phase: 'bestiary', previousPhase: state.phase };
   }
   if (type === 'CLOSE_BESTIARY') {
     if (state.phase !== 'bestiary') return null;
     return { ...state, phase: state.previousPhase || 'exploration' };
   }
+  if (type === 'SORT_BESTIARY') {
+    const sort = action.sort || BESTIARY_SORT_DEFAULT;
+    return {
+      ...state,
+      bestiaryUiState: {
+        ...(state.bestiaryUiState || {}),
+        sort,
+      },
+    };
+  }
+  if (type === 'FILTER_BESTIARY') {
+    const filter = action.filter || BESTIARY_FILTER_DEFAULT;
+    return {
+      ...state,
+      bestiaryUiState: {
+        ...(state.bestiaryUiState || {}),
+        filter,
+      },
+    };
+  }
   
   if (type === 'VIEW_TAVERN') {
-    if (state.phase === 'class-select') return null;
+    if (isPreAdventure) return null;
     return { ...state, phase: 'tavern-dice', previousPhase: state.phase };
   }
   if (type === 'CLOSE_TAVERN') {
@@ -425,6 +501,49 @@ export function handleUIAction(state, action) {
   }
   if (type === 'TAVERN_CASH_OUT') {
     return cashOutTavernDice(state);
+  }
+
+  // --- Provisions actions ---
+  const provisionActions = [
+    'OPEN_PROVISIONS', 'CLOSE_PROVISIONS', 'PROVISIONS_SELECT',
+    'PROVISIONS_SWITCH_TAB', 'USE_PROVISION', 'COOK_PROVISION',
+    'TICK_PROVISIONS'
+  ];
+  if (provisionActions.includes(type)) {
+    const result = handleProvisionAction(state, action);
+    if (result) return result;
+  }
+
+  // Specialization Choice
+  if (type === 'CHOOSE_SPECIALIZATION') {
+    if (state.phase !== 'specialization') return null;
+    const specId = action.specId;
+    if (!specId) return null;
+    
+    const updatedPlayer = applySpecialization(state.player, specId);
+    if (!updatedPlayer) return null;
+    
+    const exits = getRoomExits(state.world);
+    let gs = state.gameStats || createGameStats();
+    gs = recordBattleWon(gs);
+    if (state.enemy?.name) gs = recordEnemyDefeated(gs, state.enemy.name);
+    if ((state.xpGained ?? 0) > 0) gs = recordXPEarned(gs, state.xpGained);
+    if ((state.goldGained ?? 0) > 0) gs = recordGoldEarned(gs, state.goldGained);
+    
+    let next = {
+      ...state,
+      phase: 'exploration',
+      player: { ...updatedPlayer, defending: false },
+      specializationState: undefined,
+      battleSummary: undefined,
+      pendingLevelUps: undefined,
+      gameStats: gs,
+    };
+    const specName = action.specName || specId;
+    next = pushLog(next, 'You have chosen the path of the ' + specName + '!');
+    next = pushLog(next, 'New abilities and stat bonuses have been applied.');
+    next = pushLog(next, `${getRoomDescription(state.world)} Exits: ${exits.join(', ') || 'none'}.`);
+    return next;
   }
 
   return null;

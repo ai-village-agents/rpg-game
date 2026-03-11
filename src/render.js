@@ -2,11 +2,12 @@ import { renderTavernDicePanel } from './tavern-dice-ui.js';
 import { saveToLocalStorage } from './state.js';
 import { CLASS_DEFINITIONS } from './characters/classes.js';
 import { DEFAULT_WORLD_DATA, getRoomExits } from './map.js';
-import { getCategorizedInventory, getEquipmentDisplay, getItemDetails, INVENTORY_SCREENS, EQUIPMENT_SLOTS, getEquipmentBonuses } from './inventory.js';
+import { getCategorizedInventory, getEquipmentDisplay, getItemDetails, getEquipmentComparison, INVENTORY_SCREENS, EQUIPMENT_SLOTS, getEquipmentBonuses } from './inventory.js';
 import { getEffectiveCombatStats, getEquipmentBonusDisplay, hasEquipmentBonuses } from './combat/equipment-bonuses.js';
 import { getCurrentLevelUp, getStatDiffs, formatStatName, xpForNextLevel } from './level-up.js';
+import { formatAbilityName } from './specialization-ui.js';
 import { getNPCsInRoom, getCurrentDialogLine, getDialogProgress } from './npc-dialog.js';
-import { getActiveQuestsSummary, getAvailableQuestsInRoom } from './quest-integration.js';
+import { getActiveQuestsSummary, getCompletedQuestsSummary, getAvailableQuestsInRoom } from './quest-integration.js';
 import { getAbilityDisplayInfo } from './combat/abilities.js';
 import { items as itemsData } from './data/items.js';
 import { getRarityMeta } from './ui/rarity-util.js';
@@ -27,6 +28,19 @@ import { hasShop } from './shop.js';
 import { renderBestiaryPanel } from './bestiary-ui.js';
 import { renderJournalPanel, renderJournalBadge } from './journal-ui.js';
 import { renderCompanionPanel, renderCompanionHUD, renderCompanionBadge } from './companions-ui.js';
+import { renderDungeonPanel, renderDungeonActions, attachDungeonHandlers, getDungeonStyles, shouldShowDungeonEntrance } from './dungeon-ui.js';
+import { renderProvisionsPanel, renderProvisionBuffs, attachProvisionsHandlers, getProvisionsStyles } from './provisions-ui.js';
+import { renderShieldBreakHUD } from './shield-break-ui.js';
+import { renderCombatStatsHtml } from './battle-summary.js';
+import { formatLogEntryHtml, getLogStyles } from './combat-log-formatter.js';
+import { triggerFloatingTextFromLog, getFloatingTextStyles } from './floating-text.js';
+import { renderBattleLogPanel, getBattleLogStyles } from './battle-log-ui.js';
+import { getBattleLogEntries } from './combat-battle-log-integration.js';
+import { filterAndSortItems, renderSortFilterControls, SORT_MODES, FILTER_MODES } from './inventory-sort-filter.js';
+import { BACKGROUND_ORDER, BACKGROUNDS } from './data/backgrounds.js';
+
+/** Track previous log for floating text diff */
+let _previousLog = [];
 
 function hpLine(entity) {
   const pct = Math.round((entity.hp / entity.maxHp) * 100);
@@ -43,6 +57,30 @@ function esc(s) {
     .replaceAll("'", '&#39;');
 }
 
+function renderAchievementToasts(state, dispatch) {
+  const notifications = state.achievementNotifications || [];
+  if (notifications.length === 0) return;
+
+  let container = document.getElementById('achievement-toasts');
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'achievement-toasts';
+    document.body.appendChild(container);
+  }
+
+  notifications.forEach((notif) => {
+    const toast = document.createElement('div');
+    toast.className = 'achievement-toast';
+    if (notif?.id != null) toast.dataset.id = String(notif.id);
+    const name = notif?.name ?? 'Achievement';
+    toast.innerHTML = `🏆 Achievement Unlocked! <strong>${esc(name)}</strong>`;
+    container.appendChild(toast);
+
+    setTimeout(() => toast.classList.add('achievement-toast-hide'), 3500);
+    setTimeout(() => toast.remove(), 4000);
+  });
+}
+
 function inventorySummary(player) {
   const inv = player?.inventory || {};
   const entries = Object.entries(inv)
@@ -51,6 +89,37 @@ function inventorySummary(player) {
     .join('');
   const gold = player?.gold ?? 0;
   return entries + `<div>Gold</div><div><b>${gold}</b></div>`;
+}
+
+function summarizeBonuses(bonuses) {
+  if (!bonuses) return 'No bonuses';
+  const parts = [];
+  const add = (label, value) => {
+    if (typeof value === 'number' && value !== 0) {
+      const sign = value > 0 ? '+' : '';
+      parts.push(`${sign}${value} ${label}`);
+    }
+  };
+
+  add('HP', bonuses.hp);
+  add('Max HP', bonuses.maxHp);
+  add('MP', bonuses.mp);
+  add('Max MP', bonuses.maxMp);
+  add('ATK', bonuses.atk);
+  add('DEF', bonuses.def);
+  add('SPD', bonuses.spd);
+  add('gold', bonuses.gold);
+
+  if (bonuses.inventory && typeof bonuses.inventory === 'object') {
+    for (const [item, count] of Object.entries(bonuses.inventory)) {
+      if (typeof count === 'number' && count !== 0) {
+        const sign = count > 0 ? '+' : '';
+        parts.push(`${sign}${count} ${item}`);
+      }
+    }
+  }
+
+  return parts.length ? parts.join(', ') : 'No bonuses';
 }
 
 function renderMapPanel(state, dispatch) {
@@ -134,6 +203,13 @@ export function render(state, dispatch) {
     document.head.appendChild(craftingStyleEl);
   }
 
+  if (!document.getElementById('provisions-styles')) {
+    const provisionsStyleEl = document.createElement('style');
+    provisionsStyleEl.id = 'provisions-styles';
+    provisionsStyleEl.textContent = getProvisionsStyles();
+    document.head.appendChild(provisionsStyleEl);
+  }
+
   if (!document.getElementById('talent-tree-styles')) {
     const talentStyleEl = document.createElement('style');
     talentStyleEl.id = 'talent-tree-styles';
@@ -148,11 +224,86 @@ export function render(state, dispatch) {
     document.head.appendChild(s);
   }
 
+  if (!document.getElementById('shield-break-styles')) {
+    const styleEl = document.createElement('style');
+    styleEl.id = 'shield-break-styles';
+    styleEl.textContent = `
+      .shield-break-hud { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; padding: 4px 0; }
+      .shield-display { font-size: 1.1em; letter-spacing: 2px; }
+      .weakness-icon { font-size: 1em; }
+      .break-state-display { color: #ff4444; font-weight: bold; font-size: 0.9em; padding: 2px 6px; border: 1px solid #ff4444; border-radius: 3px; }
+      .break-active { background: rgba(255,68,68,0.15); }
+    `;
+    document.head.appendChild(styleEl);
+  }
+
+  if (!document.getElementById('achievement-toast-styles')) {
+    const styleEl = document.createElement('style');
+    styleEl.id = 'achievement-toast-styles';
+    styleEl.textContent = `
+      #achievement-toasts {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        z-index: 9999;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        pointer-events: none;
+      }
+      .achievement-toast {
+        background: linear-gradient(135deg, #2a1a4e, #1a0a3e);
+        border: 2px solid #a335ee;
+        border-radius: 8px;
+        color: #e0c8ff;
+        font-size: 14px;
+        padding: 12px 18px;
+        min-width: 280px;
+        box-shadow: 0 4px 20px rgba(163, 53, 238, 0.4);
+        animation: toastSlideIn 0.3s ease-out;
+        transition: opacity 0.5s ease;
+      }
+      .achievement-toast-hide {
+        opacity: 0;
+      }
+      @keyframes toastSlideIn {
+        from { transform: translateX(100px); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
+      }
+    `;
+    document.head.appendChild(styleEl);
+  }
+
+  if (!document.getElementById('floating-text-styles')) {
+    const ftStyleEl = document.createElement('style');
+    ftStyleEl.id = 'floating-text-styles';
+    ftStyleEl.textContent = getFloatingTextStyles();
+    document.head.appendChild(ftStyleEl);
+  }
+
+  if (!document.getElementById('battle-log-styles')) {
+    const blStyleEl = document.createElement('style');
+    blStyleEl.id = 'battle-log-styles';
+    blStyleEl.textContent = getBattleLogStyles();
+    document.head.appendChild(blStyleEl);
+  }
+
   const finalizeRender = () => {
     if (state.showHelp) {
       hud.innerHTML += renderHelpModal();
       attachHelpHandlers(dispatch);
     }
+
+    if ((state.achievementNotifications || []).length > 0) {
+      renderAchievementToasts(state, dispatch);
+      setTimeout(() => dispatch({ type: 'CONSUME_ACHIEVEMENT_NOTIFICATIONS' }), 0);
+    }
+    // Trigger floating damage/heal text for combat phases
+    const combatPhases = ['player-turn', 'enemy-turn', 'dungeon-combat', 'dungeon-boss'];
+    if (combatPhases.includes(state.phase) && state.log) {
+      triggerFloatingTextFromLog(state.log, _previousLog);
+    }
+    _previousLog = state.log ? [...state.log] : [];
   };
 
   // --- Class Select Phase ---
@@ -163,7 +314,7 @@ export function render(state, dispatch) {
       if (!def) return '';
       return `
         <div class="card">
-          <h2>${esc(def.name)}</h2>
+          <h2>${({ warrior: '⚔️', mage: '🔮', rogue: '🗡️', cleric: '⛪' }[def.id] ?? '')} ${esc(def.name)}</h2>
           <div>${esc(def.description)}</div>
           <div class="kv">
             <div>HP</div><div><b>${def.baseStats.hp}</b></div>
@@ -177,17 +328,76 @@ export function render(state, dispatch) {
       `;
     }).join('');
 
-    hud.innerHTML = `<div class="row">${cards}</div>`;
+    hud.innerHTML = `
+      <div class="row">
+        <div class="card" style="flex: 2;">
+          <h2>Quests Log</h2>
+          ${filterControlsHtml}
+          <div class="quest-list-container" style="max-height: 400px; overflow-y: auto;">
+            ${questsHtml}
+          </div>
+        </div>
+        <div class="card" style="flex: 1;">
+          <h2>Quest Stats</h2>
+          <div class="kv">
+            <div>Active</div><div><b>${summary.length}</b></div>
+            <div>Completed</div><div><b>${completedCount}</b></div>
+            <div>Available Here</div><div><b>${availableQuests.length}</b></div>
+          </div>
+        </div>
+      </div>
+    `;
     actions.innerHTML = '';
 
+    const nameInput = hud.querySelector('#class-select-name');
+    if (nameInput) {
+      nameInput.focus();
+    }
+
     hud.querySelectorAll('button[data-class]').forEach((button) => {
-      button.onclick = () => dispatch({ type: 'SELECT_CLASS', classId: button.dataset.class });
+      button.onclick = () => dispatch({
+        type: 'SELECT_CLASS',
+        classId: button.dataset.class,
+        name: nameInput?.value ?? '',
+      });
     });
 
     log.innerHTML = state.log
       .slice()
       .reverse()
-      .map((line) => `<div class="logLine">${esc(line)}</div>`)
+      .map((line) => formatLogEntryHtml(line))
+      .join('');
+    finalizeRender();
+    return;
+  }
+
+  // --- Background Select Phase ---
+  if (state.phase === 'background-select') {
+    const cards = BACKGROUND_ORDER.map((backgroundId) => {
+      const bg = BACKGROUNDS[backgroundId];
+      if (!bg) return '';
+      const bonusSummary = summarizeBonuses(bg.bonuses);
+      return `
+        <div class="card">
+          <h2>${esc(bg.name)}</h2>
+          <div>${esc(bg.description)}</div>
+          <div class="bonus-summary"><b>Bonuses:</b> ${esc(bonusSummary)}</div>
+          <button data-background="${esc(bg.id)}">Choose ${esc(bg.name)}</button>
+        </div>
+      `;
+    }).join('');
+
+    hud.innerHTML = `<div class="row">${cards}</div>`;
+    actions.innerHTML = '';
+
+    hud.querySelectorAll('button[data-background]').forEach((button) => {
+      button.onclick = () => dispatch({ type: 'SELECT_BACKGROUND', backgroundId: button.dataset.background });
+    });
+
+    log.innerHTML = state.log
+      .slice()
+      .reverse()
+      .map((line) => formatLogEntryHtml(line))
       .join('');
     finalizeRender();
     return;
@@ -246,6 +456,7 @@ export function render(state, dispatch) {
         <button id="btnWest">West</button>
         <button id="btnEast">East</button>
         <button id="btnSeek">Seek Battle</button>
+        ${shouldShowDungeonEntrance(state) ? '<button id="btnEnterDungeon" class="dungeon-enter-btn">Enter Dungeon \u26CF\uFE0F</button>' : ''}
         <button id="btnInventory">Inventory</button>
         <button id="btnQuests">Quests 📜</button>
         <button id="btnViewStats">Stats 📊</button>
@@ -257,6 +468,7 @@ export function render(state, dispatch) {
         <button id="btnTavern">Tavern 🍺</button>
         <button id="btnJournal">Journal 📔${renderJournalBadge(state)}</button>
         <button id="btnCompanions">Companions 🤝${renderCompanionBadge(state)}</button>
+        <button id="btnProvisions">Provisions 🍖</button>
       </div>
     `;
 
@@ -265,6 +477,8 @@ export function render(state, dispatch) {
     document.getElementById('btnWest').onclick = () => dispatch({ type: 'EXPLORE', direction: 'west' });
     document.getElementById('btnEast').onclick = () => dispatch({ type: 'EXPLORE', direction: 'east' });
     document.getElementById('btnSeek').onclick = () => dispatch({ type: 'SEEK_ENCOUNTER' });
+    const dungeonBtn = document.getElementById('btnEnterDungeon');
+    if (dungeonBtn) dungeonBtn.onclick = () => dispatch({ type: 'ENTER_DUNGEON' });
     document.getElementById('btnInventory').onclick = () => dispatch({ type: 'VIEW_INVENTORY' });
     document.getElementById('btnQuests').onclick = () => dispatch({ type: 'VIEW_QUESTS' });
     document.getElementById('btnViewStats').onclick = () => dispatch({ type: 'VIEW_STATS' });
@@ -276,6 +490,7 @@ export function render(state, dispatch) {
     document.getElementById('btnTavern').onclick = () => dispatch({ type: 'VIEW_TAVERN' });
     document.getElementById('btnJournal').onclick = () => dispatch({ type: 'OPEN_JOURNAL' });
     document.getElementById('btnCompanions').onclick = () => dispatch({ type: 'OPEN_COMPANIONS' });
+    document.getElementById('btnProvisions').onclick = () => dispatch({ type: 'OPEN_PROVISIONS' });
 
     hud.querySelectorAll('.npc-talk-btn').forEach((btn) => {
       btn.onclick = () => dispatch({ type: 'TALK_TO_NPC', npcId: btn.dataset.npcid });
@@ -284,7 +499,7 @@ export function render(state, dispatch) {
     log.innerHTML = state.log
       .slice()
       .reverse()
-      .map((line) => `<div class="logLine">${esc(line)}</div>`)
+      .map((line) => formatLogEntryHtml(line))
       .join('');
     finalizeRender();
     return;
@@ -292,6 +507,7 @@ export function render(state, dispatch) {
 
   // --- Combat Phases (player-turn, enemy-turn) ---
   if (state.phase === 'player-turn' || state.phase === 'enemy-turn') {
+    const provisionBuffBar = renderProvisionBuffs(state);
     hud.innerHTML = `
       <div class="row">
         <div class="card">
@@ -320,6 +536,7 @@ export function render(state, dispatch) {
             <div>ATK / DEF</div><div><b>${state.enemy.atk}</b> / <b>${state.enemy.def}</b></div>
             <div>Defending</div><div><b>${state.enemy.defending ? 'Yes' : 'No'}</b></div>
             ${renderStatusEffectsRow(state.enemy.statusEffects ?? [])}
+            ${state.enemy?.maxShields > 0 ? `<div style="grid-column: 1 / -1">${renderShieldBreakHUD(state.enemy)}</div>` : ''}
           </div>
         </div>
 
@@ -333,6 +550,8 @@ export function render(state, dispatch) {
 
         ${renderCompanionHUD(state)}
       </div>
+      ${provisionBuffBar}
+      ${renderBattleLogPanel(getBattleLogEntries(), 8)}
     `;
 
     const isPlayerTurn = state.phase === 'player-turn';
@@ -382,8 +601,64 @@ export function render(state, dispatch) {
     log.innerHTML = state.log
       .slice()
       .reverse()
-      .map((line) => `<div class="logLine">${esc(line)}</div>`)
+      .map((line) => formatLogEntryHtml(line))
       .join('');
+    finalizeRender();
+    return;
+  }
+
+
+  // --- Specialization Phase ---
+  if (state.phase === 'specialization' && state.specializationState) {
+    const specState = state.specializationState;
+    const choices = specState.choices || [];
+    const playerName = esc(specState.playerName || 'Hero');
+    const classId = specState.classId || '';
+    const className = classId.charAt(0).toUpperCase() + classId.slice(1);
+
+    const choiceCards = choices.map((choice, idx) => {
+      const statLines = choice.statBonuses.map(sb => {
+        const color = sb.value > 0 ? '#4f4' : '#f44';
+        return '<div style="color:' + color + ';">' + esc(sb.formatted) + '</div>';
+      }).join('');
+      const abilityLines = choice.abilities.map(a =>
+        '<div>\u2694\uFE0F ' + esc(a.name) + '</div>'
+      ).join('');
+      const passiveHtml = choice.passive
+        ? '<div style="margin-top:6px;"><b>\u2728 ' + esc(choice.passive.name) + '</b></div>'
+          + '<div style="font-size:0.85em;opacity:0.8;">' + esc(choice.passive.description) + '</div>'
+        : '';
+      return '<div class="card" style="flex:1;min-width:220px;cursor:pointer;border:2px solid #555;" '
+        + 'id="specChoice' + idx + '">'
+        + '<h3 style="color:#ffd700;">' + esc(choice.name) + '</h3>'
+        + '<div style="font-size:0.9em;opacity:0.85;margin-bottom:8px;">' + esc(choice.description) + '</div>'
+        + '<div style="margin-bottom:6px;"><b>Stat Bonuses:</b></div>' + statLines
+        + '<div style="margin-top:6px;margin-bottom:6px;"><b>New Abilities:</b></div>' + abilityLines
+        + passiveHtml
+        + '</div>';
+    }).join('');
+
+    hud.innerHTML = '<div class="row">'
+      + '<div class="card" style="width:100%;text-align:center;">'
+      + '<h2 style="color:#ffd700;">\u2B50 Specialization Unlocked!</h2>'
+      + '<div>' + playerName + ' the ' + esc(className) + ' has reached Level 5!</div>'
+      + '<div style="margin-top:4px;">Choose your path wisely — this choice is permanent.</div>'
+      + '</div></div>'
+      + '<div class="row" style="gap:12px;">' + choiceCards + '</div>';
+
+    actions.innerHTML = '';
+
+    // Wire up click handlers
+    choices.forEach((choice, idx) => {
+      const el = document.getElementById('specChoice' + idx);
+      if (el) {
+        el.onmouseenter = () => { el.style.borderColor = '#ffd700'; };
+        el.onmouseleave = () => { el.style.borderColor = '#555'; };
+        el.onclick = () => dispatch({ type: 'CHOOSE_SPECIALIZATION', specId: choice.id, specName: choice.name });
+      }
+    });
+
+    log.innerHTML = state.log.slice().reverse().map(line => formatLogEntryHtml(line)).join('');
     finalizeRender();
     return;
   }
@@ -432,7 +707,7 @@ export function render(state, dispatch) {
       log.innerHTML = state.log
         .slice()
         .reverse()
-        .map(line => '<div class="logLine">' + esc(line) + '</div>')
+        .map(line => formatLogEntryHtml(line))
         .join('');
       finalizeRender();
       return;
@@ -492,11 +767,12 @@ export function render(state, dispatch) {
           ${lootHtml}
           ${levelUpHtml ? '<h3 class="good">Level Up!</h3>' + levelUpHtml : ''}
         </div>
+        ${bs.combatStatsDisplay ? '<div class="card">' + renderCombatStatsHtml(bs.combatStatsDisplay) + '</div>' : ''}
       </div>
     `;
     actions.innerHTML = '<div class="buttons"><button id="btnContinueAfterBattle">Continue →</button></div>';
     document.getElementById('btnContinueAfterBattle').onclick = () => dispatch({ type: 'CONTINUE_AFTER_BATTLE' });
-    log.innerHTML = state.log.slice().reverse().map(line => '<div class="logLine">' + esc(line) + '</div>').join('');
+    log.innerHTML = state.log.slice().reverse().map(line => formatLogEntryHtml(line)).join('');
     finalizeRender();
     return;
   }
@@ -551,7 +827,7 @@ export function render(state, dispatch) {
     log.innerHTML = state.log
       .slice()
       .reverse()
-      .map((line) => `<div class="logLine">${esc(line)}</div>`)
+      .map((line) => formatLogEntryHtml(line))
       .join('');
     finalizeRender();
     return;
@@ -585,7 +861,7 @@ export function render(state, dispatch) {
     log.innerHTML = state.log
       .slice()
       .reverse()
-      .map((line) => `<div class="logLine">${esc(line)}</div>`)
+      .map((line) => formatLogEntryHtml(line))
       .join('');
     finalizeRender();
     return;
@@ -600,7 +876,7 @@ export function render(state, dispatch) {
     `;
     actions.innerHTML = '<div class="buttons"><button id="btnCloseStats">Close 📊</button></div>';
     document.getElementById('btnCloseStats').onclick = () => dispatch({ type: 'CLOSE_STATS' });
-    log.innerHTML = state.log.slice().reverse().map(line => '<div class="logLine">' + esc(line) + '</div>').join('');
+    log.innerHTML = state.log.slice().reverse().map(line => formatLogEntryHtml(line)).join('');
     finalizeRender();
     return;
   }
@@ -609,7 +885,7 @@ if (state.phase === 'achievements') {
     hud.innerHTML = renderAchievementsPanel(state);
     attachAchievementsHandlers(hud, dispatch);
     actions.innerHTML = '';
-    log.innerHTML = state.log.slice().reverse().map(line => '<div class="logLine">' + esc(line) + '</div>').join('');
+    log.innerHTML = state.log.slice().reverse().map(line => formatLogEntryHtml(line)).join('');
     finalizeRender();
     return;
   }
@@ -619,7 +895,7 @@ if (state.phase === 'achievements') {
     hud.innerHTML = renderJournalPanel(state);
     actions.innerHTML = '<div class="buttons"><button id="btnCloseJournal">Close 📔</button></div>';
     document.getElementById('btnCloseJournal').onclick = () => dispatch({ type: 'CLOSE_JOURNAL' });
-    log.innerHTML = state.log.slice().reverse().map(line => '<div class="logLine">' + esc(line) + '</div>').join('');
+    log.innerHTML = state.log.slice().reverse().map(line => formatLogEntryHtml(line)).join('');
     finalizeRender();
     return;
   }
@@ -639,7 +915,7 @@ if (state.phase === 'achievements') {
     }
 
     attachQuestRewardHandlers(dispatch);
-    log.innerHTML = state.log.slice().reverse().map(line => '<div class="logLine">' + esc(line) + '</div>').join('');
+    log.innerHTML = state.log.slice().reverse().map(line => formatLogEntryHtml(line)).join('');
     finalizeRender();
     return;
   }
@@ -669,7 +945,7 @@ if (state.phase === 'achievements') {
     const btnClose = document.getElementById('btnCloseSettings');
     if (btnClose) btnClose.onclick = () => dispatch({ type: 'CLOSE_SETTINGS' });
     
-    log.innerHTML = state.log.slice().reverse().map(line => '<div class="logLine">' + esc(line) + '</div>').join('');
+    log.innerHTML = state.log.slice().reverse().map(line => formatLogEntryHtml(line)).join('');
     finalizeRender();
     return;
   }
@@ -710,7 +986,7 @@ if (state.phase === 'achievements') {
       btn.onclick = () => dispatch({ type: 'DELETE_SAVE_SLOT', slotIndex: parseInt(btn.dataset.slotIndex, 10) });
     });
 
-    log.innerHTML = state.log.slice().reverse().map(line => '<div class="logLine">' + esc(line) + '</div>').join('');
+    log.innerHTML = state.log.slice().reverse().map(line => formatLogEntryHtml(line)).join('');
     finalizeRender();
     return;
   }
@@ -719,11 +995,84 @@ if (state.phase === 'achievements') {
   // --- Quests Phase ---
   if (state.phase === 'quests') {
     const questState = state.questState || { activeQuests: {}, completedQuests: [] };
+    const questUiState = state.questUiState || { sortBy: 'name', sortOrder: 'asc', filter: 'active' };
     const summary = getActiveQuestsSummary(questState);
     const currentRoomId = state.world?.roomRow !== undefined && state.world?.roomCol !== undefined
       ? [['nw', 'n', 'ne'], ['w', 'center', 'e'], ['sw', 's', 'se']][state.world.roomRow]?.[state.world.roomCol]
       : null;
     const availableQuests = currentRoomId ? getAvailableQuestsInRoom(questState, currentRoomId) : [];
+
+    
+    const completedQuests = getCompletedQuestsSummary(questState);
+    let displayedQuests = [];
+    
+    if (questUiState.filter === 'active') {
+      displayedQuests = summary;
+    } else if (questUiState.filter === 'completed') {
+      displayedQuests = completedQuests;
+    } else if (questUiState.filter === 'available') {
+      displayedQuests = availableQuests;
+    } else { // 'all'
+      displayedQuests = [
+        ...summary.map(q => ({...q, status: 'active'})), 
+        ...completedQuests.map(q => ({...q, status: 'completed'})),
+        ...availableQuests.map(q => ({...q, status: 'available', questName: q.name}))
+      ];
+    }
+    
+    // Sorting
+    displayedQuests.sort((a, b) => {
+      let valA, valB;
+      if (questUiState.sortBy === 'name') {
+        valA = (a.questName || a.name || '').toLowerCase();
+        valB = (b.questName || b.name || '').toLowerCase();
+      } else if (questUiState.sortBy === 'level') {
+        valA = a.level || 0;
+        valB = b.level || 0;
+      }
+      
+      if (valA < valB) return questUiState.sortOrder === 'asc' ? -1 : 1;
+      if (valA > valB) return questUiState.sortOrder === 'asc' ? 1 : -1;
+      return 0;
+    });
+
+    const questsHtml = displayedQuests.length === 0
+      ? '<p><i>No quests found matching your criteria.</i></p>'
+      : displayedQuests.map(q => {
+          let extraInfo = '';
+          let actionBtn = '';
+          const status = q.status || questUiState.filter;
+          
+          if (status === 'active') {
+             const progress = q.stageIndex !== undefined ? `Stage ${q.stageIndex + 1}/${q.totalStages}` : '';
+             extraInfo = `<small>${progress}</small><br/><i>${esc(q.currentStage || '')}</i>`;
+          } else if (status === 'available') {
+             extraInfo = `- Lv ${q.level}<br/><i>${esc(q.description || '')}</i>`;
+             actionBtn = `<br/><button class="quest-accept-btn" data-quest-id="${esc(q.id || q.questId)}">Accept Quest</button>`;
+          } else if (status === 'completed') {
+             extraInfo = `<small>Completed</small><br/><i>${esc(q.description || '')}</i>`;
+          }
+          
+          return `<div class="quest-item"><b>${esc(q.questName || q.name)}</b> ${extraInfo}${actionBtn}</div>`;
+        }).join('');
+
+    const filterControlsHtml = `
+      <div class="quest-controls" style="margin-bottom: 10px; padding: 10px; background: rgba(0,0,0,0.2); border-radius: 5px;">
+        <select id="quest-filter" style="margin-right: 5px; padding: 5px;">
+          <option value="active" ${questUiState.filter === 'active' ? 'selected' : ''}>Active Quests</option>
+          <option value="available" ${questUiState.filter === 'available' ? 'selected' : ''}>Available Quests</option>
+          <option value="completed" ${questUiState.filter === 'completed' ? 'selected' : ''}>Completed Quests</option>
+          <option value="all" ${questUiState.filter === 'all' ? 'selected' : ''}>All Quests</option>
+        </select>
+        <select id="quest-sort" style="margin-right: 5px; padding: 5px;">
+          <option value="name" ${questUiState.sortBy === 'name' ? 'selected' : ''}>Sort by Name</option>
+          <option value="level" ${questUiState.sortBy === 'level' ? 'selected' : ''}>Sort by Level</option>
+        </select>
+        <button id="quest-sort-dir" style="padding: 5px 10px;">
+          ${questUiState.sortOrder === 'asc' ? '⬆️ Asc' : '⬇️ Desc'}
+        </button>
+      </div>
+    `;
 
     // Build active quests HTML
     const activeQuestsHtml = summary.length === 0
@@ -767,6 +1116,18 @@ if (state.phase === 'achievements') {
       </div>
     `;
 
+    
+    // Wire filter/sort controls
+    document.getElementById('quest-filter').onchange = (e) => {
+      dispatch({ type: 'UPDATE_QUEST_UI_STATE', payload: { filter: e.target.value } });
+    };
+    document.getElementById('quest-sort').onchange = (e) => {
+      dispatch({ type: 'UPDATE_QUEST_UI_STATE', payload: { sortBy: e.target.value } });
+    };
+    document.getElementById('quest-sort-dir').onclick = () => {
+      dispatch({ type: 'UPDATE_QUEST_UI_STATE', payload: { sortOrder: questUiState.sortOrder === 'asc' ? 'desc' : 'asc' } });
+    };
+
     // Wire close button
     document.getElementById('btnCloseQuests').onclick = () => dispatch({ type: 'CLOSE_QUESTS' });
 
@@ -780,7 +1141,7 @@ if (state.phase === 'achievements') {
       btn.onclick = () => dispatch({ type: 'ACCEPT_QUEST', questId });
     });
 
-    log.innerHTML = state.log.slice().reverse().map(line => `<div class="logLine">${esc(line)}</div>`).join('');
+    log.innerHTML = state.log.slice().reverse().map(line => formatLogEntryHtml(line)).join('');
     finalizeRender();
     return;
   }
@@ -835,12 +1196,35 @@ if (state.phase === 'achievements') {
           .join('')
       : '<div><i>No bonuses</i></div><div></div>';
 
-    // Build inventory items list HTML
-    const allItems = [...categorized.consumables, ...categorized.weapons, ...categorized.armors, ...categorized.accessories, ...categorized.unknown];
-    const itemRows = allItems.length === 0 ? '<div class="kv"><div><i>Empty</i></div><div></div></div>' :
-      '<div class="kv">' + allItems.map(({ id, name, count, type, equippable, usable, rarity }) => {
+    // Build inventory items list HTML with sort & filter
+    const allItemsRaw = [...categorized.consumables, ...categorized.weapons, ...categorized.armors, ...categorized.accessories, ...categorized.unknown];
+    const currentSort = invState.sortBy || SORT_MODES.TYPE;
+    const currentFilter = invState.filterBy || FILTER_MODES.ALL;
+    const allItems = filterAndSortItems(allItemsRaw, currentFilter, currentSort);
+    const sortFilterHtml = renderSortFilterControls(currentSort, currentFilter, allItemsRaw.length, allItems.length);
+    const itemRows = allItems.length === 0 ? '<div class="kv"><div><i>No items match filter</i></div><div></div></div>' :
+      '<div class="kv">' + allItems.map(({ id, name, count, type, rarity }) => {
+        const usable = type === 'consumable';
+        const equippable = type === 'weapon' || type === 'armor' || type === 'accessory';
         const useBtn = usable ? `<button class="inv-btn" data-action="use" data-item="${esc(id)}">Use</button>` : '';
-        const eqBtn = equippable ? `<button class="inv-btn" data-action="equip" data-item="${esc(id)}">Equip</button>` : '';
+        let eqBtn = '';
+        let comparisonHtml = '';
+        if (equippable) {
+          eqBtn = `<button class="inv-btn" data-action="equip" data-item="${esc(id)}">Equip</button>`;
+          const comp = getEquipmentComparison(equipment, id);
+          if (comp && comp.comparisons.length > 0) {
+            const deltas = comp.comparisons
+              .filter(c => c.diff !== 0)
+              .map(c => {
+                const sign = c.diff > 0 ? '+' : '';
+                const color = c.diff > 0 ? '#4f4' : '#f44';
+                const arrow = c.diff > 0 ? '\u2191' : '\u2193';
+                const label = c.stat.charAt(0).toUpperCase() + c.stat.slice(1);
+                return `<span style="color:${color};font-size:0.8em;margin-left:4px;" title="${label}: ${c.current} → ${c.candidate}">${sign}${c.diff} ${label} ${arrow}</span>`;
+              }).join(' ');
+            comparisonHtml = deltas || '<span style="color:#aaa;font-size:0.8em;margin-left:4px;">= same stats</span>';
+          }
+        }
         const detBtn = `<button class="inv-btn" data-action="details" data-item="${esc(id)}">Info</button>`;
         const rarityKey = typeof rarity === 'string' ? rarity : null;
         const rarityColor = getRarityMeta(rarityKey).color;
@@ -859,7 +1243,7 @@ if (state.phase === 'achievements') {
         const nameStyle = 'color: ' + rarityColor + ';' + (isBold ? ' font-weight: bold;' : '');
         const badgeStyle = 'color: ' + rarityColor + '; font-size: 0.8em; opacity: 0.85; margin-left: 4px;';
         const rarityTag = rarityBadge ? ` <span style="${badgeStyle}">${esc(rarityBadge)}</span>` : '';
-        return `<div>${rarityEmoji} <span style="${nameStyle}">${esc(name)}</span> <small style="color:#aaa;">(${esc(type)})</small>${rarityTag}</div><div><b>${count}</b> ${useBtn}${eqBtn}${detBtn}</div>`;
+        return `<div>${rarityEmoji} <span style="${nameStyle}">${esc(name)}</span> <small style="color:#aaa;">(${esc(type)})</small>${rarityTag}</div><div><b>${count}</b> ${useBtn}${eqBtn}${detBtn}${comparisonHtml}</div>`;
       }).join('') + '</div>';
 
     // Item details screen
@@ -886,6 +1270,24 @@ if (state.phase === 'achievements') {
             <div class="buttons"><button id="btnInvBack">Back</button></div>
           </div>
         `;
+        // Add equipment comparison in details view
+        const detailComp = getEquipmentComparison(equipment, invState.selectedItem);
+        if (detailComp && detailComp.comparisons.length > 0) {
+          const vsName = detailComp.currentItemName ? esc(detailComp.currentItemName) : '<i>nothing</i>';
+          const compRows = detailComp.comparisons.map(c => {
+            const sign = c.diff > 0 ? '+' : '';
+            const color = c.diff > 0 ? '#4f4' : c.diff < 0 ? '#f44' : '#aaa';
+            const arrow = c.diff > 0 ? ' \u2191' : c.diff < 0 ? ' \u2193' : '';
+            const label = c.stat.charAt(0).toUpperCase() + c.stat.slice(1);
+            return `<div>${esc(label)}</div><div style="color:${color};"><b>${sign}${c.diff}${arrow}</b> <small>(${c.current} → ${c.candidate})</small></div>`;
+          }).join('');
+          detailsHtml += `
+            <div class="card" style="margin-top:8px;">
+              <h3 style="color:#ccc;">Compared to: ${vsName} <small style="color:#888;">(${esc(detailComp.slot)})</small></h3>
+              <div class="kv">${compRows}</div>
+            </div>
+          `;
+        }
       }
     }
 
@@ -922,6 +1324,7 @@ if (state.phase === 'achievements') {
     actions.innerHTML = `
       <div class="card">
         <h2>Items</h2>
+        ${sortFilterHtml}
         ${itemRows}
       </div>
       <div class="buttons">
@@ -936,6 +1339,17 @@ if (state.phase === 'achievements') {
     const backBtn = document.getElementById('btnInvBack');
     if (backBtn) backBtn.onclick = () => dispatch({ type: 'INVENTORY_BACK' });
 
+    // Wire sort select
+    const sortSelect = document.getElementById('invSortSelect');
+    if (sortSelect) {
+      sortSelect.onchange = () => dispatch({ type: 'INVENTORY_SET_SORT', sortBy: sortSelect.value });
+    }
+
+    // Wire filter buttons
+    actions.querySelectorAll('.inv-filter-btn').forEach(btn => {
+      btn.onclick = () => dispatch({ type: 'INVENTORY_SET_FILTER', filterBy: btn.dataset.filter });
+    });
+
     // Wire item action buttons
     actions.querySelectorAll('.inv-btn').forEach(btn => {
       const action2 = btn.dataset.action;
@@ -949,7 +1363,7 @@ if (state.phase === 'achievements') {
       };
     });
 
-    log.innerHTML = state.log.slice().reverse().map(line => `<div class="logLine">${esc(line)}</div>`).join('');
+    log.innerHTML = state.log.slice().reverse().map(line => formatLogEntryHtml(line)).join('');
     finalizeRender();
     return;
   }
@@ -964,7 +1378,7 @@ if (state.phase === 'achievements') {
     actions.innerHTML = '<div class="buttons"><button id="btnCloseTalents">Close Talents</button></div>';
     attachTalentHandlers(hud, dispatch);
     document.getElementById('btnCloseTalents').onclick = () => dispatch({ type: 'CLOSE_TALENTS' });
-    log.innerHTML = state.log.slice().reverse().map(line => '<div class="logLine">' + esc(line) + '</div>').join('');
+    log.innerHTML = state.log.slice().reverse().map(line => formatLogEntryHtml(line)).join('');
     finalizeRender();
     return;
   }
@@ -986,7 +1400,7 @@ if (state.phase === 'achievements') {
     log.innerHTML = state.log
       .slice()
       .reverse()
-      .map((line) => `<div class="logLine">${esc(line)}</div>`)
+      .map((line) => formatLogEntryHtml(line))
       .join('');
     finalizeRender();
     return;
@@ -1009,7 +1423,7 @@ if (state.phase === 'achievements') {
     log.innerHTML = state.log
       .slice()
       .reverse()
-      .map((line) => `<div class="logLine">${esc(line)}</div>`)
+      .map((line) => formatLogEntryHtml(line))
       .join('');
     finalizeRender();
     return;
@@ -1052,7 +1466,7 @@ if (state.phase === 'achievements') {
     log.innerHTML = state.log
       .slice()
       .reverse()
-      .map((line) => `<div class="logLine">${esc(line)}</div>`)
+      .map((line) => formatLogEntryHtml(line))
       .join('');
     finalizeRender();
     return;
@@ -1069,7 +1483,7 @@ if (state.phase === 'achievements') {
     `;
     actions.innerHTML = '<div class="buttons"><button id="btnContinueAfterFlee">Continue Exploring</button></div>';
     document.getElementById('btnContinueAfterFlee').onclick = () => dispatch({ type: 'CONTINUE_AFTER_FLEE' });
-    log.innerHTML = state.log.slice().reverse().map((line) => `<div class="logLine">${esc(line)}</div>`).join('');
+    log.innerHTML = state.log.slice().reverse().map((line) => formatLogEntryHtml(line)).join('');
     finalizeRender();
     return;
   }
@@ -1087,7 +1501,7 @@ if (state.phase === 'achievements') {
     hud.querySelectorAll('[data-action="DISMISS_COMPANION"]').forEach(btn => {
       btn.onclick = () => dispatch({ type: 'DISMISS_COMPANION', companionId: btn.dataset.companionId });
     });
-    log.innerHTML = state.log.slice().reverse().map(line => '<div class="logLine">' + esc(line) + '</div>').join('');
+    log.innerHTML = state.log.slice().reverse().map(line => formatLogEntryHtml(line)).join('');
     finalizeRender();
     return;
   }
@@ -1099,14 +1513,67 @@ if (state.phase === 'achievements') {
     const closeBtn = document.getElementById('btnCloseBestiary');
     if (closeBtn) closeBtn.onclick = () => dispatch({ type: 'CLOSE_BESTIARY' });
     // Also wire data-action close button from bestiary-ui
-    const dataCloseBtn = hud.querySelector('[data-action="close-bestiary"]');
+    const dataCloseBtn = hud.querySelector('[data-action="CLOSE_BESTIARY"]');
     if (dataCloseBtn) dataCloseBtn.onclick = () => dispatch({ type: 'CLOSE_BESTIARY' });
-    log.innerHTML = state.log.slice().reverse().map(line => '<div class="logLine">' + esc(line) + '</div>').join('');
+    const bestiarySort = document.getElementById('bestiarySort');
+    if (bestiarySort) {
+      bestiarySort.onchange = () => dispatch({ type: 'SORT_BESTIARY', sort: bestiarySort.value });
+    }
+    const bestiaryFilter = document.getElementById('bestiaryFilter');
+    if (bestiaryFilter) {
+      bestiaryFilter.onchange = () => dispatch({ type: 'FILTER_BESTIARY', filter: bestiaryFilter.value });
+    }
+    log.innerHTML = state.log.slice().reverse().map(line => formatLogEntryHtml(line)).join('');
     finalizeRender();
     return;
   }
 
-  if (state.phase === 'tavern-dice') {
+  if (state.phase === 'dungeon') {
+    const dungeonHtml = renderDungeonPanel(state);
+    hud.innerHTML = `
+      <div class="row">
+        <div class="card">
+          <h2>${esc(state.player.name)}</h2>
+          <div class="kv">
+            <div>Class</div><div><b>${esc(state.player.classId ? state.player.classId[0].toUpperCase() + state.player.classId.slice(1) : 'Adventurer')}</b></div>
+            <div>HP</div><div><b>${hpLine(state.player)}</b></div>
+            <div>MP</div><div><b>${state.player.mp ?? 0} / ${state.player.maxMp ?? 0}</b></div>
+            <div>Level</div><div><b>${state.player.level ?? 1}</b></div>
+          </div>
+        </div>
+        ${dungeonHtml}
+      </div>
+    `;
+    actions.innerHTML = renderDungeonActions(state);
+    attachDungeonHandlers(dispatch);
+    log.innerHTML = state.log.slice().reverse().map(line => formatLogEntryHtml(line)).join('');
+    finalizeRender();
+    return;
+  }
+
+  if (state.phase === 'provisions') {
+    const provisionsHtml = renderProvisionsPanel(state);
+    hud.innerHTML = provisionsHtml;
+
+    actions.innerHTML = `
+      <div class="buttons">
+        <button id="btnCloseProvisions">Close Provisions</button>
+      </div>
+    `;
+
+    attachProvisionsHandlers(dispatch);
+    document.getElementById('btnCloseProvisions').onclick = () => dispatch({ type: 'CLOSE_PROVISIONS' });
+
+    log.innerHTML = state.log
+      .slice()
+      .reverse()
+      .map((line) => formatLogEntryHtml(line))
+      .join('');
+    finalizeRender();
+    return;
+  }
+
+    if (state.phase === 'tavern-dice') {
     hud.innerHTML = renderTavernDicePanel(state);
     actions.innerHTML = '<div class="buttons"><button id="btnCloseTavern">Leave Tavern</button></div>';
     
@@ -1123,7 +1590,7 @@ if (state.phase === 'achievements') {
         });
       };
     }
-    log.innerHTML = state.log.slice().reverse().map(line => '<div class="logLine">' + esc(line) + '</div>').join('');
+    log.innerHTML = state.log.slice().reverse().map(line => formatLogEntryHtml(line)).join('');
     finalizeRender();
     return;
   }
@@ -1142,7 +1609,7 @@ if (state.phase === 'achievements') {
   log.innerHTML = state.log
     .slice()
     .reverse()
-    .map((line) => `<div class="logLine">${esc(line)}</div>`)
+    .map((line) => formatLogEntryHtml(line))
     .join('');
   finalizeRender();
 }

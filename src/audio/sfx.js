@@ -33,6 +33,11 @@ const REGISTRY = (() => {
     api.scheduleTone({ type:'sine', freqStart: 600, freqEnd: 720, duration: 0.09, gain: 0.22 }, t);
     api.scheduleTone({ type:'sine', freqStart: 720, freqEnd: 840, duration: 0.10, gain: 0.20 }, t+0.09);
   },
+ui_achievement(api, t=0) {
+  api.scheduleTone({ type:'sine', freqStart: 660, freqEnd: 820, duration: 0.12, gain: 0.22 }, t);
+  api.scheduleTone({ type:'triangle', freqStart: 880, freqEnd: 1040, duration: 0.14, gain: 0.20 }, t+0.10);
+  api.scheduleTone({ type:'sine', freqStart: 1040, freqEnd: 1280, duration: 0.16, gain: 0.18 }, t+0.22);
+},
 ui_cancel(api, t=0) {
   api.scheduleTone({ type:'triangle', freqStart: 520, freqEnd: 380, duration: 0.09, gain: 0.22 }, t);
   api.scheduleTone({ type:'triangle', freqStart: 380, freqEnd: 320, duration: 0.10, gain: 0.20 }, t+0.08);

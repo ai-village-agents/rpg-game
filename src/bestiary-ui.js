@@ -10,6 +10,83 @@ import {
   getCompletionPercent,
   getTotalEnemyCount,
 } from './bestiary.js';
+import { getEnemyShieldData, ELEMENT_ICONS, ENEMY_SHIELD_DATABASE } from './shield-break.js';
+
+export const BESTIARY_SORT_DEFAULT = 'id';
+export const BESTIARY_FILTER_DEFAULT = 'all';
+
+export const BESTIARY_SORT_OPTIONS = [
+  { value: 'id', label: 'ID' },
+  { value: 'name', label: 'Name' },
+  { value: 'hp', label: 'HP' },
+  { value: 'defeated', label: 'Defeated' },
+];
+
+export const BESTIARY_FILTER_OPTIONS = [
+  { value: 'all', label: 'All' },
+  { value: 'bosses', label: 'Bosses' },
+  { value: 'regular', label: 'Regular' },
+  { value: 'encountered', label: 'Encountered' },
+  { value: 'defeated', label: 'Defeated' },
+];
+
+function filterBestiaryEntries(entries, filter) {
+  if (filter === 'bosses') return entries.filter((entry) => entry.isBoss);
+  if (filter === 'regular') return entries.filter((entry) => !entry.isBoss);
+  if (filter === 'encountered') return entries.filter((entry) => entry.encountered);
+  if (filter === 'defeated') return entries.filter((entry) => (entry.timesDefeated || 0) > 0);
+  return entries;
+}
+
+function sortBestiaryEntries(entries, sort) {
+  const sorted = [...entries];
+  if (sort === 'name') {
+    sorted.sort((a, b) => a.name.localeCompare(b.name) || a.id.localeCompare(b.id));
+    return sorted;
+  }
+  if (sort === 'hp') {
+    sorted.sort((a, b) => (b.maxHp || 0) - (a.maxHp || 0) || a.id.localeCompare(b.id));
+    return sorted;
+  }
+  if (sort === 'defeated') {
+    sorted.sort((a, b) => (b.timesDefeated || 0) - (a.timesDefeated || 0) || a.id.localeCompare(b.id));
+    return sorted;
+  }
+  sorted.sort((a, b) => a.id.localeCompare(b.id));
+  return sorted;
+}
+
+export function renderShieldInfo(enemyId) {
+  if (!enemyId || !Object.prototype.hasOwnProperty.call(ENEMY_SHIELD_DATABASE, enemyId)) {
+    return '';
+  }
+  const data = getEnemyShieldData(enemyId);
+
+  const renderElements = (elements) => {
+    if (!elements || elements.length === 0) {
+      return 'None';
+    }
+    return elements
+      .map((element) => {
+        const icon = ELEMENT_ICONS[element] || element;
+        return `<span class="bestiary-element-tag bestiary-el-${element}" title="${element}">${icon}</span>`;
+      })
+      .join('');
+  };
+
+  let html = '<div class="bestiary-shield-info">';
+  html += `<div>🛡️ Shields: ${data.shieldCount}${data.breakImmune ? ' (Break Immune)' : ''}</div>`;
+  html += `<div>Weak: ${renderElements(data.weaknesses)}</div>`;
+  if (data.immunities && data.immunities.length > 0) {
+    html += `<div>Immune: ${renderElements(data.immunities)}</div>`;
+  }
+  if (data.absorbs && data.absorbs.length > 0) {
+    html += `<div>Absorbs: ${renderElements(data.absorbs)}</div>`;
+  }
+  html += '</div>';
+
+  return html;
+}
 
 /**
  * Render the bestiary panel as an HTML string.
@@ -18,11 +95,17 @@ import {
  */
 export function renderBestiaryPanel(state) {
   const bestiary = state.bestiary;
+  const uiState = state.bestiaryUiState || {};
+  const sort = uiState.sort || BESTIARY_SORT_DEFAULT;
+  const filter = uiState.filter || BESTIARY_FILTER_DEFAULT;
   if (!bestiary) {
     return '<div class="bestiary-panel"><p>Bestiary not available.</p></div>';
   }
 
-  const entries = getAllBestiaryEntries(bestiary);
+  const entries = sortBestiaryEntries(
+    filterBestiaryEntries(getAllBestiaryEntries(bestiary), filter),
+    sort
+  );
   const encountered = getEncounteredCount(bestiary);
   const defeated = getDefeatedUniqueCount(bestiary);
   const total = getTotalEnemyCount();
@@ -35,6 +118,22 @@ export function renderBestiaryPanel(state) {
   html += ` | <span>Defeated: ${defeated}/${total}</span>`;
   html += ` | <span>Completion: ${percent}%</span>`;
   html += `</div>`;
+  html += '<div class="bestiary-controls">';
+  html += '<label for="bestiarySort">Sort:</label>';
+  html += '<select id="bestiarySort" data-action="SORT_BESTIARY">';
+  for (const option of BESTIARY_SORT_OPTIONS) {
+    const selected = option.value === sort ? ' selected' : '';
+    html += `<option value="${option.value}"${selected}>${option.label}</option>`;
+  }
+  html += '</select>';
+  html += '<label for="bestiaryFilter">Filter:</label>';
+  html += '<select id="bestiaryFilter" data-action="FILTER_BESTIARY">';
+  for (const option of BESTIARY_FILTER_OPTIONS) {
+    const selected = option.value === filter ? ' selected' : '';
+    html += `<option value="${option.value}"${selected}>${option.label}</option>`;
+  }
+  html += '</select>';
+  html += '</div>';
 
   html += '<div class="bestiary-list">';
 
@@ -68,11 +167,12 @@ export function renderBestiaryPanel(state) {
     }
     html += `</div>`;
     html += `<div class="bestiary-defeats">Defeated: ${entry.timesDefeated} time${entry.timesDefeated !== 1 ? 's' : ''}</div>`;
+    html += renderShieldInfo(entry.id);
     html += `</div>`;
   }
 
   html += '</div>';
-  html += '<button class="bestiary-close-btn" data-action="close-bestiary">Close</button>';
+  html += '<button class="bestiary-close-btn" data-action="CLOSE_BESTIARY">Close</button>';
   html += '</div>';
 
   return html;

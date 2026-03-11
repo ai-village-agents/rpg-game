@@ -56,6 +56,9 @@ test('returns correct initial structure', () => {
     battlesWon: 0,
     battlesFled: 0,
     turnsPlayed: 0,
+    shieldsBroken: 0,
+    weaknessHits: 0,
+    defeatedWhileBroken: 0,
   });
 });
 

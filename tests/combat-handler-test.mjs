@@ -73,6 +73,20 @@ console.log('--- Testing Enemy Turn Logic ---');
   assert(next.gameStats.totalDamageReceived > 0, 'Damage received recorded');
 }
 
+// Test Enemy Turn initializes combat stats when missing
+{
+  const enemyTurnState = { ...mockState, phase: 'enemy-turn' };
+  const strongEnemyState = {
+    ...enemyTurnState,
+    enemy: { ...enemyTurnState.enemy, atk: 100 },
+  };
+  delete strongEnemyState.combatStats;
+
+  const next = handleEnemyTurnLogic(strongEnemyState);
+  assert(next.combatStats, 'Combat stats initialized when missing on enemy turn');
+  assert(next.combatStats.totalDamageReceived > 0, 'Combat stats track damage received');
+}
+
 console.log('========================================');
 console.log('Results: ' + passed + ' passed, ' + failed + ' failed');
 if (failed > 0) process.exit(1);

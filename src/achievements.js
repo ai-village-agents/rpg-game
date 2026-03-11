@@ -1,4 +1,5 @@
 // achievements.js - Achievement tracking and management system
+import { getSfx } from './audio-system.js';
 
 // Helper function to safely access state properties with fallback
 function safeState(state) {
@@ -33,13 +34,47 @@ function extractAchievementData(state) {
     equipment: state.player?.equipment ?? legacy.equipment,
     perfectCombat: state.gameStats?.perfectCombat ?? legacy.perfectCombat,
     shopPurchases: state.gameStats?.shopPurchases ?? legacy.shopPurchases,
-    bossesDefeated: state.gameStats?.bossesDefeated ?? legacy.bossesDefeated
+    bossesDefeated: state.gameStats?.bossesDefeated ?? legacy.bossesDefeated,
+    highestTavernStreak: state.gameStats?.highestTavernStreak ?? 0,
+    tavernBusts: state.gameStats?.tavernBusts ?? 0,
+    lastCombatRating: state.combatStatsSummary?.sections?.[0]?.rating || null,
+    lastBattleMaxHit: state.combatStats?.maxSingleHit || 0,
+    shieldsBroken: state.gameStats?.shieldsBroken ?? 0,
+    weaknessHits: state.gameStats?.weaknessHits ?? 0,
+    defeatedWhileBroken: state.gameStats?.defeatedWhileBroken ?? 0,
+    deepestFloor: state.dungeonState?.deepestFloor ?? 0,
+    floorsCleared: state.dungeonState?.floorsCleared ?? [],
+    floorsCompletedCount: (state.dungeonState?.floorsCleared ?? []).length
   };
 }
 
 // Achievement definitions
 const ACHIEVEMENTS = [
   // Combat achievements
+  {
+    id: 'flawless_execution',
+    name: 'Flawless Execution',
+    description: 'Achieve an S-Rank in combat',
+    category: 'combat',
+    condition: (data) => data.lastCombatRating === 'S',
+    getProgress: (data) => data.lastCombatRating === 'S' ? 1 : 0
+  },
+  {
+    id: 'efficiency_expert',
+    name: 'Efficiency Expert',
+    description: 'Achieve an A-Rank or higher in combat',
+    category: 'combat',
+    condition: (data) => data.lastCombatRating === 'S' || data.lastCombatRating === 'A',
+    getProgress: (data) => (data.lastCombatRating === 'S' || data.lastCombatRating === 'A') ? 1 : 0
+  },
+  {
+    id: 'overkill',
+    name: 'Overkill',
+    description: 'Deal 50 or more damage in a single hit',
+    category: 'combat',
+    condition: (data) => data.lastBattleMaxHit >= 50,
+    getProgress: (data) => Math.min(50, data.lastBattleMaxHit)
+  },
   {
     id: 'first_blood',
     name: 'First Blood',
@@ -87,6 +122,46 @@ const ACHIEVEMENTS = [
     category: 'combat',
     condition: (data) => data.bossesDefeated >= 1,
     getProgress: (data) => data.bossesDefeated
+  },
+  {
+    id: 'shield_breaker',
+    name: 'Shield Breaker',
+    description: 'Break an enemy shield',
+    category: 'combat',
+    condition: (data) => data.shieldsBroken >= 1,
+    getProgress: (data) => data.shieldsBroken
+  },
+  {
+    id: 'weakness_exploiter',
+    name: 'Weakness Exploiter',
+    description: 'Hit enemy weaknesses 10 times',
+    category: 'combat',
+    condition: (data) => data.weaknessHits >= 10,
+    getProgress: (data) => data.weaknessHits
+  },
+  {
+    id: 'shield_master',
+    name: 'Shield Master',
+    description: 'Break 25 enemy shields',
+    category: 'combat',
+    condition: (data) => data.shieldsBroken >= 25,
+    getProgress: (data) => data.shieldsBroken
+  },
+  {
+    id: 'elemental_tactician',
+    name: 'Elemental Tactician',
+    description: 'Hit enemy weaknesses 50 times',
+    category: 'combat',
+    condition: (data) => data.weaknessHits >= 50,
+    getProgress: (data) => data.weaknessHits
+  },
+  {
+    id: 'break_specialist',
+    name: 'Break Specialist',
+    description: 'Defeat 10 enemies while they are broken',
+    category: 'combat',
+    condition: (data) => data.defeatedWhileBroken >= 10,
+    getProgress: (data) => data.defeatedWhileBroken
   },
 
   // Exploration achievements
@@ -267,6 +342,98 @@ const ACHIEVEMENTS = [
     category: 'quests',
     condition: (data) => data.completedQuests.length >= 10,
     getProgress: (data) => data.completedQuests.length
+  },
+  {
+    id: 'high_roller',
+    name: 'High Roller',
+    description: 'Achieve a 3-win streak in the Tavern Dice game',
+    category: 'collection',
+    condition: (data) => data.highestTavernStreak >= 3,
+    getProgress: (data) => data.highestTavernStreak
+  },
+  {
+    id: 'house_always_wins',
+    name: 'The House Always Wins',
+    description: 'Lose a pot in the Tavern Dice game',
+    category: 'collection',
+    condition: (data) => data.tavernBusts >= 1,
+    getProgress: (data) => data.tavernBusts
+  },
+
+  // Additional boss achievements
+  {
+    id: 'boss_hunter',
+    name: 'Boss Hunter',
+    description: 'Defeat 3 dungeon bosses',
+    category: 'combat',
+    condition: (data) => data.bossesDefeated >= 3,
+    getProgress: (data) => data.bossesDefeated
+  },
+  {
+    id: 'boss_bane',
+    name: 'Boss Bane',
+    description: 'Defeat 5 dungeon bosses',
+    category: 'combat',
+    condition: (data) => data.bossesDefeated >= 5,
+    getProgress: (data) => data.bossesDefeated
+  },
+
+  // Dungeon floor progression achievements
+  {
+    id: 'dungeon_initiate',
+    name: 'Dungeon Initiate',
+    description: 'Enter the dungeon for the first time',
+    category: 'dungeon',
+    condition: (data) => data.deepestFloor >= 1,
+    getProgress: (data) => Math.min(data.deepestFloor, 1)
+  },
+  {
+    id: 'floor_crawler',
+    name: 'Floor Crawler',
+    description: 'Reach floor 3 of the dungeon',
+    category: 'dungeon',
+    condition: (data) => data.deepestFloor >= 3,
+    getProgress: (data) => Math.min(data.deepestFloor, 3)
+  },
+  {
+    id: 'dungeon_explorer',
+    name: 'Dungeon Explorer',
+    description: 'Reach floor 5 of the dungeon',
+    category: 'dungeon',
+    condition: (data) => data.deepestFloor >= 5,
+    getProgress: (data) => Math.min(data.deepestFloor, 5)
+  },
+  {
+    id: 'deep_diver',
+    name: 'Deep Diver',
+    description: 'Reach floor 7 of the dungeon',
+    category: 'dungeon',
+    condition: (data) => data.deepestFloor >= 7,
+    getProgress: (data) => Math.min(data.deepestFloor, 7)
+  },
+  {
+    id: 'abyss_conqueror',
+    name: 'Abyss Conqueror',
+    description: 'Reach floor 10 — the Abyssal Throne',
+    category: 'dungeon',
+    condition: (data) => data.deepestFloor >= 10,
+    getProgress: (data) => Math.min(data.deepestFloor, 10)
+  },
+  {
+    id: 'floor_clearer',
+    name: 'Floor Clearer',
+    description: 'Clear all enemies on 3 dungeon floors',
+    category: 'dungeon',
+    condition: (data) => data.floorsCompletedCount >= 3,
+    getProgress: (data) => data.floorsCompletedCount
+  },
+  {
+    id: 'dungeon_master',
+    name: 'Dungeon Master',
+    description: 'Clear all 10 dungeon floors',
+    category: 'dungeon',
+    condition: (data) => data.floorsCompletedCount >= 10,
+    getProgress: (data) => data.floorsCompletedCount
   }
 ];
 
@@ -283,12 +450,38 @@ export function trackAchievements(state) {
   }
 
   const normalizedUnlocked = [...new Set([...unlockedAchievements, ...newUnlocked])];
+  const newNotifs = newUnlocked.length > 0
+    ? newUnlocked.map((id) => {
+        const achievement = ACHIEVEMENTS.find(a => a.id === id);
+        return {
+          id,
+          name: achievement?.name || id,
+          timestamp: Date.now()
+        };
+      })
+    : [];
+
+  if (newUnlocked.length > 0) {
+    try {
+      const sfx = getSfx?.();
+      if (sfx && typeof sfx.play === 'function') {
+        sfx.play('ui_achievement');
+      }
+    } catch {
+      // Ignore audio failures to keep function side-effect free for state
+    }
+  }
 
   return {
     ...state,
     achievements: state.achievements || normalizedUnlocked,
-    unlockedAchievements: normalizedUnlocked
+    unlockedAchievements: normalizedUnlocked,
+    achievementNotifications: [...(state.achievementNotifications || []), ...newNotifs]
   };
+}
+
+export function consumeAchievementNotifications(state) {
+  return { ...state, achievementNotifications: [] };
 }
 
 // Check if a specific achievement is unlocked

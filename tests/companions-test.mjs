@@ -277,8 +277,9 @@ console.log('\n--- companionAutoAct ---');
 test('all alive companions attack enemy', () => {
   const state1 = recruit(freshState(), 'companion_fenris');
   const state2 = recruit(state1, 'companion_lyra');
-  const result = companionAutoAct(state2, 12345);
-  assertEqual(result.state.enemy.hp, 6, 'enemy hp reduced by both companions');
+  const next = companionAutoAct(state2, 12345);
+  assertEqual(next.enemy.hp, 6, 'enemy hp reduced by both companions');
+  assert(Number.isFinite(next.rngSeed), 'rngSeed updated on state');
 });
 
 test('skips dead companions', () => {
@@ -288,8 +289,8 @@ test('skips dead companions', () => {
     ...state2,
     companions: state2.companions.map((c) => (c.id === 'companion_lyra' ? { ...c, alive: false } : c)),
   };
-  const result = companionAutoAct(withDead, 12345);
-  assertEqual(result.state.enemy.hp, 10, 'enemy hp reduced by alive companion only');
+  const next = companionAutoAct(withDead, 12345);
+  assertEqual(next.enemy.hp, 10, 'enemy hp reduced by alive companion only');
 });
 
 // 11. Companion UI

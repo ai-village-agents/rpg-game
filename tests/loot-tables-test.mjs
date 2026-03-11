@@ -44,8 +44,11 @@ for (const enemyId of allEnemyIds) {
     `Drop table exists for enemy: ${enemyId}`);
 }
 
-assert(Object.keys(ENEMY_DROP_TABLES).length === allEnemyIds.length,
-  `Drop table count (${Object.keys(ENEMY_DROP_TABLES).length}) matches enemy count (${allEnemyIds.length})`);
+// Allow extra drop table entries for boss-only enemies (e.g. abyss_overlord)
+// that are defined in dungeon floors but not in the base ENEMIES data object.
+const dropTableCount = Object.keys(ENEMY_DROP_TABLES).length;
+assert(dropTableCount >= allEnemyIds.length,
+  `Drop table count (${dropTableCount}) covers all enemies (${allEnemyIds.length}) — extra boss-only entries allowed`);
 
 // ============================================================
 console.log('\nDrop table field validation:');

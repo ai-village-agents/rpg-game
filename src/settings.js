@@ -22,6 +22,7 @@ export function getDefaultSettings() {
       showDamageNumbers: true,
       showStatusIcons: true,
       compactLog: false,
+      theme: 'midnight',
     },
     gameplay: {
       autoSave: true,
