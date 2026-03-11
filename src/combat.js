@@ -66,6 +66,45 @@ export function addStatusEffect(state, targetKey, effect) {
   };
 }
 
+
+/**
+ * Check if the player's equipped weapon has an onHitStatus effect and apply it.
+ * @param {Object} state - combat state
+ * @returns {Object} updated state
+ */
+function applyWeaponOnHitStatus(state) {
+  const weapon = state.player?.equipment?.weapon;
+  if (!weapon) return state;
+  const itemDef = items[weapon];
+  if (!itemDef?.effect?.onHitStatus) return state;
+  const { type, name, duration, power, chance } = itemDef.effect.onHitStatus;
+  if (!type || !chance) return state;
+
+  const { seed: hitSeed, value: hitRoll } = nextRng(state.rngSeed);
+  state = { ...state, rngSeed: hitSeed };
+
+  if (hitRoll < chance) {
+    const effect = { type, name: name ?? type, duration: duration ?? 1, power: power ?? 0, source: 'weapon' };
+    state = addStatusEffect(state, 'enemy', effect);
+    state = pushLog(state, `Your ${itemDef.name} inflicts ${effect.name}!`);
+  }
+  return state;
+}
+
+/**
+ * Get the player's total status resistance for a given effect type from equipped accessories.
+ * @param {Object} player - player object
+ * @param {string} effectType - status effect type
+ * @returns {number} resistance chance (0-1)
+ */
+export function getPlayerStatusResist(player, effectType) {
+  const accessory = player?.equipment?.accessory;
+  if (!accessory) return 0;
+  const itemDef = items[accessory];
+  if (!itemDef?.effect?.statusResist) return 0;
+  return itemDef.effect.statusResist[effectType] ?? 0;
+}
+
 function processTurnStart(state, actorKey) {
   const actor = state[actorKey];
   if (!actor) return state;
@@ -258,6 +297,12 @@ export function playerAttack(state) {
   };
 
   state = pushLog(state, `You strike for ${damage} damage.`);
+
+  // Apply weapon on-hit status effect (e.g., freeze, bleed, blind)
+  if (state.enemy.hp > 0) {
+    state = applyWeaponOnHitStatus(state);
+  }
+
   // Companions attack after player
   if (state.enemy.hp > 0) {
     const companionResult = companionsCombatTurn(state, state.rngSeed ?? 1);

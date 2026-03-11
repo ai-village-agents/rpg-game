@@ -67,6 +67,50 @@ export const ENEMY_SHIELD_DATABASE = {
     immunities: ["shadow", "fire"],
     absorbs: ["shadow"],
   },
+  "frost-revenant": {
+    shieldCount: 4,
+    weaknesses: ["fire", "holy"],
+    immunities: ["ice"],
+    absorbs: ["ice"],
+  },
+  "blood-fiend": {
+    shieldCount: 3,
+    weaknesses: ["holy", "fire"],
+    immunities: ["shadow"],
+  },
+  "shadow-weaver": {
+    shieldCount: 3,
+    weaknesses: ["holy", "lightning"],
+    immunities: ["shadow"],
+    absorbs: ["shadow"],
+  },
+  "storm-elemental": {
+    shieldCount: 5,
+    weaknesses: ["ice", "nature"],
+    immunities: ["lightning"],
+    absorbs: ["lightning"],
+  },
+  "plague-bearer": {
+    shieldCount: 5,
+    weaknesses: ["fire", "holy"],
+    immunities: ["nature"],
+  },
+  "infernal-knight": {
+    shieldCount: 6,
+    weaknesses: ["ice", "holy"],
+    immunities: ["fire"],
+  },
+  "glacial-wyrm": {
+    shieldCount: 7,
+    weaknesses: ["fire", "lightning"],
+    immunities: ["ice"],
+    absorbs: ["ice"],
+  },
+  "void-stalker": {
+    shieldCount: 4,
+    weaknesses: ["holy", "lightning"],
+    immunities: ["shadow", "physical"],
+  },
 };
 
 const DEFAULT_ENEMY_SHIELDS = {
