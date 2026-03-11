@@ -5,7 +5,7 @@ import { removeItemFromInventory, hasItem } from './items.js';
 import { getEnemy, getEncounter } from './data/enemies.js';
 import { getAbility, getAbilityDisplayInfo } from './combat/abilities.js';
 import { calculateDamage, calculateHeal, getElementMultiplier } from './combat/damage-calc.js';
-import { StatusEffect } from './combat/status-effects.js';
+import { StatusEffect, isFrozen, isBlinded, isSilenced, isCursed } from './combat/status-effects.js';
 import { selectEnemyAction, executeEnemyAbility } from './enemy-abilities.js';
 import { getEffectiveCombatStats } from './combat/equipment-bonuses.js';
 import { getGoldMultiplier, getMpCostMultiplier, getDamageMultiplier } from './world-events.js';
@@ -30,18 +30,23 @@ export function nextRng(seed) {
   return { seed: next, value: next / m };
 }
 
-function computeDamage({ attackerAtk, targetDef, targetDefending, worldEvent, targetIsBroken }) {
+function computeDamage({ attackerAtk, targetDef, targetDefending, worldEvent, targetIsBroken, targetIsCursed }) {
   const defendBonus = targetDefending ? 3 : 0;
   const raw = attackerAtk - (targetDef + defendBonus);
   const baseDamage = Math.max(1, raw);
   const mult = getDamageMultiplier(worldEvent);
-  return Math.max(1, Math.floor(baseDamage * mult * (targetIsBroken ? BREAK_DAMAGE_MULTIPLIER : 1)));
+  const curseMult = targetIsCursed ? 1.25 : 1;
+  return Math.max(1, Math.floor(baseDamage * mult * (targetIsBroken ? BREAK_DAMAGE_MULTIPLIER : 1) * curseMult));
 }
 
 function isStunned(entity) {
   return (entity.statusEffects ?? []).some(
     (effect) => effect.type === 'stun' && effect.duration >= 0
   );
+}
+
+function isIncapacitated(entity) {
+  return isStunned(entity) || isFrozen(entity);
 }
 
 export function addStatusEffect(state, targetKey, effect) {
@@ -80,6 +85,12 @@ function processTurnStart(state, actorKey) {
         hp = clamp(hp - damage, 0, actor.maxHp);
         const source = effect.type === 'poison' ? 'poison' : 'burn';
         nextState = pushLog(nextState, `${actorName} ${verb} ${damage} ${source} damage.`);
+      }
+    } else if (effect.type === 'bleed') {
+      const damage = Math.max(0, effect.power ?? 0);
+      if (damage > 0) {
+        hp = clamp(hp - damage, 0, actor.maxHp);
+        nextState = pushLog(nextState, `${actorName} ${verb} ${damage} bleed damage.`);
       }
     } else if (effect.type === 'regen') {
       const heal = Math.max(0, effect.power ?? 0);
@@ -180,11 +191,24 @@ export function startNewEncounter(state, zoneLevel = 1) {
 export function playerAttack(state) {
   if (state.phase !== 'player-turn') return state;
 
-  if (isStunned(state.player)) {
-    state = pushLog(state, 'Player is stunned!');
+  if (isIncapacitated(state.player)) {
+    const reason = isFrozen(state.player) ? 'frozen solid' : 'stunned';
+    state = pushLog(state, `You are ${reason} and cannot act!`);
     state = processTurnStart(state, 'enemy');
     if (state.phase === 'victory' || state.phase === 'defeat') return state;
     return { ...state, phase: 'enemy-turn' };
+  }
+
+  // Blind: 50% miss chance on physical attacks
+  if (isBlinded(state.player)) {
+    const { seed: blindSeed, value: blindRoll } = nextRng(state.rngSeed);
+    state = { ...state, rngSeed: blindSeed };
+    if (blindRoll < 0.5) {
+      state = pushLog(state, 'Your attack misses! (Blinded)');
+      state = processTurnStart(state, 'enemy');
+      if (state.phase === 'victory' || state.phase === 'defeat') return state;
+      return { ...state, phase: 'enemy-turn' };
+    }
   }
 
   // Apply equipment bonuses to player's attack stat
@@ -195,6 +219,7 @@ export function playerAttack(state) {
     targetDefending: state.enemy.defending,
     worldEvent: state.worldEvent || null,
     targetIsBroken: state.enemy.isBroken,
+    targetIsCursed: isCursed(state.enemy),
   });
 
   if ((state.enemy.weaknesses || []).includes('physical') && !state.enemy.isBroken) {
@@ -232,8 +257,9 @@ export function playerAttack(state) {
 
 export function playerDefend(state) {
   if (state.phase !== 'player-turn') return state;
-  if (isStunned(state.player)) {
-    state = pushLog(state, 'Player is stunned!');
+  if (isIncapacitated(state.player)) {
+    const reason = isFrozen(state.player) ? 'frozen solid' : 'stunned';
+    state = pushLog(state, `You are ${reason} and cannot act!`);
     state = processTurnStart(state, 'enemy');
     if (state.phase === 'victory' || state.phase === 'defeat') return state;
     return { ...state, phase: 'enemy-turn' };
@@ -250,8 +276,9 @@ export function playerDefend(state) {
 
 export function playerFlee(state) {
   if (state.phase !== 'player-turn') return state;
-  if (isStunned(state.player)) {
-    state = pushLog(state, 'Player is stunned!');
+  if (isIncapacitated(state.player)) {
+    const reason = isFrozen(state.player) ? 'frozen solid' : 'stunned';
+    state = pushLog(state, `You are ${reason} and cannot act!`);
     state = processTurnStart(state, 'enemy');
     if (state.phase === 'victory' || state.phase === 'defeat') return state;
     return { ...state, phase: 'enemy-turn' };
@@ -274,8 +301,9 @@ export function playerFlee(state) {
 export function playerUsePotion(state) {
   if (state.phase !== 'player-turn') return state;
 
-  if (isStunned(state.player)) {
-    state = pushLog(state, 'Player is stunned!');
+  if (isIncapacitated(state.player)) {
+    const reason = isFrozen(state.player) ? 'frozen solid' : 'stunned';
+    state = pushLog(state, `You are ${reason} and cannot act!`);
     state = processTurnStart(state, 'enemy');
     if (state.phase === 'victory' || state.phase === 'defeat') return state;
     return { ...state, phase: 'enemy-turn' };
@@ -316,6 +344,11 @@ export function playerUseAbility(state, abilityId) {
   const playerAbilities = state.player.abilities ?? [];
   if (!playerAbilities.includes(abilityId)) {
     return pushLog(state, `You don't know ${ability.name}.`);
+  }
+
+  // Silence blocks ability usage
+  if (isSilenced(state.player)) {
+    return pushLog(state, 'You are silenced and cannot use abilities!');
   }
 
   // Check MP
@@ -405,7 +438,7 @@ export function playerUseAbility(state, abilityId) {
     // Handle purify special: remove negative status effects
     if (ability.special === 'cleanse') {
       const currentEffects = state.player.statusEffects ?? [];
-      const debuffTypes = ['poison', 'burn', 'stun', 'sleep', 'atk-down', 'def-down', 'spd-down'];
+      const debuffTypes = ['poison', 'burn', 'stun', 'sleep', 'freeze', 'bleed', 'blind', 'silence', 'curse', 'atk-down', 'def-down', 'spd-down'];
       const cleaned = currentEffects.filter(e => !debuffTypes.includes(e.type));
       state = {
         ...state,
@@ -424,8 +457,9 @@ export function playerUseAbility(state, abilityId) {
 export function playerUseItem(state, itemId) {
   if (state.phase !== 'player-turn') return state;
 
-  if (isStunned(state.player)) {
-    state = pushLog(state, 'Player is stunned!');
+  if (isIncapacitated(state.player)) {
+    const reason = isFrozen(state.player) ? 'frozen solid' : 'stunned';
+    state = pushLog(state, `You are ${reason} and cannot act!`);
     state = processTurnStart(state, 'enemy');
     if (state.phase === 'victory' || state.phase === 'defeat') return state;
     return { ...state, phase: 'enemy-turn' };
@@ -525,12 +559,14 @@ export function enemyAct(state) {
   const wasEnemyStunned = (state.enemy.statusEffects ?? []).some(
     (effect) => effect.type === 'stun' && (effect.duration ?? 0) > 0
   );
+  const wasEnemyFrozen = isFrozen(state.enemy);
 
   state = processTurnStart(state, 'enemy');
   if (state.phase === 'victory' || state.phase === 'defeat') return state;
 
-  if (wasEnemyStunned) {
-    state = pushLog(state, `${state.enemy.name} is stunned and cannot act!`);
+  if (wasEnemyStunned || wasEnemyFrozen) {
+    const reason = wasEnemyFrozen ? 'frozen' : 'stunned';
+    state = pushLog(state, `${state.enemy.name} is ${reason} and cannot act!`);
     state = processTurnStart(state, 'player');
     if (state.phase === 'victory' || state.phase === 'defeat') return state;
     state = pushLog(state, `Your turn.`);
@@ -547,8 +583,14 @@ export function enemyAct(state) {
     return { ...state, phase: 'player-turn' };
   }
 
-  const result = selectEnemyAction(state.enemy, state.player, state.rngSeed);
+  let result = selectEnemyAction(state.enemy, state.player, state.rngSeed);
   state = { ...state, rngSeed: result.newSeed };
+
+  // Silenced enemies cannot use abilities — forced to basic attack
+  if (result.action === 'ability' && isSilenced(state.enemy)) {
+    result = { ...result, action: 'attack' };
+    state = pushLog(state, `${state.enemy.name} is silenced and cannot use abilities!`);
+  }
 
   if (result.action === 'defend') {
     state = {
@@ -576,6 +618,24 @@ export function enemyAct(state) {
         turn: state.turn + 1,
       };
     } else {
+      // Blind: 50% miss chance on enemy attacks
+      if (isBlinded(state.enemy)) {
+        const { seed: blindSeed, value: blindRoll } = nextRng(state.rngSeed ?? 1);
+        state = { ...state, rngSeed: blindSeed };
+        if (blindRoll < 0.5) {
+          state = pushLog(state, `${state.enemy.name}'s attack misses! (Blinded)`);
+          state = {
+            ...state,
+            enemy: { ...state.enemy, defending: false },
+            turn: state.turn + 1,
+          };
+          state = processTurnStart(state, 'player');
+          if (state.phase === 'victory' || state.phase === 'defeat') return state;
+          state = pushLog(state, 'Your turn.');
+          return { ...state, phase: 'player-turn' };
+        }
+      }
+
       // Apply equipment bonuses to player's defense stat
       const defenderStats = getEffectiveCombatStats(state.player);
       const damage = computeDamage({
@@ -583,6 +643,7 @@ export function enemyAct(state) {
         targetDef: defenderStats.def,
         targetDefending: state.player.defending,
         worldEvent: state.worldEvent || null,
+        targetIsCursed: isCursed(state.player),
       });
 
       const playerHp = clamp(state.player.hp - damage, 0, state.player.maxHp);
