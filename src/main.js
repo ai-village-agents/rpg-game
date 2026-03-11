@@ -1,3 +1,6 @@
+import { loadSettings } from './settings.js';
+import { applyTheme } from './data/themes.js';
+
 import { render } from './render.js';
 import { keyToCardinalDirection } from './input.js';
 import { handleCombatAction, handleEnemyTurnLogic } from './handlers/combat-handler.js';
@@ -11,6 +14,9 @@ import { initAudio } from './audio-system.js';
 const IS_BROWSER = typeof window !== 'undefined' && typeof document !== 'undefined';
 
 if (IS_BROWSER) {
+  // Initialize theme from settings
+  const initialSettings = loadSettings();
+  applyTheme(initialSettings.display?.theme || 'midnight');
   let state = { phase: 'class-select', log: ['Welcome to AI Village RPG! Select your class.'] };
 
   // Initialize audio system on first interaction
