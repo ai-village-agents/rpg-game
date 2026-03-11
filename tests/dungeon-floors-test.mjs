@@ -70,11 +70,11 @@ describe('DUNGEON_FLOORS', () => {
     assert.deepEqual(ids, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]);
   });
 
-  test('boss floors are 3, 6, 9, 10, 15', () => {
+  test('boss floors are 3, 6, 9, 10, 13, 15', () => {
     const bossFloors = DUNGEON_FLOORS.filter((floor) => floor.bossFloor).map(
       (floor) => floor.id
     );
-    assert.deepEqual(bossFloors, [3, 6, 9, 10, 15]);
+    assert.deepEqual(bossFloors, [3, 6, 9, 10, 13, 15]);
   });
 
   test('non-boss floors have bossId null', () => {

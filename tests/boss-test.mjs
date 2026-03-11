@@ -72,12 +72,14 @@ test('getBoss returns null for invalid boss', () => {
   assert.equal(boss, null);
 });
 
-test('getAllBossIds returns all three bosses', () => {
+test('getAllBossIds returns all bosses', () => {
   const ids = getAllBossIds();
-  assert.equal(ids.length, 3);
+  assert.ok(ids.length >= 3, 'Should have at least 3 bosses');
   assert.ok(ids.includes('forest-guardian'));
   assert.ok(ids.includes('fire-drake'));
   assert.ok(ids.includes('shadow-wraith'));
+  assert.ok(ids.includes('lich-king'));
+  assert.ok(ids.includes('primordial-titan'));
 });
 
 // ============================================

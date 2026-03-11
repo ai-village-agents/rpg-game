@@ -18,6 +18,7 @@ export const ELEMENTS = {
   earth: 'earth',
   light: 'light',
   dark: 'dark',
+  arcane: 'arcane',
 };
 
 /**
@@ -32,6 +33,7 @@ const ELEMENT_CHART = {
   light:     { dark: 2.0, light: 0.0 },
   dark:      { light: 2.0, dark: 0.0 },
   physical:  {},
+  arcane:    { physical: 1.5, light: 0.5, arcane: 0.5 },
 };
 
 export function getElementMultiplier(attackElement, targetElement) {

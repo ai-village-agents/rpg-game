@@ -163,15 +163,19 @@ export function getBestiaryEntry(bestiary, enemyId) {
  */
 export function getAllBestiaryEntries(bestiary) {
   const entries = [];
+  const seen = new Set();
 
   // Regular enemies
   for (const id of Object.keys(ENEMIES)) {
+    seen.add(id);
     entries.push(getBestiaryEntry(bestiary, id));
   }
 
-  // Boss enemies
+  // Boss enemies (skip if already in ENEMIES to avoid duplicates)
   for (const id of Object.keys(BOSSES)) {
-    entries.push(getBestiaryEntry(bestiary, id));
+    if (!seen.has(id)) {
+      entries.push(getBestiaryEntry(bestiary, id));
+    }
   }
 
   return entries;
@@ -183,10 +187,10 @@ export function getAllBestiaryEntries(bestiary) {
  * @returns {number} Percentage 0-100
  */
 export function getCompletionPercent(bestiary) {
-  const totalEnemies = Object.keys(ENEMIES).length + Object.keys(BOSSES).length;
-  if (totalEnemies === 0) return 100;
+  const total = getTotalEnemyCount();
+  if (total === 0) return 100;
   const defeated = getDefeatedUniqueCount(bestiary);
-  return Math.round((defeated / totalEnemies) * 100);
+  return Math.round((defeated / total) * 100);
 }
 
 /**
@@ -194,5 +198,6 @@ export function getCompletionPercent(bestiary) {
  * @returns {number}
  */
 export function getTotalEnemyCount() {
-  return Object.keys(ENEMIES).length + Object.keys(BOSSES).length;
+  const allKeys = new Set([...Object.keys(ENEMIES), ...Object.keys(BOSSES)]);
+  return allKeys.size;
 }

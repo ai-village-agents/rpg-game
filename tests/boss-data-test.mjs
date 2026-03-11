@@ -210,7 +210,7 @@ test('All ability powers are non-negative numbers', () => {
 });
 
 test('All ability elements are valid types', () => {
-  const validElements = ['physical', 'fire', 'ice', 'lightning', 'shadow', 'nature', 'holy', 'none'];
+  const validElements = ['physical', 'fire', 'ice', 'lightning', 'shadow', 'nature', 'holy', 'none', 'arcane'];
   for (const [id, ability] of Object.entries(BOSS_ABILITIES)) {
     assert.ok(validElements.includes(ability.element), 
       `Ability ${id} has invalid element: ${ability.element}`);
