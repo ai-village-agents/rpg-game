@@ -30,6 +30,16 @@ export function renderTalentTree(state) {
         <span class="total-spent">Total Spent: ${talentState.totalPointsSpent}</span>
       </div>
     </div>
+    <div class="talent-controls">
+      <select class="talent-sort">
+        <option value="name">Name</option>
+        <option value="tier">Tier</option>
+        <option value="points">Points Invested</option>
+      </select>
+      <input type="text" class="talent-filter" placeholder="Filter by name..." />
+      <button class="talent-filter-apply">Apply Filter</button>
+      <button class="talent-filter-clear">Clear Filter</button>
+    </div>
     
     <div class="talent-categories">`;
 
@@ -250,6 +260,50 @@ export function getTalentTreeStyles() {
       justify-content: space-between;
       align-items: center;
       margin-bottom: 20px;
+    }
+    
+    .talent-controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      margin: 0 0 20px 0;
+    }
+    
+    .talent-controls select,
+    .talent-controls input {
+      background: rgba(0, 0, 0, 0.6);
+      color: #f5f7ff;
+      border: 1px solid #555;
+      padding: 6px 10px;
+      border-radius: 4px;
+      min-height: 34px;
+    }
+    
+    .talent-controls select:focus,
+    .talent-controls input:focus {
+      outline: none;
+      border-color: #f1c40f;
+      box-shadow: 0 0 0 2px rgba(241, 196, 15, 0.15);
+    }
+    
+    .talent-controls button {
+      border: 1px solid rgba(255,255,255,0.15);
+      background: rgba(255,255,255,0.08);
+      color: #f5f7ff;
+      padding: 8px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    
+    .talent-controls button:hover {
+      border-color: rgba(122,162,255,0.55);
+    }
+    
+    .talent-controls button:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
     }
     
     .talent-points-display {
