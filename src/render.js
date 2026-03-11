@@ -9,7 +9,8 @@ import { formatAbilityName } from './specialization-ui.js';
 import { getNPCsInRoom, getCurrentDialogLine, getDialogProgress } from './npc-dialog.js';
 import { getActiveQuestsSummary, getCompletedQuestsSummary, getAvailableQuestsInRoom } from './quest-integration.js';
 import { getAbilityDisplayInfo } from './combat/abilities.js';
-import { items as itemsData, rarityColors } from './data/items.js';
+import { items as itemsData } from './data/items.js';
+import { getRarityMeta } from './ui/rarity-util.js';
 import { renderStatusEffectsRow, getStatusEffectStyles } from './status-effect-ui.js';
 import { getMinimapStyles, renderMinimap } from './minimap.js';
 import { renderStatsPanel, getStatsPanelStyles } from './stats-display.js';
@@ -764,7 +765,7 @@ export function render(state, dispatch) {
           const name = isString ? item : (item.name ?? item.itemId ?? 'Item');
           const rarity = isString ? null : (item.rarity ?? null);
           const rarityKey = typeof rarity === 'string' ? rarity : null;
-          const color = rarityKey && rarityColors[rarityKey] ? rarityColors[rarityKey] : '#aaa';
+          const color = getRarityMeta(rarityKey).color;
           const badge = rarityKey ? '[' + rarityKey + ']' : '';
           const emoji = (() => {
             switch (rarityKey) {
@@ -1195,7 +1196,7 @@ if (state.phase === 'achievements') {
       const detail = itemId ? getItemDetails(itemId) : null;
       const itemName = detail ? detail.name : (itemId || '—');
       const rarityKey = detail && typeof detail.rarity === 'string' ? detail.rarity : null;
-      const rarityColor = rarityKey && rarityColors[rarityKey] ? rarityColors[rarityKey] : '#aaa';
+      const rarityColor = getRarityMeta(rarityKey).color;
       const rarityEmoji = (() => {
         switch (rarityKey) {
           case 'Common': return '📦';
@@ -1263,7 +1264,7 @@ if (state.phase === 'achievements') {
         }
         const detBtn = `<button class="inv-btn" data-action="details" data-item="${esc(id)}">Info</button>`;
         const rarityKey = typeof rarity === 'string' ? rarity : null;
-        const rarityColor = rarityKey && rarityColors[rarityKey] ? rarityColors[rarityKey] : '#aaa';
+        const rarityColor = getRarityMeta(rarityKey).color;
         const rarityBadge = rarityKey ? '[' + rarityKey + ']' : '';
         const rarityEmoji = (() => {
           switch (rarityKey) {
@@ -1287,7 +1288,7 @@ if (state.phase === 'achievements') {
     if (invState.screen === INVENTORY_SCREENS.DETAILS && invState.selectedItem) {
       const detail = getItemDetails(invState.selectedItem);
       if (detail) {
-        const rarityColor = rarityColors[detail.rarity] || '#aaa';
+        const rarityColor = getRarityMeta(detail?.rarity).color;
         const rarityLabel = detail.rarity
           ? `<span style="color:${rarityColor}; font-weight:700;">${esc(detail.rarity)}</span>`
           : '<span style="color:#aaa;">Unknown</span>';

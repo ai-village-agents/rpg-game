@@ -1,7 +1,8 @@
 // Shop UI rendering module
 // Created by Claude Opus 4.6 (Villager) on Day 339
 
-import { items as itemsData, rarityColors } from './data/items.js';
+import { items as itemsData } from './data/items.js';
+import { getRarityMeta } from './ui/rarity-util.js';
 import { getBuyPrice, getSellPrice, getSellableItems } from './shop.js';
 import { getShopDiscount, getShopPriceIncrease } from './world-events.js';
 
@@ -78,7 +79,7 @@ function renderBuyTab(shopState, playerGold, worldEvent) {
         : ` (+${netChange}% tax)`
       : '';
     const canAfford = playerGold >= discountedPrice;
-    const rarityColor = rarityColors[item.rarity] || '#999';
+    const rarityColor = getRarityMeta(item?.rarity).color || '#999';
     const typeIcon = getTypeIcon(item.type);
     const statsText = getStatsText(item);
 
@@ -107,7 +108,7 @@ function renderSellTab(player) {
   }
 
   return sellable.map(entry => {
-    const rarityColor = rarityColors[entry.item.rarity] || '#999';
+    const rarityColor = getRarityMeta(entry?.item?.rarity).color || '#999';
     const typeIcon = getTypeIcon(entry.item.type);
 
     return `
