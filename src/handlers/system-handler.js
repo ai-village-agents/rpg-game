@@ -19,9 +19,11 @@ export function handleSystemAction(state, action) {
     if (!CLASS_DEFINITIONS[action.classId]) {
       return pushLog(state, 'Unknown class selected.');
     }
+
+    const selectedName = typeof action.name === 'string' ? action.name.trim() : '';
     
     // Initialize state with selected class
-    let next = initialStateWithClass(action.classId);
+    let next = initialStateWithClass(action.classId, selectedName);
     
     // Add exploration, quests, stats
     next = {

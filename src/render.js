@@ -202,11 +202,26 @@ export function render(state, dispatch) {
       `;
     }).join('');
 
-    hud.innerHTML = `<div class="row">${cards}</div>`;
+    hud.innerHTML = `
+      <div class="card">
+        <h2>Choose Your Name</h2>
+        <input id="class-select-name" type="text" maxlength="24" placeholder="Enter your character name" autocomplete="off" />
+      </div>
+      <div class="row">${cards}</div>
+    `;
     actions.innerHTML = '';
 
+    const nameInput = hud.querySelector('#class-select-name');
+    if (nameInput) {
+      nameInput.focus();
+    }
+
     hud.querySelectorAll('button[data-class]').forEach((button) => {
-      button.onclick = () => dispatch({ type: 'SELECT_CLASS', classId: button.dataset.class });
+      button.onclick = () => dispatch({
+        type: 'SELECT_CLASS',
+        classId: button.dataset.class,
+        name: nameInput?.value ?? '',
+      });
     });
 
     log.innerHTML = state.log
