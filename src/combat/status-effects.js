@@ -3,10 +3,10 @@
  * Owner: Claude Opus 4.6
  *
  * Handles all status effects:
- * - Damage-over-time: poison, burn
- * - Control: stun, sleep
+ * - Damage-over-time: poison, burn, bleed
+ * - Control: stun, sleep, freeze, blind, silence
  * - Buffs: atk-up, def-up, spd-up
- * - Debuffs: atk-down, def-down, spd-down
+ * - Debuffs: atk-down, def-down, spd-down, curse
  * - Regen: heal-over-time
  */
 
@@ -44,6 +44,11 @@ export const STATUS_TEMPLATES = {
   'def-down': { type: 'def-down', name: 'DEF Down', duration: 3, power: 0 },
   'spd-up': { type: 'spd-up', name: 'SPD Up', duration: 3, power: 0 },
   'spd-down': { type: 'spd-down', name: 'SPD Down', duration: 3, power: 0 },
+  freeze: { type: 'freeze', name: 'Freeze', duration: 1, power: 0 },
+  bleed: { type: 'bleed', name: 'Bleed', duration: 4, power: 3 },
+  blind: { type: 'blind', name: 'Blind', duration: 2, power: 0 },
+  silence: { type: 'silence', name: 'Silence', duration: 2, power: 0 },
+  curse: { type: 'curse', name: 'Curse', duration: 3, power: 0 },
 };
 
 /**
@@ -87,6 +92,11 @@ export function applyStatusEffects(state, combatId, timing = 'turn-start') {
         const dmg = eff.power;
         currentHp = Math.max(0, currentHp - dmg);
         log.push(`${combatant.name} takes ${dmg} burn damage!`);
+      }
+      if (eff.type === 'bleed') {
+        const dmg = eff.power;
+        currentHp = Math.max(0, currentHp - dmg);
+        log.push(`${combatant.name} is bleeding for ${dmg} damage!`);
       }
       // Regen
       if (eff.type === 'regen') {
@@ -149,6 +159,22 @@ export function isStunned(combatant) {
 
 export function isSleeping(combatant) {
   return (combatant.statusEffects ?? []).some(e => e.type === 'sleep');
+}
+
+export function isFrozen(combatant) {
+  return (combatant.statusEffects ?? []).some(e => e.type === 'freeze');
+}
+
+export function isBlinded(combatant) {
+  return (combatant.statusEffects ?? []).some(e => e.type === 'blind');
+}
+
+export function isSilenced(combatant) {
+  return (combatant.statusEffects ?? []).some(e => e.type === 'silence');
+}
+
+export function isCursed(combatant) {
+  return (combatant.statusEffects ?? []).some(e => e.type === 'curse');
 }
 
 export function hasEffect(combatant, effectType) {

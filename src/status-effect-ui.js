@@ -27,6 +27,11 @@ export const STATUS_EFFECT_META = {
   'atk-down':{ icon: '💢', cssClass: 'se-atk-down',label: 'ATK↓',    category: 'debuff' },
   'def-down':{ icon: '🩹', cssClass: 'se-def-down',label: 'DEF↓',    category: 'debuff' },
   'spd-down':{ icon: '🐌', cssClass: 'se-spd-down',label: 'SPD↓',    category: 'debuff' },
+  freeze:    { icon: '❄️', cssClass: 'se-freeze',  label: 'Freeze',  category: 'debuff-ctrl' },
+  bleed:     { icon: '🩸', cssClass: 'se-bleed',   label: 'Bleed',   category: 'debuff-dot' },
+  blind:     { icon: '🌑', cssClass: 'se-blind',   label: 'Blind',   category: 'debuff-ctrl' },
+  silence:   { icon: '🔇', cssClass: 'se-silence', label: 'Silence', category: 'debuff-ctrl' },
+  curse:     { icon: '💀', cssClass: 'se-curse',   label: 'Curse',   category: 'debuff' },
 };
 
 // ── Pure utility functions ────────────────────────────────────────────
