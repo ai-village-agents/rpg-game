@@ -254,7 +254,7 @@ export const items = {
   'lich-crown': {
     id: 'lich-crown',
     name: 'Crown of the Lich King',
-    type: 'equipment',
+    type: 'armor',
     slot: 'head',
     category: 'armor',
     rarity: 'Legendary',
