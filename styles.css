@@ -13,8 +13,14 @@
 body {
   margin: 0;
   font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
-  background: var(--bg);
   color: var(--text);
+  background-color: var(--bg);
+  background-image:
+    radial-gradient(circle at 0% 0%, color-mix(in srgb, var(--accent) 2%, transparent) 0%, transparent 45%),
+    radial-gradient(circle at 100% 100%, color-mix(in srgb, var(--good) 1%, transparent) 0%, transparent 45%),
+    repeating-linear-gradient(0deg, rgba(255,255,255,0.02), rgba(255,255,255,0.02) 1px, transparent 1px, transparent 20px),
+    repeating-linear-gradient(90deg, rgba(255,255,255,0.02), rgba(255,255,255,0.02) 1px, transparent 1px, transparent 20px);
+  background-attachment: fixed;
 }
 
 .header {

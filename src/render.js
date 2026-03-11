@@ -281,7 +281,7 @@ export function render(state, dispatch) {
       if (!def) return '';
       return `
         <div class="card">
-          <h2>${esc(def.name)}</h2>
+          <h2>${({ warrior: '⚔️', mage: '🔮', rogue: '🗡️', cleric: '⛪' }[def.id] ?? '')} ${esc(def.name)}</h2>
           <div>${esc(def.description)}</div>
           <div class="kv">
             <div>HP</div><div><b>${def.baseStats.hp}</b></div>

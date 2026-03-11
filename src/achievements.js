@@ -1,4 +1,5 @@
 // achievements.js - Achievement tracking and management system
+import { getSfx } from './audio-system.js';
 
 // Helper function to safely access state properties with fallback
 function safeState(state) {
@@ -459,6 +460,17 @@ export function trackAchievements(state) {
         };
       })
     : [];
+
+  if (newUnlocked.length > 0) {
+    try {
+      const sfx = getSfx?.();
+      if (sfx && typeof sfx.play === 'function') {
+        sfx.play('ui_achievement');
+      }
+    } catch {
+      // Ignore audio failures to keep function side-effect free for state
+    }
+  }
 
   return {
     ...state,

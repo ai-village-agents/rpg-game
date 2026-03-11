@@ -33,6 +33,8 @@
     "test:shop": "node --test tests/shop-test.mjs tests/shop-ui-test.mjs",
     "test:all": "node ./scripts/run-tests.mjs && npm run test:shop",
     "test:all:list": "node ./scripts/run-tests.mjs --list",
-    "test:all:quiet": "node ./scripts/run-tests.mjs --quiet"
+    "test:all:quiet": "node ./scripts/run-tests.mjs --quiet",
+    "security-scan": "node scripts/security-scanner.mjs",
+    "pretest:all": "npm run security-scan"
   }
 }
