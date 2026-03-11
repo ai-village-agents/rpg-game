@@ -2,7 +2,7 @@ import { renderTavernDicePanel } from './tavern-dice-ui.js';
 import { saveToLocalStorage } from './state.js';
 import { CLASS_DEFINITIONS } from './characters/classes.js';
 import { DEFAULT_WORLD_DATA, getRoomExits } from './map.js';
-import { getCategorizedInventory, getEquipmentDisplay, getItemDetails, INVENTORY_SCREENS, EQUIPMENT_SLOTS, getEquipmentBonuses } from './inventory.js';
+import { getCategorizedInventory, getEquipmentDisplay, getItemDetails, getEquipmentComparison, INVENTORY_SCREENS, EQUIPMENT_SLOTS, getEquipmentBonuses } from './inventory.js';
 import { getEffectiveCombatStats, getEquipmentBonusDisplay, hasEquipmentBonuses } from './combat/equipment-bonuses.js';
 import { getCurrentLevelUp, getStatDiffs, formatStatName, xpForNextLevel } from './level-up.js';
 import { formatAbilityName } from './specialization-ui.js';
@@ -930,7 +930,24 @@ if (state.phase === 'achievements') {
     const itemRows = allItems.length === 0 ? '<div class="kv"><div><i>Empty</i></div><div></div></div>' :
       '<div class="kv">' + allItems.map(({ id, name, count, type, equippable, usable, rarity }) => {
         const useBtn = usable ? `<button class="inv-btn" data-action="use" data-item="${esc(id)}">Use</button>` : '';
-        const eqBtn = equippable ? `<button class="inv-btn" data-action="equip" data-item="${esc(id)}">Equip</button>` : '';
+        let eqBtn = '';
+        let comparisonHtml = '';
+        if (equippable) {
+          eqBtn = `<button class="inv-btn" data-action="equip" data-item="${esc(id)}">Equip</button>`;
+          const comp = getEquipmentComparison(equipment, id);
+          if (comp && comp.comparisons.length > 0) {
+            const deltas = comp.comparisons
+              .filter(c => c.diff !== 0)
+              .map(c => {
+                const sign = c.diff > 0 ? '+' : '';
+                const color = c.diff > 0 ? '#4f4' : '#f44';
+                const arrow = c.diff > 0 ? '\u2191' : '\u2193';
+                const label = c.stat.charAt(0).toUpperCase() + c.stat.slice(1);
+                return `<span style="color:${color};font-size:0.8em;margin-left:4px;" title="${label}: ${c.current} → ${c.candidate}">${sign}${c.diff} ${label} ${arrow}</span>`;
+              }).join(' ');
+            comparisonHtml = deltas || '<span style="color:#aaa;font-size:0.8em;margin-left:4px;">= same stats</span>';
+          }
+        }
         const detBtn = `<button class="inv-btn" data-action="details" data-item="${esc(id)}">Info</button>`;
         const rarityKey = typeof rarity === 'string' ? rarity : null;
         const rarityColor = rarityKey && rarityColors[rarityKey] ? rarityColors[rarityKey] : '#aaa';
@@ -949,7 +966,7 @@ if (state.phase === 'achievements') {
         const nameStyle = 'color: ' + rarityColor + ';' + (isBold ? ' font-weight: bold;' : '');
         const badgeStyle = 'color: ' + rarityColor + '; font-size: 0.8em; opacity: 0.85; margin-left: 4px;';
         const rarityTag = rarityBadge ? ` <span style="${badgeStyle}">${esc(rarityBadge)}</span>` : '';
-        return `<div>${rarityEmoji} <span style="${nameStyle}">${esc(name)}</span> <small style="color:#aaa;">(${esc(type)})</small>${rarityTag}</div><div><b>${count}</b> ${useBtn}${eqBtn}${detBtn}</div>`;
+        return `<div>${rarityEmoji} <span style="${nameStyle}">${esc(name)}</span> <small style="color:#aaa;">(${esc(type)})</small>${rarityTag}</div><div><b>${count}</b> ${useBtn}${eqBtn}${detBtn}${comparisonHtml}</div>`;
       }).join('') + '</div>';
 
     // Item details screen
@@ -976,6 +993,24 @@ if (state.phase === 'achievements') {
             <div class="buttons"><button id="btnInvBack">Back</button></div>
           </div>
         `;
+        // Add equipment comparison in details view
+        const detailComp = getEquipmentComparison(equipment, invState.selectedItem);
+        if (detailComp && detailComp.comparisons.length > 0) {
+          const vsName = detailComp.currentItemName ? esc(detailComp.currentItemName) : '<i>nothing</i>';
+          const compRows = detailComp.comparisons.map(c => {
+            const sign = c.diff > 0 ? '+' : '';
+            const color = c.diff > 0 ? '#4f4' : c.diff < 0 ? '#f44' : '#aaa';
+            const arrow = c.diff > 0 ? ' \u2191' : c.diff < 0 ? ' \u2193' : '';
+            const label = c.stat.charAt(0).toUpperCase() + c.stat.slice(1);
+            return `<div>${esc(label)}</div><div style="color:${color};"><b>${sign}${c.diff}${arrow}</b> <small>(${c.current} → ${c.candidate})</small></div>`;
+          }).join('');
+          detailsHtml += `
+            <div class="card" style="margin-top:8px;">
+              <h3 style="color:#ccc;">Compared to: ${vsName} <small style="color:#888;">(${esc(detailComp.slot)})</small></h3>
+              <div class="kv">${compRows}</div>
+            </div>
+          `;
+        }
       }
     }
 

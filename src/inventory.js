@@ -287,6 +287,49 @@ export function getEquipmentDisplay(equipment) {
   return display;
 }
 
+
+/**
+ * Compare a candidate equippable item against the currently equipped item in the same slot.
+ * Returns an array of { stat, current, candidate, diff } objects for all relevant stats.
+ * @param {object} equipment - player.equipment { weapon, armor, accessory }
+ * @param {string} candidateItemId - the item ID to compare
+ * @returns {{ slot: string, comparisons: Array<{stat: string, current: number, candidate: number, diff: number}> } | null}
+ */
+export function getEquipmentComparison(equipment, candidateItemId) {
+  const candidateItem = items[candidateItemId];
+  if (!candidateItem) return null;
+  const slot = TYPE_TO_SLOT[candidateItem.type];
+  if (!slot) return null;
+
+  const currentItemId = equipment ? equipment[slot] : null;
+  const currentItem = currentItemId ? items[currentItemId] : null;
+
+  const allStats = new Set();
+  const candidateStats = candidateItem.stats || {};
+  const currentStats = currentItem ? (currentItem.stats || {}) : {};
+
+  for (const s of Object.keys(candidateStats)) allStats.add(s);
+  for (const s of Object.keys(currentStats)) allStats.add(s);
+
+  const comparisons = [];
+  for (const stat of allStats) {
+    const currentVal = typeof currentStats[stat] === 'number' ? currentStats[stat] : 0;
+    const candidateVal = typeof candidateStats[stat] === 'number' ? candidateStats[stat] : 0;
+    comparisons.push({
+      stat,
+      current: currentVal,
+      candidate: candidateVal,
+      diff: candidateVal - currentVal,
+    });
+  }
+
+  return {
+    slot,
+    currentItemName: currentItem ? currentItem.name : null,
+    comparisons,
+  };
+}
+
 // --- Inventory sub-screens for the INVENTORY phase ---
 
 export const INVENTORY_SCREENS = {
