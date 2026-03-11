@@ -17,7 +17,7 @@ import { createCraftingState, craftItem } from '../crafting.js';
 import { createTalentState, allocateTalent, deallocateTalent, resetAllTalents } from '../talents.js';
 import { recruitCompanion, dismissCompanion } from '../companions.js';
 import { shouldShowSpecialization, createSpecializationState, applySpecialization } from '../specialization-ui.js';
-import { clearFloor as clearDungeonFloor } from '../dungeon-floors.js';
+import { clearFloor as clearDungeonFloor, TOTAL_FLOORS } from '../dungeon-floors.js';
 import { handleProvisionAction } from './provisions-handler.js';
 import { BESTIARY_FILTER_DEFAULT, BESTIARY_SORT_DEFAULT } from '../bestiary-ui.js';
 import { completeTutorialStep, dismissCurrentHint, showHint, createTutorialState } from '../tutorial.js';
@@ -208,20 +208,29 @@ export function handleUIAction(state, action) {
     // Return to dungeon if in dungeon combat
     if (state.inDungeonCombat && state.dungeonState?.inDungeon) {
       let dungeonState = state.dungeonState;
-      if (state.dungeonBossFight) {
+      const wasBossFight = state.dungeonBossFight;
+      if (wasBossFight) {
         dungeonState = clearDungeonFloor(dungeonState);
       }
       const { inDungeonCombat, dungeonBossFight, ...rest } = state;
+
+      // Check if the final floor boss was just defeated → game complete!
+      const isFinalBossCleared = wasBossFight
+        && dungeonState.currentFloor === TOTAL_FLOORS
+        && dungeonState.floorsCleared.includes(TOTAL_FLOORS);
+
       let next = {
         ...rest,
         dungeonState,
-        phase: 'dungeon',
+        phase: isFinalBossCleared ? 'game-complete' : 'dungeon',
         player: { ...state.player, defending: false },
         battleSummary: undefined,
         pendingLevelUps: undefined,
         gameStats: gs,
       };
-      next = pushLog(next, 'You continue exploring the dungeon.');
+      next = pushLog(next, isFinalBossCleared
+        ? 'The Oblivion Lord is vanquished! Light returns to the realm!'
+        : 'You continue exploring the dungeon.');
       return next;
     }
 

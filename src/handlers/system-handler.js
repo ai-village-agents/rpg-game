@@ -134,6 +134,39 @@ export function handleSystemAction(state, action) {
     };
   }
 
+  if (type === 'NEW_GAME_PLUS') {
+    const player = state.player || {};
+    const ngPlusCount = (state.newGamePlusCount || 0) + 1;
+    return {
+      phase: 'exploration',
+      player: {
+        ...player,
+        hp: player.maxHp || 50,
+        mp: player.maxMp || 15,
+        defending: false,
+      },
+      gold: Math.floor((state.gold || 0) * 0.5),
+      inventory: (state.inventory || []).filter(i => i.equipped),
+      log: [
+        `New Game+ ${ngPlusCount} begins! Your power carries forward, but the dungeon grows stronger...`,
+        'The Oblivion Lord has reformed. The cycle continues.',
+      ],
+      newGamePlus: true,
+      newGamePlusCount: ngPlusCount,
+      newGamePlusBonus: ngPlusCount,
+      gameStats: state.gameStats,
+      bestiary: state.bestiary,
+      tutorialState: state.tutorialState,
+    };
+  }
+
+  if (type === 'RETURN_TO_TITLE') {
+    return {
+      phase: 'class-select',
+      log: ['The hero\'s legend is complete. A new adventure begins.'],
+    };
+  }
+
   if (type === 'SAVE_SLOTS') {
     return { ...state, phase: 'save-slots', saveSlotMode: 'save', saveSlots: getSaveSlots() };
   }

@@ -12,6 +12,7 @@ import {
   getBossForFloor,
   getDungeonProgress,
   DUNGEON_FLOORS,
+  TOTAL_FLOORS,
 } from '../dungeon-floors.js';
 import { ENEMIES } from '../data/enemies.js';
 import { pushLog } from '../state.js';
@@ -120,7 +121,7 @@ export function handleDungeonAction(state, action) {
       return pushLog(state, 'You cannot advance right now.');
     }
 
-    if (state.dungeonState.currentFloor >= DUNGEON_FLOORS.length) {
+if (state.dungeonState.currentFloor >= TOTAL_FLOORS) {
       return pushLog(state, 'You have reached the deepest floor. There is nowhere deeper to go.');
     }
 
@@ -217,11 +218,24 @@ export function handleDungeonAction(state, action) {
     }
 
     let dungeonState = state.dungeonState;
-    if (state.dungeonBossFight && dungeonState) {
+    const wasBossFight = state.dungeonBossFight;
+    if (wasBossFight && dungeonState) {
       dungeonState = clearFloor(dungeonState);
     }
 
     const { inDungeonCombat, dungeonBossFight, ...rest } = state;
+
+    // Check if the final floor boss was just defeated
+    if (wasBossFight && dungeonState.currentFloor === TOTAL_FLOORS && dungeonState.floorsCleared.includes(TOTAL_FLOORS)) {
+      return pushLog(
+        {
+          ...rest,
+          dungeonState,
+          phase: 'game-complete',
+        },
+        'The Oblivion Lord is vanquished! Light returns to the realm!'
+      );
+    }
 
     return pushLog(
       {

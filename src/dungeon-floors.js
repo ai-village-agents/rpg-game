@@ -381,7 +381,7 @@ export const DUNGEON_FLOORS = [
   },
 ];
 
-const TOTAL_FLOORS = 15;
+export const TOTAL_FLOORS = 15;
 
 export function createDungeonState() {
   return {
