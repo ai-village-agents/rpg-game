@@ -1,5 +1,6 @@
 // achievements.js - Achievement tracking and management system
 import { getSfx } from './audio-system.js';
+import { DUNGEON_FLOORS } from './dungeon-floors.js';
 
 // Helper function to safely access state properties with fallback
 function safeState(state) {
@@ -416,8 +417,8 @@ const ACHIEVEMENTS = [
     name: 'Abyss Conqueror',
     description: 'Reach floor 10 — the Abyssal Throne',
     category: 'dungeon',
-    condition: (data) => data.deepestFloor >= 10,
-    getProgress: (data) => Math.min(data.deepestFloor, 10)
+    condition: (data) => data.deepestFloor >= DUNGEON_FLOORS.length,
+    getProgress: (data) => Math.min(data.deepestFloor, DUNGEON_FLOORS.length)
   },
   {
     id: 'oblivion_master',
