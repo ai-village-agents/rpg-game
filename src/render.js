@@ -39,6 +39,7 @@ import { getBattleLogEntries } from './combat-battle-log-integration.js';
 import { filterAndSortItems, renderSortFilterControls, SORT_MODES, FILTER_MODES } from './inventory-sort-filter.js';
 import { renderTutorialHint, attachTutorialHandlers, getTutorialStyles } from './tutorial-ui.js';
 import { getTutorialHint } from './tutorial.js';
+import { renderEquipmentSetsPanel, getEquipmentSetsPanelStyles } from './equipment-sets-ui.js';
 import { BACKGROUND_ORDER, BACKGROUNDS } from './data/backgrounds.js';
 
 /** Track previous log for floating text diff */
@@ -1335,6 +1336,15 @@ if (state.phase === 'achievements') {
     const baseDef = player?.def ?? 0;
     const baseSpd = player?.spd ?? 0;
     const effectiveStats = getEffectiveCombatStats(player || {});
+    const equipSetsHtml = renderEquipmentSetsPanel(equipment, { showInactive: true });
+
+    // Equipment sets panel styles
+    if (!document.getElementById('equipment-sets-panel-styles')) {
+      const setsStyle = document.createElement('style');
+      setsStyle.id = 'equipment-sets-panel-styles';
+      setsStyle.textContent = getEquipmentSetsPanelStyles();
+      document.head.appendChild(setsStyle);
+    }
 
     hud.innerHTML = `
       <div class="row">
@@ -1342,6 +1352,10 @@ if (state.phase === 'achievements') {
           <h2>Equipment</h2>
           <div class="kv">${eqRows}</div>
           ${hasBonuses ? `<h3 style="margin-top:8px;color:#aaa;">Total Bonuses</h3><div class="kv">${bonusSummaryRows}</div>` : ''}
+        </div>
+        <div class="card">
+          <h2>Equipment Sets <button id="toggleSetsBtn" style="float:right;font-size:0.8em;">Show/Hide</button></h2>
+          <div id="equipSetsContainer">${equipSetsHtml}</div>
         </div>
         <div class="card">
           <h2>${esc(player?.name || 'Player')} — Lv ${player?.level || 1}</h2>
@@ -1399,6 +1413,16 @@ if (state.phase === 'achievements') {
         else if (action2 === 'details') dispatch({ type: 'INVENTORY_VIEW_DETAILS', itemId });
       };
     });
+
+    const toggleSetsBtn = document.getElementById('toggleSetsBtn');
+    if (toggleSetsBtn) {
+      const setsContainer = document.getElementById('equipSetsContainer');
+      toggleSetsBtn.onclick = () => {
+        if (!setsContainer) return;
+        const isHidden = setsContainer.style.display === 'none';
+        setsContainer.style.display = isHidden ? '' : 'none';
+      };
+    }
 
     log.innerHTML = state.log.slice().reverse().map(line => formatLogEntryHtml(line)).join('');
     finalizeRender();
