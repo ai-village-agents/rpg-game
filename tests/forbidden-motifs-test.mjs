@@ -27,6 +27,22 @@ const BANNED_WORDS = [
   'basket',
   'cockatrice',  // hatches from a "cock's egg" - sneaky egg reference
   'basilisk',    // also hatched from an egg in mythology
+  'phoenix',
+  'griffin',
+  'roc',
+  'simurgh',
+  'nest',
+  'hatch',
+  'brood',
+  'clutch',
+  'hatchling',
+  'nestling',
+  'roost',
+  'ostrich',
+  'emu',
+  'platypus',
+  'echidna',
+  'turtle',
 ];
 
 // Phrases to ban as simple case-insensitive substrings.
