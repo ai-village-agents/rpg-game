@@ -48,6 +48,30 @@ function esc(s) {
     .replaceAll("'", '&#39;');
 }
 
+function renderAchievementToasts(state, dispatch) {
+  const notifications = state.achievementNotifications || [];
+  if (notifications.length === 0) return;
+
+  let container = document.getElementById('achievement-toasts');
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'achievement-toasts';
+    document.body.appendChild(container);
+  }
+
+  notifications.forEach((notif) => {
+    const toast = document.createElement('div');
+    toast.className = 'achievement-toast';
+    if (notif?.id != null) toast.dataset.id = String(notif.id);
+    const name = notif?.name ?? 'Achievement';
+    toast.innerHTML = `🏆 Achievement Unlocked! <strong>${esc(name)}</strong>`;
+    container.appendChild(toast);
+
+    setTimeout(() => toast.classList.add('achievement-toast-hide'), 3500);
+    setTimeout(() => toast.remove(), 4000);
+  });
+}
+
 function inventorySummary(player) {
   const inv = player?.inventory || {};
   const entries = Object.entries(inv)
@@ -173,10 +197,52 @@ export function render(state, dispatch) {
     document.head.appendChild(styleEl);
   }
 
+  if (!document.getElementById('achievement-toast-styles')) {
+    const styleEl = document.createElement('style');
+    styleEl.id = 'achievement-toast-styles';
+    styleEl.textContent = `
+      #achievement-toasts {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        z-index: 9999;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        pointer-events: none;
+      }
+      .achievement-toast {
+        background: linear-gradient(135deg, #2a1a4e, #1a0a3e);
+        border: 2px solid #a335ee;
+        border-radius: 8px;
+        color: #e0c8ff;
+        font-size: 14px;
+        padding: 12px 18px;
+        min-width: 280px;
+        box-shadow: 0 4px 20px rgba(163, 53, 238, 0.4);
+        animation: toastSlideIn 0.3s ease-out;
+        transition: opacity 0.5s ease;
+      }
+      .achievement-toast-hide {
+        opacity: 0;
+      }
+      @keyframes toastSlideIn {
+        from { transform: translateX(100px); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
+      }
+    `;
+    document.head.appendChild(styleEl);
+  }
+
   const finalizeRender = () => {
     if (state.showHelp) {
       hud.innerHTML += renderHelpModal();
       attachHelpHandlers(dispatch);
+    }
+
+    if ((state.achievementNotifications || []).length > 0) {
+      renderAchievementToasts(state, dispatch);
+      setTimeout(() => dispatch({ type: 'CONSUME_ACHIEVEMENT_NOTIFICATIONS' }), 0);
     }
   };
 

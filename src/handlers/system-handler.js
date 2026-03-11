@@ -5,6 +5,7 @@ import { createGameStats, recordBattleFled } from '../game-stats.js';
 import { initVisitedRooms } from '../minimap.js';
 import { getCurrentRoom } from '../map.js';
 import { saveToSlot, loadFromSlot, getSaveSlots, deleteSaveSlot } from '../engine.js';
+import { consumeAchievementNotifications } from '../achievements.js';
 
 function getRoomDescription(worldState) {
   const room = getCurrentRoom(worldState);
@@ -108,6 +109,10 @@ export function handleSystemAction(state, action) {
 
   if (type === 'SWITCH_SAVE_MODE') {
     return { ...state, saveSlotMode: action.mode, saveSlots: getSaveSlots() };
+  }
+
+  if (type === 'CONSUME_ACHIEVEMENT_NOTIFICATIONS') {
+    return consumeAchievementNotifications(state);
   }
 
   return null;

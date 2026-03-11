@@ -370,12 +370,27 @@ export function trackAchievements(state) {
   }
 
   const normalizedUnlocked = [...new Set([...unlockedAchievements, ...newUnlocked])];
+  const newNotifs = newUnlocked.length > 0
+    ? newUnlocked.map((id) => {
+        const achievement = ACHIEVEMENTS.find(a => a.id === id);
+        return {
+          id,
+          name: achievement?.name || id,
+          timestamp: Date.now()
+        };
+      })
+    : [];
 
   return {
     ...state,
     achievements: state.achievements || normalizedUnlocked,
-    unlockedAchievements: normalizedUnlocked
+    unlockedAchievements: normalizedUnlocked,
+    achievementNotifications: [...(state.achievementNotifications || []), ...newNotifs]
   };
+}
+
+export function consumeAchievementNotifications(state) {
+  return { ...state, achievementNotifications: [] };
 }
 
 // Check if a specific achievement is unlocked
