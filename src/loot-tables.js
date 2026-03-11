@@ -530,6 +530,16 @@ export const ENEMY_DROP_TABLES = Object.freeze({
     ],
     bonusRarityWeights: { Common: 5, Uncommon: 13, Rare: 25, Epic: 32, Legendary: 25 },
   },
+  'lich-king': {
+    dropChance: 1.00,
+    maxDrops: 3,
+    drops: [
+      { itemId: 'lich-crown', weight: 100 },
+      { itemId: 'shadow-essence', weight: 60 },
+      { itemId: 'ether', weight: 80 },
+    ],
+    bonusRarityWeights: { Common: 0, Uncommon: 5, Rare: 15, Epic: 35, Legendary: 45 },
+  },
   'primordial-phoenix': {
     dropChance: 0.90,
     maxDrops: 3,
