@@ -8,7 +8,7 @@
 import { getAbility } from './combat/abilities.js';
 import { calculateDamage } from './combat/damage-calc.js';
 import { clamp, pushLog } from './state.js';
-import { nextRng } from './combat.js';
+import { nextRng, getPlayerStatusResist } from './combat.js';
 
 const RNG_MOD = 2147483647;
 const RNG_MULT = 48271;
@@ -120,15 +120,31 @@ export function executeEnemyAbility(state, abilityId) {
     );
 
     if (effect) {
-      nextState = {
-        ...nextState,
-        player: addStatusEffect({
-          ...nextState.player,
-          hp: newPlayerHp,
-          defending: false,
-        }, effect),
-      };
-      extras.push(effect.name);
+      let resisted = false;
+      const resistChance = getPlayerStatusResist(nextState.player, effect.type);
+      if (resistChance > 0) {
+        const { seed: resistSeed, value: resistRoll } = nextRng(nextState.rngSeed);
+        nextState = { ...nextState, rngSeed: resistSeed };
+        resisted = resistRoll < resistChance;
+      }
+
+      if (resisted) {
+        nextState = {
+          ...nextState,
+          player: { ...nextState.player, hp: newPlayerHp, defending: false },
+        };
+        nextState = pushLog(nextState, `You resist the ${effect.name}!`);
+      } else {
+        nextState = {
+          ...nextState,
+          player: addStatusEffect({
+            ...nextState.player,
+            hp: newPlayerHp,
+            defending: false,
+          }, effect),
+        };
+        extras.push(effect.name);
+      }
     } else {
       nextState = {
         ...nextState,
