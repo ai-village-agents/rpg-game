@@ -28,6 +28,7 @@ import {
   autoReviveCompanionsAfterCombat,
 } from './companion-combat.js';
 import { getEnemyShieldData, checkWeakness, applyShieldDamage, processBreakState, BREAK_DAMAGE_MULTIPLIER } from './shield-break.js';
+import { initCombatBattleLog, logPlayerAttack, logDamageReceived, logHealing, logItemUsed, logStatusApplied, logTurnStart, logVictory, logDefeat } from './combat-battle-log-integration.js';
 
 // Minimal deterministic RNG (Park-Miller LCG)
 export function nextRng(seed) {
@@ -191,6 +192,7 @@ function applyVictoryDefeat(state) {
         state = pushLog(state, `Loot: ${loot.name} (${loot.rarity})`);
       }
     }
+    logVictory(state.enemy.name, xpGained, goldGained);
     state = pushLog(state, `Victory! The ${state.enemy.name} dissolves.`);
     // Log to journal
     state = logCombatVictory(state, state.enemy.name, goldGained, xpGained);
@@ -203,6 +205,7 @@ function applyVictoryDefeat(state) {
   }
   if (state.player.hp <= 0) {
     state = { ...state, phase: 'defeat' };
+    logDefeat();
     state = pushLog(state, `Defeat... You collapse.`);
     // Companion defeat penalty: all companions lose loyalty
     state = processCompanionDefeatPenalty(state);
@@ -239,6 +242,7 @@ export function startNewEncounter(state, zoneLevel = 1) {
   next = { ...next, currentEnemyId: enemyId, bestiary: recordEncounter(next.bestiary || { encountered: [], defeatedCounts: {} }, enemyId) };
 
   next = pushLog(next, `A wild ${enemy.name} appears.`);
+  initCombatBattleLog();
   next = pushLog(next, `Your turn.`);
   return next;
 }
@@ -297,6 +301,7 @@ export function playerAttack(state) {
   };
 
   state = pushLog(state, `You strike for ${damage} damage.`);
+  logPlayerAttack(damage, state.enemy.name);
 
   // Apply weapon on-hit status effect (e.g., freeze, bleed, blind)
   if (state.enemy.hp > 0) {
@@ -717,6 +722,7 @@ export function enemyAct(state) {
       };
 
       state = pushLog(state, `${state.enemy.name} slams you for ${damage} damage.`);
+      logDamageReceived(damage, state.enemy.name);
     }
     state = applyVictoryDefeat(state);
   }
