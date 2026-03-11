@@ -556,6 +556,22 @@ export const ENEMY_DROP_TABLES = Object.freeze({
     ],
     bonusRarityWeights: { Common: 5, Uncommon: 13, Rare: 25, Epic: 32, Legendary: 25 },
   },
+  'lich-king': {
+    dropChance: 0.98,
+    maxDrops: 4,
+    drops: [
+      { itemId: 'lich-crown', weight: 20 },
+      { itemId: 'voidReaper', weight: 15 },
+      { itemId: 'voidforgedMail', weight: 15 },
+      { itemId: 'thresholdPendant', weight: 10 },
+      { itemId: 'megaPotion', weight: 20 },
+      { itemId: 'voidElixir', weight: 15 },
+      { itemId: 'shadow-essence', weight: 12 },
+      { itemId: 'ether', weight: 25 },
+    ],
+    bonusRarityWeights: { Common: 2, Uncommon: 8, Rare: 20, Epic: 35, Legendary: 35 },
+  },
+
   'oblivion-lord': {
     dropChance: 0.99,
     maxDrops: 4,
