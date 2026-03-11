@@ -415,6 +415,23 @@ export const ENEMIES = {
     goldReward: 45,
     aiBehavior: 'aggressive',
   },
+  abyss_overlord: {
+    id: 'abyss_overlord',
+    name: 'Abyss Overlord',
+    hp: 280,
+    maxHp: 280,
+    mp: 120,
+    maxMp: 120,
+    atk: 38,
+    def: 22,
+    spd: 9,
+    abilities: ['void-eruption', 'shadow-bind', 'abyss-pulse', 'dark-dominion', 'soul-drain'],
+    element: 'shadow',
+    xpReward: 420,
+    goldReward: 280,
+    aiBehavior: 'boss',
+    isBoss: true,
+  },
 };
 
 const ENCOUNTER_TABLE = {
@@ -433,7 +450,7 @@ const ENCOUNTER_TABLE = {
   7: [['stone-golem', 'blood-fiend'], ['shadow-weaver', 'bandit'], ['storm-elemental'], ['blood-fiend', 'shadow-weaver']],
   8: [['infernal-knight'], ['plague-bearer', 'dark-cultist'], ['storm-elemental', 'wraith'], ['infernal-knight', 'blood-fiend']],
   9: [['glacial-wyrm'], ['fire-spirit', 'infernal-knight'], ['dragon', 'storm-elemental'], ['void-stalker', 'shadow-weaver', 'blood-fiend']],
-  10: [['void-stalker', 'infernal-knight'], ['glacial-wyrm', 'frost-revenant'], ['plague-bearer', 'shadow-weaver', 'storm-elemental'], ['dragon', 'void-stalker']],
+  10: [['abyss_overlord'], ['void-stalker', 'infernal-knight'], ['glacial-wyrm', 'frost-revenant'], ['plague-bearer', 'shadow-weaver', 'storm-elemental'], ['dragon', 'void-stalker']],
 };
 
 /**
