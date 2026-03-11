@@ -32,6 +32,10 @@ import { renderProvisionsPanel, renderProvisionBuffs, attachProvisionsHandlers, 
 import { renderShieldBreakHUD } from './shield-break-ui.js';
 import { renderCombatStatsHtml } from './battle-summary.js';
 import { formatLogEntryHtml, getLogStyles } from './combat-log-formatter.js';
+import { triggerFloatingTextFromLog, getFloatingTextStyles } from './floating-text.js';
+
+/** Track previous log for floating text diff */
+let _previousLog = [];
 
 function hpLine(entity) {
   const pct = Math.round((entity.hp / entity.maxHp) * 100);
@@ -234,6 +238,13 @@ export function render(state, dispatch) {
     document.head.appendChild(styleEl);
   }
 
+  if (!document.getElementById('floating-text-styles')) {
+    const ftStyleEl = document.createElement('style');
+    ftStyleEl.id = 'floating-text-styles';
+    ftStyleEl.textContent = getFloatingTextStyles();
+    document.head.appendChild(ftStyleEl);
+  }
+
   const finalizeRender = () => {
     if (state.showHelp) {
       hud.innerHTML += renderHelpModal();
@@ -244,6 +255,12 @@ export function render(state, dispatch) {
       renderAchievementToasts(state, dispatch);
       setTimeout(() => dispatch({ type: 'CONSUME_ACHIEVEMENT_NOTIFICATIONS' }), 0);
     }
+    // Trigger floating damage/heal text for combat phases
+    const combatPhases = ['player-turn', 'enemy-turn', 'dungeon-combat', 'dungeon-boss'];
+    if (combatPhases.includes(state.phase) && state.log) {
+      triggerFloatingTextFromLog(state.log, _previousLog);
+    }
+    _previousLog = state.log ? [...state.log] : [];
   };
 
   // --- Class Select Phase ---
