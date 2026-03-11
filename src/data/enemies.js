@@ -711,6 +711,23 @@ export const ENEMIES = {
     aiBehavior: 'boss',
     isBoss: true,
   },
+  'lich-king': {
+    id: 'lich-king',
+    name: 'Lich King',
+    hp: 350,
+    maxHp: 350,
+    mp: 120,
+    maxMp: 120,
+    atk: 34,
+    def: 16,
+    spd: 15,
+    abilities: ['soul-bolt', 'bone-armor', 'raise-dead', 'death-wave', 'soul-drain', 'necrotic-storm'],
+    element: 'shadow',
+    xpReward: 500,
+    goldReward: 350,
+    aiBehavior: 'boss',
+    isBoss: true,
+  },
 };
 
 const ENCOUNTER_TABLE = {
@@ -732,7 +749,7 @@ const ENCOUNTER_TABLE = {
   10: [['abyss_overlord'], ['void-stalker', 'infernal-knight'], ['glacial-wyrm', 'frost-revenant'], ['plague-bearer', 'shadow-weaver', 'storm-elemental'], ['dragon', 'void-stalker']],
   11: [['crystal-sentinel'], ['ember-drake', 'phantom-assassin'], ['crystal-sentinel', 'ember-drake'], ['phantom-assassin', 'ember-drake'], ['crystal-sentinel', 'phantom-assassin']],
   12: [['arcane-guardian', 'crimson-berserker'], ['frost-archon', 'arcane-guardian'], ['crimson-berserker', 'crystal-sentinel'], ['frost-archon', 'ember-drake'], ['arcane-guardian', 'phantom-assassin', 'ember-drake']],
-  13: [['void-knight'], ['thunder-titan', 'frost-archon'], ['infernal-sorcerer', 'crimson-berserker'], ['void-knight', 'arcane-guardian'], ['thunder-titan', 'infernal-sorcerer']],
+  13: [['lich-king'], ['void-knight', 'thunder-titan'], ['infernal-sorcerer', 'crimson-berserker'], ['void-knight', 'arcane-guardian'], ['thunder-titan', 'infernal-sorcerer', 'frost-archon']],
   14: [['abyssal-warden'], ['celestial-wyrm'], ['chaos-spawn', 'void-knight'], ['abyssal-warden', 'thunder-titan'], ['celestial-wyrm', 'infernal-sorcerer']],
   15: [['oblivion-lord'], ['eternal-guardian', 'chaos-spawn'], ['primordial-phoenix', 'void-knight'], ['abyssal-warden', 'celestial-wyrm'], ['eternal-guardian', 'primordial-phoenix', 'chaos-spawn']],
 };

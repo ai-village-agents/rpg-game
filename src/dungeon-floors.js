@@ -317,8 +317,8 @@ export const DUNGEON_FLOORS = [
     ],
     difficultyMultiplier: 2.8,
     encounterRate: 0.71,
-    bossFloor: false,
-    bossId: null,
+    bossFloor: true,
+    bossId: "lich-king",
     minLevel: 15,
   },
   {

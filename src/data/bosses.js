@@ -139,6 +139,130 @@ export const BOSSES = {
     xpReward: 250,
     goldReward: 150,
     drops: [{ itemId: 'shadow-essence', chance: 1.0 }, { itemId: 'ether', chance: 0.5 }]
+  },
+
+  'lich-king': {
+    id: 'lich-king',
+    name: 'Lich King',
+    description: 'An ancient sorcerer who conquered death itself, ruling an empire of undying servants from his throne of bone.',
+    isBoss: true,
+    element: 'shadow',
+    phases: [
+      {
+        phase: 1,
+        name: 'Necromantic Majesty',
+        hpThreshold: 1.0,
+        maxHp: 350,
+        mp: 120,
+        maxMp: 120,
+        atk: 22,
+        def: 16,
+        spd: 12,
+        abilities: ['soul-bolt', 'bone-armor', 'raise-dead'],
+        aiBehavior: 'caster',
+        dialogue: 'Kneel before eternity.'
+      },
+      {
+        phase: 2,
+        name: 'Phylactery Unleashed',
+        hpThreshold: 0.55,
+        maxHp: 350,
+        mp: 120,
+        maxMp: 120,
+        atk: 28,
+        def: 12,
+        spd: 15,
+        abilities: ['soul-bolt', 'death-wave', 'raise-dead', 'soul-drain'],
+        aiBehavior: 'aggressive',
+        dialogue: 'My phylactery sustains me. You cannot win!'
+      },
+      {
+        phase: 3,
+        name: 'Undying Fury',
+        hpThreshold: 0.2,
+        maxHp: 350,
+        mp: 120,
+        maxMp: 120,
+        atk: 34,
+        def: 8,
+        spd: 18,
+        abilities: ['death-wave', 'soul-drain', 'necrotic-storm'],
+        aiBehavior: 'aggressive',
+        dialogue: 'Even in death, I am supreme!'
+      }
+    ],
+    xpReward: 500,
+    goldReward: 350,
+    drops: [{ itemId: 'lich-crown', chance: 1.0 }, { itemId: 'shadow-essence', chance: 0.6 }, { itemId: 'ether', chance: 0.8 }]
+  },
+
+  'primordial-titan': {
+    id: 'primordial-titan',
+    name: 'Primordial Titan',
+    description: 'A being of raw creation energy, the first and mightiest force ever to walk the world.',
+    isBoss: true,
+    element: 'arcane',
+    phases: [
+      {
+        phase: 1,
+        name: 'Awakening of Ages',
+        hpThreshold: 1.0,
+        maxHp: 500,
+        mp: 150,
+        maxMp: 150,
+        atk: 28,
+        def: 20,
+        spd: 10,
+        abilities: ['primal-slam', 'creation-pulse', 'gravity-well'],
+        aiBehavior: 'basic',
+        dialogue: 'You dare approach the origin of all things?'
+      },
+      {
+        phase: 2,
+        name: 'Unraveling Reality',
+        hpThreshold: 0.6,
+        maxHp: 500,
+        mp: 150,
+        maxMp: 150,
+        atk: 35,
+        def: 16,
+        spd: 14,
+        abilities: ['primal-slam', 'reality-tear', 'gravity-well', 'cosmic-ray'],
+        aiBehavior: 'aggressive',
+        dialogue: 'Reality bends to MY will!'
+      },
+      {
+        phase: 3,
+        name: 'Cataclysm',
+        hpThreshold: 0.3,
+        maxHp: 500,
+        mp: 150,
+        maxMp: 150,
+        atk: 42,
+        def: 10,
+        spd: 18,
+        abilities: ['reality-tear', 'cosmic-ray', 'primordial-wrath', 'creation-pulse'],
+        aiBehavior: 'aggressive',
+        dialogue: 'I will unmake everything and begin anew!'
+      },
+      {
+        phase: 4,
+        name: 'Final Convergence',
+        hpThreshold: 0.1,
+        maxHp: 500,
+        mp: 150,
+        maxMp: 150,
+        atk: 50,
+        def: 5,
+        spd: 22,
+        abilities: ['primordial-wrath', 'cosmic-ray', 'reality-tear'],
+        aiBehavior: 'aggressive',
+        dialogue: 'This... cannot... be...'
+      }
+    ],
+    xpReward: 1000,
+    goldReward: 750,
+    drops: [{ itemId: 'primordial-shard', chance: 1.0 }, { itemId: 'fire-gem', chance: 1.0 }, { itemId: 'dragon-scale', chance: 0.8 }]
   }
 };
 
@@ -300,7 +424,131 @@ export const BOSS_ABILITIES = {
     description: 'Envelops the target in darkness.',
     element: 'shadow',
     effect: { type: 'atk-down', duration: 3, power: 4, chance: 0.5 }
+  },
+  // Lich King abilities
+  'soul-bolt': {
+    id: 'soul-bolt',
+    name: 'Soul Bolt',
+    type: 'magical',
+    power: 30,
+    mpCost: 10,
+    description: 'Hurls a bolt of necrotic energy that pierces the soul.',
+    element: 'shadow',
+    effect: { type: 'mp-drain', duration: 1, power: 8, chance: 0.6 }
+  },
+  'bone-armor': {
+    id: 'bone-armor',
+    name: 'Bone Armor',
+    type: 'buff',
+    power: 0,
+    mpCost: 15,
+    description: 'Encases the Lich in a shield of animated bones.',
+    element: 'shadow',
+    effect: { type: 'def-up', duration: 3, power: 8, chance: 1.0 }
+  },
+  'raise-dead': {
+    id: 'raise-dead',
+    name: 'Raise Dead',
+    type: 'magical',
+    power: 20,
+    mpCost: 20,
+    description: 'Summons skeletal minions to attack the target.',
+    element: 'shadow',
+    effect: { type: 'atk-up', duration: 2, power: 5, chance: 0.8 }
+  },
+  'death-wave': {
+    id: 'death-wave',
+    name: 'Death Wave',
+    type: 'magical',
+    power: 45,
+    mpCost: 25,
+    description: 'Unleashes a wave of death energy that withers all life.',
+    element: 'shadow',
+    effect: { type: 'poison', duration: 3, power: 6, chance: 0.7 }
+  },
+  'soul-drain': {
+    id: 'soul-drain',
+    name: 'Soul Drain',
+    type: 'magical',
+    power: 35,
+    mpCost: 18,
+    description: 'Drains the target\'s life force to heal the Lich.',
+    element: 'shadow',
+    effect: { type: 'heal', duration: 1, power: 20, chance: 1.0 }
+  },
+  'necrotic-storm': {
+    id: 'necrotic-storm',
+    name: 'Necrotic Storm',
+    type: 'magical',
+    power: 55,
+    mpCost: 35,
+    description: 'A devastating storm of pure death magic that shreds body and spirit.',
+    element: 'shadow',
+    effect: { type: 'poison', duration: 4, power: 8, chance: 0.9 }
+  },
+
+  // Primordial Titan abilities
+  'primal-slam': {
+    id: 'primal-slam',
+    name: 'Primal Slam',
+    type: 'physical',
+    power: 40,
+    mpCost: 10,
+    description: 'A devastating blow channeling the raw force of creation.',
+    element: 'arcane',
+    effect: { type: 'stun', duration: 1, power: 0, chance: 0.4 }
+  },
+  'creation-pulse': {
+    id: 'creation-pulse',
+    name: 'Creation Pulse',
+    type: 'magical',
+    power: 25,
+    mpCost: 20,
+    description: 'Releases a pulse of creation energy that heals and empowers.',
+    element: 'arcane',
+    effect: { type: 'heal', duration: 1, power: 30, chance: 1.0 }
+  },
+  'gravity-well': {
+    id: 'gravity-well',
+    name: 'Gravity Well',
+    type: 'magical',
+    power: 35,
+    mpCost: 22,
+    description: 'Creates a localized gravity anomaly that crushes the target.',
+    element: 'arcane',
+    effect: { type: 'spd-down', duration: 3, power: 6, chance: 0.8 }
+  },
+  'reality-tear': {
+    id: 'reality-tear',
+    name: 'Reality Tear',
+    type: 'magical',
+    power: 50,
+    mpCost: 30,
+    description: 'Rips a hole in the fabric of reality, dealing massive arcane damage.',
+    element: 'arcane',
+    effect: { type: 'def-down', duration: 2, power: 5, chance: 0.6 }
+  },
+  'cosmic-ray': {
+    id: 'cosmic-ray',
+    name: 'Cosmic Ray',
+    type: 'magical',
+    power: 45,
+    mpCost: 25,
+    description: 'Focuses stellar energy into a devastating beam.',
+    element: 'arcane',
+    effect: { type: 'burn', duration: 3, power: 7, chance: 0.7 }
+  },
+  'primordial-wrath': {
+    id: 'primordial-wrath',
+    name: 'Primordial Wrath',
+    type: 'magical',
+    power: 65,
+    mpCost: 40,
+    description: 'Channels the fury of creation itself in a cataclysmic blast.',
+    element: 'arcane',
+    effect: { type: 'stun', duration: 1, power: 0, chance: 0.5 }
   }
+
 };
 
 /**
