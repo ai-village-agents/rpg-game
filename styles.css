@@ -277,3 +277,52 @@ button.gradient-primary,
 .btn-gradient-primary {
   background: linear-gradient(135deg, var(--gradient-start, #4a6cf7), var(--gradient-end, var(--accent)));
 }
+
+/* --- Form Inputs --- */
+input, select, textarea {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(0, 0, 0, 0.3);
+  color: var(--text);
+  border-radius: 6px;
+  font-size: 14px;
+  box-sizing: border-box;
+}
+
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(74, 108, 247, 0.2);
+}
+
+/* --- Mobile Responsiveness --- */
+@media (max-width: 768px) {
+  .row {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .card {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  
+  .kv {
+    grid-template-columns: 100px 1fr;
+    font-size: 12px;
+  }
+  
+  button {
+    padding: 10px 12px;
+    font-size: 14px;
+  }
+  
+  #hud {
+    padding: 8px;
+  }
+  
+  #log {
+    max-height: 200px;
+  }
+}
