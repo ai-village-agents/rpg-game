@@ -61,6 +61,12 @@ export const ENEMY_SHIELD_DATABASE = {
   },
   "thunder-hawk": { shieldCount: 2, weaknesses: ["ice", "fire"] },
   dragon: { shieldCount: 8, weaknesses: ["ice", "holy"], immunities: ["fire"] },
+  abyss_overlord: {
+    shieldCount: 10,
+    weaknesses: ["holy", "lightning"],
+    immunities: ["shadow", "fire"],
+    absorbs: ["shadow"],
+  },
 };
 
 const DEFAULT_ENEMY_SHIELDS = {
