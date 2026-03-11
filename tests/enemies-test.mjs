@@ -60,9 +60,9 @@ assert(lvl1.length === 1 && lvl1[0] === 'slime', 'Encounter arrays are independe
 const lvl3 = withMockedRandom(0, () => getEncounter('3'));
 assert(lvl3[0] === 'orc', 'String level 3 resolves to orc encounter');
 
-// Clamp high level to tier 10
+// Clamp high level to tier 15
 const lvl99 = withMockedRandom(0, () => getEncounter(99));
-assert(lvl99[0] === 'abyss_overlord', 'Level 99 clamps to tier 10 (abyss_overlord pick)');
+assert(lvl99[0] === 'oblivion-lord', 'Level 99 clamps to tier 15 (oblivion-lord pick)');
 
 // Random index selection across options
 const lvl2 = withMockedRandom(0.5, () => getEncounter(2));
