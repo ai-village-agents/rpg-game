@@ -192,11 +192,12 @@ describe('Dungeon Handler', () => {
       assert.ok(result.log.some(l => l.includes('floor 2') || l.includes('Floor 2')));
     });
 
-    it('should reject at floor 15 (max floor)', () => {
+    it('should reject at max floor', () => {
+      const maxFloor = 15;
       const ds = {
-        currentFloor: 15,
-        deepestFloor: 15,
-        floorsCleared: [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15],
+        currentFloor: maxFloor,
+        deepestFloor: maxFloor,
+        floorsCleared: Array.from({length: maxFloor}, (_, i) => i + 1),
         inDungeon: true,
         stairsFound: true,
       };

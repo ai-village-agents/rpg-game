@@ -41,6 +41,7 @@ import { renderTutorialHint, attachTutorialHandlers, getTutorialStyles } from '.
 import { getTutorialHint } from './tutorial.js';
 import { renderEquipmentSetsPanel, getEquipmentSetsPanelStyles } from './equipment-sets-ui.js';
 import { BACKGROUND_ORDER, BACKGROUNDS } from './data/backgrounds.js';
+import { renderVictoryScreen, renderVictoryActions, getVictoryScreenStyles } from './victory-screen.js';
 
 /** Track previous log for floating text diff */
 let _previousLog = [];
@@ -1634,6 +1635,28 @@ if (state.phase === 'achievements') {
       };
     }
     log.innerHTML = state.log.slice().reverse().map(line => formatLogEntryHtml(line)).join('');
+    finalizeRender();
+    return;
+  }
+
+  // --- Game Complete / Victory Screen ---
+  if (state.phase === 'game-complete') {
+    // Inject victory screen styles
+    if (!document.getElementById('victory-screen-styles')) {
+      const styleEl = document.createElement('style');
+      styleEl.id = 'victory-screen-styles';
+      styleEl.textContent = getVictoryScreenStyles();
+      document.head.appendChild(styleEl);
+    }
+    hud.innerHTML = renderVictoryScreen(state);
+    actions.innerHTML = renderVictoryActions();
+    log.innerHTML = '';
+
+    const ngPlusBtn = document.getElementById('btnNewGamePlus');
+    if (ngPlusBtn) ngPlusBtn.onclick = () => dispatch({ type: 'NEW_GAME_PLUS' });
+    const titleBtn = document.getElementById('btnReturnTitle');
+    if (titleBtn) titleBtn.onclick = () => dispatch({ type: 'RETURN_TO_TITLE' });
+
     finalizeRender();
     return;
   }
