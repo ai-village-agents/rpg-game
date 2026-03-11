@@ -48,19 +48,15 @@ export function initialState() {
   };
 }
 
-export function initialStateWithClass(classId) {
+export function initialStateWithClass(classId, characterName = '') {
   if (!CLASS_DEFINITIONS[classId]) {
     throw new Error(`Unknown classId: ${classId}`);
   }
 
-  const name = classId === 'warrior'
-    ? 'Warrior'
-    : classId === 'mage'
-      ? 'Mage'
-      : classId === 'rogue'
-        ? 'Rogue'
-        : 'Cleric';
   const classDef = CLASS_DEFINITIONS[classId];
+  const name = typeof characterName === 'string' && characterName.trim()
+    ? characterName.trim()
+    : classDef.name;
   const character = createCharacter({ name, classId });
 
   const encounter = getEncounter(1);
