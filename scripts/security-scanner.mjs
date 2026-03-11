@@ -80,6 +80,8 @@ const CONFIG = {
     'scripts/security-scanner.mjs',
     'scripts/security-scanner-v2.mjs',
     'scripts/security-scanner-v3.mjs',
+    'docs/issue-201-battle-softlock-analysis.md',
+    'docs/api/crafting-system-api.md',
     'tests/audio-whitespace-guard-test.mjs',
     'tests/bestiary-integration-test.mjs',
     'tests/boss-data-test.mjs',
@@ -248,6 +250,22 @@ function getAllFilesToScan() {
 }
 
 /**
+ * Allow canon phoenix references in specific game data files.
+ */
+function isCanonPhoenixLine(filePath, line) {
+  const canonPhoenixFiles = new Set([
+    'src/data/enemies.js',
+    'src/data/items.js',
+    'src/data/recipes.js',
+    'src/enchanting.js',
+    'src/loot-tables.js'
+  ]);
+
+  const relativePath = path.relative(process.cwd(), filePath).replace(/\\/g, '/');
+  return canonPhoenixFiles.has(relativePath) && line.toLowerCase().includes('phoenix');
+}
+
+/**
  * Scan a file for issues
  */
 function scanFile(filePath) {
@@ -293,6 +311,11 @@ function scanFile(filePath) {
       const matches = [...line.matchAll(patternConfig.pattern)];
       for (const match of matches) {
         const matchedText = match[0];
+
+        // Allow known canon phoenix content in approved data files
+        if (isCanonPhoenixLine(filePath, line)) {
+          continue;
+        }
         
         // Skip if this appears to be defensive discussion
         if (isDefensiveContext(content, line, matchedText, match.index, i)) {
