@@ -7,6 +7,7 @@ import { getAbility, getAbilityDisplayInfo } from './combat/abilities.js';
 import { calculateDamage, calculateHeal, getElementMultiplier } from './combat/damage-calc.js';
 import { StatusEffect, isFrozen, isBlinded, isSilenced, isCursed } from './combat/status-effects.js';
 import { selectEnemyAction, executeEnemyAbility } from './enemy-abilities.js';
+import { selectTacticalAction } from './enemy-ai.js';
 import { getEffectiveCombatStats } from './combat/equipment-bonuses.js';
 import {
   getGoldMultiplier,
@@ -650,7 +651,7 @@ export function enemyAct(state) {
     return { ...state, phase: 'player-turn' };
   }
 
-  let result = selectEnemyAction(state.enemy, state.player, state.rngSeed);
+  let result = selectTacticalAction(state.enemy, state.player, state.rngSeed, state.turn ?? 0);
   state = { ...state, rngSeed: result.newSeed };
 
   // Silenced enemies cannot use abilities — forced to basic attack
