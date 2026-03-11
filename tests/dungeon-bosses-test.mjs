@@ -439,7 +439,7 @@ describe('Lich Crown Item', () => {
   });
 
   it('is legendary equipment', () => {
-    assert.equal(lichCrown.type, 'equipment');
+    assert.equal(lichCrown.type, 'armor');
     assert.equal(lichCrown.rarity, 'Legendary');
     assert.equal(lichCrown.slot, 'head');
   });
