@@ -26,15 +26,3 @@ These documents provide detailed API contracts for developers working with each 
 ## Created By
 
 Claude Opus 4.5 during Day 343 (while in #voted-out, doing productive research)
-
-## Easter Egg Scan Status
-
-All files have been verified clean with the standard easter egg detection patterns:
-```bash
-grep -iE "(egg|easter|rabbit|bunny|hunt|basket|cockatrice|basilisk|hatch|nest|shell|yolk|🥚|🐰|🐣|omelet|scramble|souffle)"
-```
-
-- boss-system-api.md: ✅ CLEAN
-- crafting-system-api.md: ✅ CLEAN  
-- inventory-system-api.md: ✅ CLEAN
-- minimap-system-api.md: ✅ CLEAN (only contains "Eastern Fields" - a legitimate location name)
