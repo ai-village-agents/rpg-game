@@ -8,7 +8,14 @@ import { calculateDamage, calculateHeal, getElementMultiplier } from './combat/d
 import { StatusEffect, isFrozen, isBlinded, isSilenced, isCursed } from './combat/status-effects.js';
 import { selectEnemyAction, executeEnemyAbility } from './enemy-abilities.js';
 import { getEffectiveCombatStats } from './combat/equipment-bonuses.js';
-import { getGoldMultiplier, getMpCostMultiplier, getDamageMultiplier } from './world-events.js';
+import {
+  getGoldMultiplier,
+  getMpCostMultiplier,
+  getDamageMultiplier,
+  getItemDropMultiplier,
+  isEnemyAttacksFirst,
+  getHealMultiplier,
+} from './world-events.js';
 import { recordEncounter, recordDefeat } from './bestiary.js';
 import { rollLootDrop, applyLootToState } from './loot-tables.js';
 import { logCombatVictory, logBossDefeat } from './journal.js';
@@ -93,7 +100,8 @@ function processTurnStart(state, actorKey) {
         nextState = pushLog(nextState, `${actorName} ${verb} ${damage} bleed damage.`);
       }
     } else if (effect.type === 'regen') {
-      const heal = Math.max(0, effect.power ?? 0);
+      const baseHeal = Math.max(0, effect.power ?? 0);
+      const heal = actorKey === 'player' ? Math.ceil(baseHeal * getHealMultiplier(state.worldEvent)) : baseHeal;
       if (heal > 0) {
         hp = clamp(hp + heal, 0, actor.maxHp);
         nextState = pushLog(nextState, `${actorName} ${healVerb} ${heal} HP.`);
@@ -133,7 +141,11 @@ function applyVictoryDefeat(state) {
     // Generate loot drops
     if (state.currentEnemyId) {
       const lootSeed = state.rngSeed ?? Date.now();
-      const { lootedItems, seed: newSeed } = rollLootDrop(state.currentEnemyId, lootSeed);
+      const { lootedItems, seed: newSeed } = rollLootDrop(
+        state.currentEnemyId,
+        lootSeed,
+        state.worldEvent
+      );
       state = applyLootToState(state, lootedItems);
       state = { ...state, rngSeed: newSeed };
       for (const loot of lootedItems) {
@@ -181,6 +193,10 @@ export function startNewEncounter(state, zoneLevel = 1) {
     turn: 1,
     player: { ...state.player, defending: false, statusEffects: [] },
   };
+  if (isEnemyAttacksFirst(next.worldEvent || state.worldEvent)) {
+    next = { ...next, phase: 'enemy-turn' };
+    next = pushLog(next, 'The veil of shadows grants the enemy the element of surprise!');
+  }
   next = { ...next, currentEnemyId: enemyId, bestiary: recordEncounter(next.bestiary || { encountered: [], defeatedCounts: {} }, enemyId) };
 
   next = pushLog(next, `A wild ${enemy.name} appears.`);
@@ -419,9 +435,9 @@ export function playerUseAbility(state, abilityId) {
   } else if (ability.targetType === 'single-ally' || ability.targetType === 'all-allies' || ability.targetType === 'self') {
     // Healing ability targeting player
     if (ability.healPower > 0) {
-      const healAmount = ability.healPower;
+      const multipliedHeal = Math.ceil(ability.healPower * getHealMultiplier(state.worldEvent));
       const oldHp = state.player.hp;
-      const newHp = clamp(oldHp + healAmount, 0, state.player.maxHp);
+      const newHp = clamp(oldHp + multipliedHeal, 0, state.player.maxHp);
       state = {
         ...state,
         player: { ...state.player, hp: newHp },
@@ -493,7 +509,8 @@ export function playerUseItem(state, itemId) {
   const healAmount = effect.heal ?? item.heal;
   if (healAmount !== undefined && healAmount !== null && healAmount > 0) {
     const oldHp = state.player.hp;
-    const newHp = clamp(oldHp + healAmount, 0, state.player.maxHp);
+    const multipliedHeal = Math.ceil(healAmount * getHealMultiplier(state.worldEvent));
+    const newHp = clamp(oldHp + multipliedHeal, 0, state.player.maxHp);
     const actualHeal = newHp - oldHp;
     state = {
       ...state,

@@ -3,7 +3,7 @@
 
 import { items as itemsData, rarityColors } from './data/items.js';
 import { getBuyPrice, getSellPrice, getSellableItems } from './shop.js';
-import { getShopDiscount } from './world-events.js';
+import { getShopDiscount, getShopPriceIncrease } from './world-events.js';
 
 function esc(s) {
   return String(s)
@@ -64,10 +64,19 @@ function renderBuyTab(shopState, playerGold, worldEvent) {
     const item = itemsData[entry.itemId];
     if (!item) return '';
     const basePrice = getBuyPrice(entry.itemId);
-    const discount = getShopDiscount(worldEvent);
-    const discountedPrice = Math.max(1, Math.floor(basePrice * (1 - discount)));
-    const discountPct = Math.round(discount * 100);
-    const discountLabel = discountPct > 0 ? ` (-${discountPct}%)` : '';
+  const discount = getShopDiscount(worldEvent);
+  const priceIncrease = getShopPriceIncrease(worldEvent);
+  const discountedPrice = Math.max(
+    1,
+    Math.floor(basePrice * (1 - discount) * (1 + priceIncrease))
+  );
+  const netChange = Math.round((1 - discount) * (1 + priceIncrease) * 100) - 100;
+  const discountLabel =
+    netChange !== 0
+      ? netChange < 0
+        ? ` (-${Math.abs(netChange)}%)`
+        : ` (+${netChange}% tax)`
+      : '';
     const canAfford = playerGold >= discountedPrice;
     const rarityColor = rarityColors[item.rarity] || '#999';
     const typeIcon = getTypeIcon(item.type);

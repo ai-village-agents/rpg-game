@@ -123,6 +123,14 @@ export function applyPerMoveEffect(state, worldEvent) {
       ...state,
       player: { ...state.player, hp: newHp },
     };
+  } else if (effect.type === 'damage_on_move') {
+    const damage = Math.max(1, Math.floor(state.player.maxHp * effect.value));
+    const newHp = Math.max(0, state.player.hp - damage);
+    return {
+      ...state,
+      player: { ...state.player, hp: newHp },
+      log: [...state.log, 'The cursed land drains ' + damage + ' HP!'],
+    };
   }
   return state;
 }
@@ -179,6 +187,56 @@ export function getShopDiscount(worldEvent) {
     return worldEvent.effect.value;
   }
   return 0;
+}
+
+/**
+ * Get the effective shop price increase given an active world event.
+ * Returns a fraction to add to price (0 = no increase).
+ * @param {object|null} worldEvent
+ * @returns {number}
+ */
+export function getShopPriceIncrease(worldEvent) {
+  if (!worldEvent) return 0;
+  if (worldEvent.effect.type === 'shop_price_increase') {
+    return worldEvent.effect.value;
+  }
+  return 0;
+}
+
+/**
+ * Get the effective item drop multiplier given an active world event.
+ * @param {object|null} worldEvent
+ * @returns {number}
+ */
+export function getItemDropMultiplier(worldEvent) {
+  if (!worldEvent) return 1.0;
+  if (worldEvent.effect.type === 'item_drop_multiplier') {
+    return worldEvent.effect.value;
+  }
+  return 1.0;
+}
+
+/**
+ * Whether enemies should attack first given active world event.
+ * @param {object|null} worldEvent
+ * @returns {boolean}
+ */
+export function isEnemyAttacksFirst(worldEvent) {
+  if (!worldEvent) return false;
+  return worldEvent.effect.type === 'enemy_attacks_first' && worldEvent.effect.value === true;
+}
+
+/**
+ * Get the effective heal multiplier given an active world event.
+ * @param {object|null} worldEvent
+ * @returns {number}
+ */
+export function getHealMultiplier(worldEvent) {
+  if (!worldEvent) return 1.0;
+  if (worldEvent.effect.type === 'heal_multiplier') {
+    return worldEvent.effect.value;
+  }
+  return 1.0;
 }
 
 /**

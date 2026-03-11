@@ -7,6 +7,7 @@
 
 import { nextRng } from './combat.js';
 import { items } from './data/items.js';
+import { getItemDropMultiplier } from './world-events.js';
 
 /**
  * Enemy-specific drop tables.
@@ -220,6 +221,21 @@ export const ENEMY_DROP_TABLES = Object.freeze({
     ],
     bonusRarityWeights: { Common: 10, Uncommon: 20, Rare: 30, Epic: 25, Legendary: 15 },
   },
+  abyss_overlord: {
+    dropChance: 0.98,
+    maxDrops: 4,
+    drops: [
+      { itemId: 'abyssalShard', weight: 20 },
+      { itemId: 'abyssalRing', weight: 10 },
+      { itemId: 'abyssalMail', weight: 15 },
+      { itemId: 'phoenixPinion', weight: 8 },
+      { itemId: 'voidblade', weight: 12 },
+      { itemId: 'abyssalScepter', weight: 10 },
+      { itemId: 'megaPotion', weight: 15 },
+      { itemId: 'lightningOrb', weight: 10 },
+    ],
+    bonusRarityWeights: { Common: 5, Uncommon: 15, Rare: 25, Epic: 35, Legendary: 20 },
+  },
 });
 
 /**
@@ -263,7 +279,7 @@ export function getDropTable(enemyId) {
  * @param {number} seed - RNG seed
  * @returns {{lootedItems: Array<{itemId:string, name:string, rarity:string}>, seed: number}}
  */
-export function rollLootDrop(enemyId, seed) {
+export function rollLootDrop(enemyId, seed, worldEvent = null) {
   const table = ENEMY_DROP_TABLES[enemyId];
   if (!table) {
     return { lootedItems: [], seed };
@@ -280,11 +296,13 @@ export function rollLootDrop(enemyId, seed) {
   rng = nextRng(seed);
   seed = rng.seed;
   const numDrops = Math.min(table.maxDrops, 1 + Math.floor(rng.value * table.maxDrops));
+  const dropMultiplier = getItemDropMultiplier(worldEvent);
+  const effectiveNumDrops = Math.min(table.maxDrops * 2, Math.ceil(numDrops * dropMultiplier));
 
   const lootedItems = [];
   const seenIds = new Set();
 
-  for (let i = 0; i < numDrops; i++) {
+  for (let i = 0; i < effectiveNumDrops; i++) {
     // Roll for item selection
     rng = nextRng(seed);
     seed = rng.seed;
