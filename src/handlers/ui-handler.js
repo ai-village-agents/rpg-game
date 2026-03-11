@@ -19,6 +19,7 @@ import { recruitCompanion, dismissCompanion } from '../companions.js';
 import { shouldShowSpecialization, createSpecializationState, applySpecialization } from '../specialization-ui.js';
 import { clearFloor as clearDungeonFloor } from '../dungeon-floors.js';
 import { handleProvisionAction } from './provisions-handler.js';
+import { BESTIARY_FILTER_DEFAULT, BESTIARY_SORT_DEFAULT } from '../bestiary-ui.js';
 
 function getRoomDescription(worldState) {
   const room = getCurrentRoom(worldState);
@@ -461,6 +462,26 @@ export function handleUIAction(state, action) {
   if (type === 'CLOSE_BESTIARY') {
     if (state.phase !== 'bestiary') return null;
     return { ...state, phase: state.previousPhase || 'exploration' };
+  }
+  if (type === 'SORT_BESTIARY') {
+    const sort = action.sort || BESTIARY_SORT_DEFAULT;
+    return {
+      ...state,
+      bestiaryUiState: {
+        ...(state.bestiaryUiState || {}),
+        sort,
+      },
+    };
+  }
+  if (type === 'FILTER_BESTIARY') {
+    const filter = action.filter || BESTIARY_FILTER_DEFAULT;
+    return {
+      ...state,
+      bestiaryUiState: {
+        ...(state.bestiaryUiState || {}),
+        filter,
+      },
+    };
   }
   
   if (type === 'VIEW_TAVERN') {

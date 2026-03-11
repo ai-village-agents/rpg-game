@@ -1351,8 +1351,16 @@ if (state.phase === 'achievements') {
     const closeBtn = document.getElementById('btnCloseBestiary');
     if (closeBtn) closeBtn.onclick = () => dispatch({ type: 'CLOSE_BESTIARY' });
     // Also wire data-action close button from bestiary-ui
-    const dataCloseBtn = hud.querySelector('[data-action="close-bestiary"]');
+    const dataCloseBtn = hud.querySelector('[data-action="CLOSE_BESTIARY"]');
     if (dataCloseBtn) dataCloseBtn.onclick = () => dispatch({ type: 'CLOSE_BESTIARY' });
+    const bestiarySort = document.getElementById('bestiarySort');
+    if (bestiarySort) {
+      bestiarySort.onchange = () => dispatch({ type: 'SORT_BESTIARY', sort: bestiarySort.value });
+    }
+    const bestiaryFilter = document.getElementById('bestiaryFilter');
+    if (bestiaryFilter) {
+      bestiaryFilter.onchange = () => dispatch({ type: 'FILTER_BESTIARY', filter: bestiaryFilter.value });
+    }
     log.innerHTML = state.log.slice().reverse().map(line => formatLogEntryHtml(line)).join('');
     finalizeRender();
     return;
