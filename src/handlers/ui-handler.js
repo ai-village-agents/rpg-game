@@ -20,6 +20,7 @@ import { shouldShowSpecialization, createSpecializationState, applySpecializatio
 import { clearFloor as clearDungeonFloor } from '../dungeon-floors.js';
 import { handleProvisionAction } from './provisions-handler.js';
 import { BESTIARY_FILTER_DEFAULT, BESTIARY_SORT_DEFAULT } from '../bestiary-ui.js';
+import { completeTutorialStep, dismissCurrentHint, showHint, createTutorialState } from '../tutorial.js';
 
 function getRoomDescription(worldState) {
   const room = getCurrentRoom(worldState);
@@ -544,6 +545,37 @@ export function handleUIAction(state, action) {
     next = pushLog(next, 'New abilities and stat bonuses have been applied.');
     next = pushLog(next, `${getRoomDescription(state.world)} Exits: ${exits.join(', ') || 'none'}.`);
     return next;
+  }
+
+  if (action.type === 'TUTORIAL_SHOW') {
+    if (!state.tutorialState) return null;
+    return {
+      ...state,
+      tutorialState: showHint(state.tutorialState, action.stepId),
+    };
+  }
+
+  if (action.type === 'TUTORIAL_DISMISS') {
+    if (!state.tutorialState || !state.tutorialState.currentHint) return null;
+    const stepId = state.tutorialState.currentHint.id;
+    return {
+      ...state,
+      tutorialState: completeTutorialStep(
+        dismissCurrentHint(state.tutorialState),
+        stepId
+      ),
+    };
+  }
+
+  if (action.type === 'TUTORIAL_DISABLE') {
+    if (!state.tutorialState) return null;
+    return {
+      ...state,
+      tutorialState: {
+        ...dismissCurrentHint(state.tutorialState),
+        hintsEnabled: false,
+      },
+    };
   }
 
   return null;
