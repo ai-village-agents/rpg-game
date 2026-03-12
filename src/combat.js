@@ -32,6 +32,7 @@ import { getEnemyShieldData, checkWeakness, applyShieldDamage, processBreakState
 import { initCombatBattleLog, logPlayerAttack, logPlayerAbility, logDamageDealt, logDamageReceived, logHealing, logItemUsed, logStatusApplied, logStatusExpired, logTurnStart, logTurnEnd, logVictory, logDefeat } from './combat-battle-log-integration.js';
 import { applyDifficultyToEnemyHp, applyDifficultyToEnemyDamage, applyDifficultyToXpReward, applyDifficultyToGoldReward, DEFAULT_DIFFICULTY } from './difficulty.js';
 import { ACTION_TYPES, calculateMomentumGain, addMomentum, consumeOverdrive, applyMomentumDecay, getOverdriveAbility, calculateOverdriveDamage, canUseOverdrive, createMomentumState } from './momentum.js';
+import { registerHit, checkComboDecay, resetCombo, isComboBreaker, getChainBonus, getComboMultiplier } from './combo-system.js';
 
 // Minimal deterministic RNG (Park-Miller LCG)
 export function nextRng(seed) {
@@ -281,7 +282,7 @@ export function playerAttack(state) {
 
   // Apply equipment bonuses to player's attack stat
   const playerStats = getEffectiveCombatStats(state.player);
-  const damage = computeDamage({
+  const baseDamage = computeDamage({
     attackerAtk: playerStats.atk,
     targetDef: state.enemy.def,
     targetDefending: state.enemy.defending,
@@ -289,6 +290,8 @@ export function playerAttack(state) {
     targetIsBroken: state.enemy.isBroken,
     targetIsCursed: isCursed(state.enemy),
   });
+  const comboMultiplier = state.comboState ? getComboMultiplier(state.comboState) : 1;
+  const damage = Math.max(1, Math.floor(baseDamage * comboMultiplier));
 
   if ((state.enemy.weaknesses || []).includes('physical') && !state.enemy.isBroken) {
     if ((state.enemy.weaknesses || []).includes('physical')) {
@@ -311,6 +314,9 @@ export function playerAttack(state) {
 
   state = pushLog(state, `You strike for ${damage} damage.`);
   logPlayerAttack(damage, (state.enemy.displayName ?? state.enemy.name));
+  if (state.comboState) {
+    state = { ...state, comboState: registerHit(state.comboState, state.turn ?? 0, damage) };
+  }
 
   // Apply weapon on-hit status effect (e.g., freeze, bleed, blind)
   if (state.enemy.hp > 0) {
@@ -351,6 +357,9 @@ export function playerDefend(state) {
     player: { ...state.player, defending: true },
   };
   state = pushLog(state, `You brace for impact.`);
+  if (state.comboState) {
+    state = { ...state, comboState: resetCombo(state.comboState) };
+  }
   state = processTurnStart(state, 'enemy');
   if (state.phase === 'victory' || state.phase === 'defeat') return state;
   if (state.momentumState) {
@@ -413,6 +422,9 @@ export function playerUsePotion(state) {
   };
 
   state = pushLog(state, `You drink a potion and heal ${hp - (state.player.hp)} HP.`);
+  if (state.comboState) {
+    state = { ...state, comboState: resetCombo(state.comboState) };
+  }
   if (state.momentumState) {
     const gain = calculateMomentumGain(ACTION_TYPES.ITEM, {}, state.momentumState);
     state = { ...state, momentumState: addMomentum(state.momentumState, gain, ACTION_TYPES.ITEM) };
@@ -677,6 +689,9 @@ export function playerUseItem(state, itemId) {
   }
 
   // Transition to enemy turn
+  if (state.comboState) {
+    state = { ...state, comboState: resetCombo(state.comboState) };
+  }
   state = processTurnStart(state, 'enemy');
   if (state.phase === 'victory' || state.phase === 'defeat') return state;
   return { ...state, phase: 'enemy-turn' };
@@ -788,6 +803,9 @@ export function enemyAct(state) {
 
       state = pushLog(state, `${(state.enemy.displayName ?? state.enemy.name)} slams you for ${damage} damage.`);
       logDamageReceived(damage, (state.enemy.displayName ?? state.enemy.name));
+      if (state.comboState) {
+        state = { ...state, comboState: resetCombo(state.comboState) };
+      }
     }
     state = applyVictoryDefeat(state);
   }
@@ -796,6 +814,9 @@ export function enemyAct(state) {
   state = processTurnStart(state, 'player');
   if (state.phase === 'victory' || state.phase === 'defeat') return state;
   state = pushLog(state, `Your turn.`);
+  if (state.comboState) {
+    state = { ...state, comboState: checkComboDecay(state.comboState, state.turn ?? 0) };
+  }
   if (state.momentumState) {
     state = { ...state, momentumState: applyMomentumDecay(state.momentumState, false) };
   }

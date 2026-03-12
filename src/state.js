@@ -11,6 +11,7 @@ import { createNPCRelationshipManager } from './npc-relationships.js';
 import { createTutorialState } from './tutorial.js';
 import { DEFAULT_DIFFICULTY, applyDifficultyToEnemyHp } from './difficulty.js';
 import { createMomentumState } from './momentum.js';
+import { createComboState } from './combo-system.js';
 
 export function initialState() {
   const playerBase = characters.player;
@@ -52,6 +53,7 @@ export function initialState() {
     tavernDice: createTavernDiceState(),
     tutorialState: createTutorialState(),
     momentumState: createMomentumState(),
+    comboState: createComboState(),
     ...createCompanionState(),
     npcRelationshipManager: createNPCRelationshipManager(),
   };
@@ -112,6 +114,7 @@ export function initialStateWithClass(classId, characterName = '', difficulty = 
     tavernDice: createTavernDiceState(),
     tutorialState: createTutorialState(),
     momentumState: createMomentumState(),
+    comboState: createComboState(),
     ...createCompanionState(),
     npcRelationshipManager: createNPCRelationshipManager(),
   };
