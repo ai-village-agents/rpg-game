@@ -1,5 +1,6 @@
 import assert from 'node:assert';
 import { trackAchievements, isUnlocked, getProgress, getAllAchievements, getAchievementsByCategory, getUnlockedCount, getTotalCount } from '../src/achievements.js';
+import { ENEMIES } from '../src/data/enemies.js';
 
 console.log('Running Achievement System Tests...\n');
 
@@ -371,6 +372,165 @@ test('getAllAchievements: Returns complete achievement list', () => {
   assert(all.length > 0, 'Should return at least one achievement');
   assert(baselineIds.every(id => all.some(a => a.id === id)), 'Should include baseline achievements used in tests');
   assert(all.every(a => a.id && a.name && a.description), 'All should have required fields');
+});
+
+// === ADDITIONAL ACHIEVEMENT COVERAGE ===
+test('pacifist_floor_5: Unlocks at floor 5 with no kills and locks with kills', () => {
+  const unlockState = createMockState({
+    currentFloor: 5,
+    floor: 5,
+    kills: 0,
+    enemiesKilled: 0,
+    gameStats: { enemiesDefeated: 0 }
+  });
+  const unlockedResult = trackAchievements(unlockState);
+  assert(isUnlocked(unlockedResult, 'pacifist_floor_5'), 'pacifist_floor_5 should be unlocked at floor 5 with no kills');
+
+  const lockedState = createMockState({
+    currentFloor: 5,
+    floor: 5,
+    kills: 1,
+    enemiesKilled: 1,
+    gameStats: { enemiesDefeated: 1 }
+  });
+  const lockedResult = trackAchievements(lockedState);
+  assert(!isUnlocked(lockedResult, 'pacifist_floor_5'), 'pacifist_floor_5 should remain locked when a kill occurs');
+});
+
+test('pacifist_floor_10: Unlocks at floor 10 with no kills', () => {
+  const state = createMockState({
+    currentFloor: 10,
+    floor: 10,
+    kills: 0,
+    enemiesKilled: 0,
+    gameStats: { enemiesDefeated: 0 }
+  });
+  const result = trackAchievements(state);
+  assert(isUnlocked(result, 'pacifist_floor_10'), 'pacifist_floor_10 should be unlocked at floor 10 with no kills');
+});
+
+test('low_kill_victory: Unlocks below 20 kills and locks at 20 or more', () => {
+  const unlockState = createMockState({
+    victory: true,
+    kills: 15,
+    enemiesKilled: 15,
+    gameStats: { enemiesDefeated: 15 }
+  });
+  const unlockedResult = trackAchievements(unlockState);
+  assert(isUnlocked(unlockedResult, 'low_kill_victory'), 'low_kill_victory should unlock with victory and fewer than 20 kills');
+
+  const lockedState = createMockState({
+    victory: true,
+    kills: 25,
+    enemiesKilled: 25,
+    gameStats: { enemiesDefeated: 25 }
+  });
+  const lockedResult = trackAchievements(lockedState);
+  assert(!isUnlocked(lockedResult, 'low_kill_victory'), 'low_kill_victory should remain locked at 20 or more kills');
+});
+
+test('bestiary_complete: Unlocks with all known enemies', () => {
+  const bestiaryIds = [
+    'slime',
+    'goblin',
+    'goblin_chief',
+    'cave_bat',
+    'giant_spider',
+    'wolf',
+    'skeleton',
+    'orc',
+    'fire-spirit',
+    'ice-spirit',
+    'dark-cultist',
+    'giant-spider',
+    'bandit',
+    'wraith',
+    'stone-golem',
+    'thunder-hawk',
+    'dragon',
+    'frost-revenant',
+    'blood-fiend',
+    'shadow-weaver',
+    'storm-elemental',
+    'plague-bearer',
+    'infernal-knight',
+    'glacial-wyrm',
+    'void-stalker',
+    'abyss_overlord',
+    'crystal-sentinel',
+    'ember-drake',
+    'phantom-assassin',
+    'arcane-guardian',
+    'crimson-berserker',
+    'frost-archon',
+    'void-knight',
+    'thunder-titan',
+    'infernal-sorcerer',
+    'abyssal-warden',
+    'celestial-wyrm',
+    'chaos-spawn',
+    'eternal-guardian',
+    'primordial-phoenix',
+    'oblivion-lord'
+  ];
+  const bestiaryMap = Object.fromEntries(bestiaryIds.map(id => [id, true]));
+  const state = createMockState({
+    bestiary: bestiaryIds,
+    gameStats: { bestiary: bestiaryMap }
+  });
+  const result = trackAchievements(state);
+  assert.strictEqual(bestiaryIds.length, 41, 'Test uses 41 enemy IDs spanning slime to oblivion-lord');
+  assert(bestiaryIds.every(id => ENEMIES[id]), 'All bestiary IDs should exist in the enemy data');
+  assert(isUnlocked(result, 'bestiary_complete'), 'bestiary_complete should unlock when all enemies are discovered');
+});
+
+test('recipe_master: Unlocks with all known recipes', () => {
+  const recipeIds = Array.from({ length: 34 }, (_, i) => `recipe_${i + 1}`);
+  const state = createMockState({
+    knownRecipes: recipeIds,
+    crafting: { knownRecipes: recipeIds }
+  });
+  const result = trackAchievements(state);
+  assert.strictEqual(recipeIds.length, 34, 'Test uses 34 recipe IDs');
+  assert(isUnlocked(result, 'recipe_master'), 'recipe_master should unlock when all recipes are known');
+});
+
+test('equipment_collector: Unlocks with 25 unique equipment types', () => {
+  const equipmentTypes = Array.from({ length: 25 }, (_, i) => `equipment_type_${i + 1}`);
+  const state = createMockState({
+    uniqueEquipmentFound: new Set(equipmentTypes),
+    gameStats: { uniqueEquipmentFound: equipmentTypes.length }
+  });
+  const result = trackAchievements(state);
+  assert(isUnlocked(result, 'equipment_collector'), 'equipment_collector should unlock with 25 equipment types found');
+});
+
+test('speed_runner: Unlocks under 60 minutes and locks above it', () => {
+  const unlockState = createMockState({
+    victory: true,
+    playTimeSeconds: 3500,
+    playTime: 3500 * 1000
+  });
+  const unlockedResult = trackAchievements(unlockState);
+  assert(isUnlocked(unlockedResult, 'speed_runner'), 'speed_runner should unlock with victory under 60 minutes');
+
+  const lockedState = createMockState({
+    victory: true,
+    playTimeSeconds: 3700,
+    playTime: 3700 * 1000
+  });
+  const lockedResult = trackAchievements(lockedState);
+  assert(!isUnlocked(lockedResult, 'speed_runner'), 'speed_runner should remain locked at or above 60 minutes');
+});
+
+test('speed_demon: Unlocks under 30 minutes', () => {
+  const state = createMockState({
+    victory: true,
+    playTimeSeconds: 1700,
+    playTime: 1700 * 1000
+  });
+  const result = trackAchievements(state);
+  assert(isUnlocked(result, 'speed_demon'), 'speed_demon should unlock with victory under 30 minutes');
 });
 
 // === SUMMARY ===

@@ -45,7 +45,29 @@ function extractAchievementData(state) {
     defeatedWhileBroken: state.gameStats?.defeatedWhileBroken ?? 0,
     deepestFloor: state.dungeonState?.deepestFloor ?? 0,
     floorsCleared: state.dungeonState?.floorsCleared ?? [],
-    floorsCompletedCount: (state.dungeonState?.floorsCleared ?? []).length
+    floorsCompletedCount: (state.dungeonState?.floorsCleared ?? []).length,
+    floor: typeof state.dungeonState?.currentFloor === 'number'
+      ? state.dungeonState.currentFloor
+      : typeof state.currentFloor === 'number'
+        ? state.currentFloor
+        : 0,
+    victory: Boolean(
+      state.victory
+      || state.gameFlags?.victory
+      || state.gameStats?.gameCompleted
+      || state.dungeonState?.gameCompleted
+      || state.phase === 'victory'
+    ),
+    playTime: state.playTime ?? state.stats?.playTime ?? (
+      typeof state.playTimeSeconds === 'number' ? state.playTimeSeconds * 1000 : 0
+    ),
+    bestiary: state.gameStats?.bestiary ?? state.bestiary ?? {},
+    knownRecipes: Array.isArray(state.crafting?.knownRecipes)
+      ? state.crafting.knownRecipes
+      : Array.isArray(state.knownRecipes)
+        ? state.knownRecipes
+        : [],
+    uniqueEquipmentFound: state.gameStats?.uniqueEquipmentFound ?? state.uniqueEquipmentFound ?? 0
   };
 }
 
@@ -443,6 +465,76 @@ const ACHIEVEMENTS = [
     category: 'dungeon',
     condition: (data) => data.floorsCompletedCount >= 10,
     getProgress: (data) => data.floorsCompletedCount
+  },
+
+  // Playstyle achievements
+  {
+    id: 'pacifist_floor_5',
+    name: 'Peaceful Explorer',
+    description: 'Reach floor 5 without killing any enemies',
+    category: 'playstyle',
+    condition: (data) => data.floor >= 5 && data.kills === 0,
+    getProgress: (data) => (data.kills === 0 ? data.floor : 0)
+  },
+  {
+    id: 'pacifist_floor_10',
+    name: 'Merciful Wanderer',
+    description: 'Reach floor 10 without killing any enemies',
+    category: 'playstyle',
+    condition: (data) => data.floor >= 10 && data.kills === 0,
+    getProgress: (data) => (data.kills === 0 ? data.floor : 0)
+  },
+  {
+    id: 'low_kill_victory',
+    name: 'Minimal Violence',
+    description: 'Complete the game with fewer than 20 kills',
+    category: 'playstyle',
+    condition: (data) => data.victory && data.kills < 20,
+    getProgress: (data) => (data.victory && data.kills < 20 ? 1 : 0)
+  },
+
+  // Collection achievements
+  {
+    id: 'bestiary_complete',
+    name: 'Monster Scholar',
+    description: 'Discover all enemy types in the bestiary',
+    category: 'collection',
+    condition: (data) => Object.keys(data.bestiary || {}).length >= 41,
+    getProgress: (data) => Object.keys(data.bestiary || {}).length
+  },
+  {
+    id: 'recipe_master',
+    name: 'Culinary Expert',
+    description: 'Learn all crafting recipes',
+    category: 'collection',
+    condition: (data) => (data.knownRecipes || []).length >= 34,
+    getProgress: (data) => (data.knownRecipes || []).length
+  },
+  {
+    id: 'equipment_collector',
+    name: 'Armory Completionist',
+    description: 'Obtain at least one of every equipment type',
+    category: 'collection',
+    condition: (data) => (data.uniqueEquipmentFound ?? 0) >= 25,
+    getProgress: (data) => data.uniqueEquipmentFound || 0
+  },
+
+  // Challenge achievements
+  {
+    id: 'speed_runner',
+    name: 'Swift Adventurer',
+    description: 'Complete the game in under 60 minutes',
+    category: 'challenge',
+    condition: (data) => data.victory && (data.playTime ?? 0) < 3600000,
+    getProgress: (data) => (data.victory ? Math.max(0, 3600000 - (data.playTime || 0)) : 0)
+  },
+  {
+    id: 'speed_demon',
+    name: 'Lightning Champion',
+    description: 'Complete the game in under 30 minutes',
+    category: 'challenge',
+    condition: (data) => data.victory && (data.playTime ?? 0) < 1800000,
+    getProgress: (data) => (data.victory ? Math.max(0, 1800000 - (data.playTime || 0)) : 0)
   }
 ];
 
