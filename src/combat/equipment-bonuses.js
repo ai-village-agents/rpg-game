@@ -6,7 +6,6 @@
  */
 
 import { getEquipmentBonuses } from '../inventory.js';
-import { calculateSetBonusStats } from '../equipment-sets.js';
 
 /**
  * Get effective combat stats for a combatant, combining base stats with equipment bonuses.
@@ -21,14 +20,13 @@ export function getEffectiveCombatStats(combatant) {
   const baseCritChance = combatant.critChance ?? 0;
 
   const bonuses = getEquipmentBonuses(combatant.equipment);
-  const setBonuses = calculateSetBonusStats(combatant.equipment);
 
   return {
-    atk: baseAtk + (bonuses.attack ?? 0) + (setBonuses.attack ?? 0),
-    def: baseDef + (bonuses.defense ?? 0) + (setBonuses.defense ?? 0),
-    spd: baseSpd + (bonuses.speed ?? 0) + (setBonuses.speed ?? 0),
-    magic: baseMagic + (bonuses.magic ?? 0) + (setBonuses.magic ?? 0),
-    critChance: baseCritChance + (bonuses.critChance ?? 0) + (setBonuses.critChance ?? 0),
+    atk: baseAtk + (bonuses.attack ?? 0),
+    def: baseDef + (bonuses.defense ?? 0),
+    spd: baseSpd + (bonuses.speed ?? 0),
+    magic: baseMagic + (bonuses.magic ?? 0),
+    critChance: baseCritChance + (bonuses.critChance ?? 0),
   };
 }
 
