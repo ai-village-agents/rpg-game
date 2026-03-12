@@ -20,7 +20,7 @@ import { shouldShowSpecialization, createSpecializationState, applySpecializatio
 import { clearFloor as clearDungeonFloor, TOTAL_FLOORS } from '../dungeon-floors.js';
 import { handleProvisionAction } from './provisions-handler.js';
 import { BESTIARY_FILTER_DEFAULT, BESTIARY_SORT_DEFAULT } from '../bestiary-ui.js';
-import { completeTutorialStep, dismissCurrentHint, showHint, createTutorialState } from '../tutorial.js';
+import { completeTutorialStep, dismissCurrentHint, showHint, createTutorialState, resetTutorial } from '../tutorial.js';
 
 function getRoomDescription(worldState) {
   const room = getCurrentRoom(worldState);
@@ -621,6 +621,46 @@ export function handleUIAction(state, action) {
         ...dismissCurrentHint(state.tutorialState),
         hintsEnabled: false,
       },
+    };
+  }
+
+  if (action.type === 'VIEW_TUTORIAL_PROGRESS') {
+    if (!state.tutorialState) return null;
+    return {
+      ...state,
+      ui: {
+        ...state.ui,
+        tutorialProgressVisible: true,
+      },
+    };
+  }
+
+  if (action.type === 'CLOSE_TUTORIAL_PROGRESS') {
+    return {
+      ...state,
+      ui: {
+        ...state.ui,
+        tutorialProgressVisible: false,
+      },
+    };
+  }
+
+  if (action.type === 'TUTORIAL_REENABLE_HINTS') {
+    if (!state.tutorialState) return null;
+    return {
+      ...state,
+      tutorialState: {
+        ...state.tutorialState,
+        hintsEnabled: true,
+      },
+    };
+  }
+
+  if (action.type === 'TUTORIAL_RESET') {
+    if (!state.tutorialState) return null;
+    return {
+      ...state,
+      tutorialState: resetTutorial(),
     };
   }
 

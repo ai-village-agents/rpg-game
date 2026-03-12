@@ -39,6 +39,7 @@ import { renderBattleLogPanel, getBattleLogStyles } from './battle-log-ui.js';
 import { getBattleLogEntries } from './combat-battle-log-integration.js';
 import { filterAndSortItems, renderSortFilterControls, SORT_MODES, FILTER_MODES } from './inventory-sort-filter.js';
 import { renderTutorialHint, attachTutorialHandlers, getTutorialStyles } from './tutorial-ui.js';
+import { getTutorialProgressStyles, renderTutorialProgressPanel, attachTutorialProgressHandlers } from './tutorial-progress-ui.js';
 import { getTutorialHint } from './tutorial.js';
 import { renderEquipmentSetsPanel, getEquipmentSetsPanelStyles } from './equipment-sets-ui.js';
 import { BACKGROUND_ORDER, BACKGROUNDS } from './data/backgrounds.js';
@@ -298,6 +299,12 @@ export function render(state, dispatch) {
     tutStyleEl.textContent = getTutorialStyles();
     document.head.appendChild(tutStyleEl);
   }
+  if (!document.getElementById('tutorial-progress-styles')) {
+    const tutProgStyleEl = document.createElement('style');
+    tutProgStyleEl.id = 'tutorial-progress-styles';
+    tutProgStyleEl.textContent = getTutorialProgressStyles();
+    document.head.appendChild(tutProgStyleEl);
+  }
   if (!document.getElementById('fast-travel-styles')) {
     const ftStyleEl = document.createElement('style');
     ftStyleEl.id = 'fast-travel-styles';
@@ -314,6 +321,11 @@ export function render(state, dispatch) {
     if (state.showHelp) {
       hud.innerHTML += renderHelpModal();
       attachHelpHandlers(dispatch);
+    }
+
+    if (state.ui?.tutorialProgressVisible) {
+      hud.innerHTML += renderTutorialProgressPanel(state.tutorialState);
+      attachTutorialProgressHandlers(dispatch);
     }
 
     if ((state.achievementNotifications || []).length > 0) {

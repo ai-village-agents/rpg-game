@@ -132,6 +132,14 @@ export function renderHelpModal() {
           </p>
         </div>
 
+        <div class="help-section">
+          <h3>Tutorial Progress</h3>
+          <p style="color:#ccc;font-size:0.9em;">
+            Track your tutorial progress, view completed steps, and re-enable hints.
+          </p>
+          <button id="btnViewTutorialProgress" class="close-help-btn">View Tutorial Progress</button>
+        </div>
+
         <div class="help-tip">
           💡 <b>Tip:</b> Check the Bestiary to learn enemy weaknesses and plan your strategy!
         </div>
@@ -146,6 +154,11 @@ export function attachHelpHandlers(dispatch) {
   const btn = document.getElementById('btnHelpClose');
   if (btn) {
     btn.onclick = () => dispatch({ type: 'CLOSE_HELP' });
+  }
+
+  const tutorialBtn = document.getElementById('btnViewTutorialProgress');
+  if (tutorialBtn) {
+    tutorialBtn.onclick = () => dispatch({ type: 'VIEW_TUTORIAL_PROGRESS' });
   }
   
   // Also close on overlay click
