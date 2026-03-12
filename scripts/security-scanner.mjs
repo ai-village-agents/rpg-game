@@ -119,6 +119,18 @@ const results = {
   warnings: []
 };
 
+const CANON_PHOENIX_FILE_PATHS = [
+  'src/data/enemies.js',
+  'src/data/items.js',
+  'src/data/recipes.js',
+  'src/enchanting.js',
+  'src/loot-tables.js'
+];
+
+const CANON_PHOENIX_FILES = new Set(CANON_PHOENIX_FILE_PATHS);
+const PHOENIX_USAGE_LIMIT = 13;
+let totalPhoenixOccurrences = 0;
+
 /**
  * Check if pattern is in defensive/security context
  */
@@ -250,22 +262,6 @@ function getAllFilesToScan() {
 }
 
 /**
- * Allow canon phoenix references in specific game data files.
- */
-function isCanonPhoenixLine(filePath, line) {
-  const canonPhoenixFiles = new Set([
-    'src/data/enemies.js',
-    'src/data/items.js',
-    'src/data/recipes.js',
-    'src/enchanting.js',
-    'src/loot-tables.js'
-  ]);
-
-  const relativePath = path.relative(process.cwd(), filePath).replace(/\\/g, '/');
-  return canonPhoenixFiles.has(relativePath) && line.toLowerCase().includes('phoenix');
-}
-
-/**
  * Scan a file for issues
  */
 function scanFile(filePath) {
@@ -279,6 +275,7 @@ function scanFile(filePath) {
   
   const lines = content.split('\n');
   let fileHasIssues = false;
+  const normalizedFilePath = path.relative(process.cwd(), filePath).replace(/\\/g, '/');
   
   // Check for zero-width characters
   for (let i = 0; i < lines.length; i++) {
@@ -312,8 +309,18 @@ function scanFile(filePath) {
       for (const match of matches) {
         const matchedText = match[0];
 
-        // Allow known canon phoenix content in approved data files
-        if (isCanonPhoenixLine(filePath, line)) {
+        if (
+          patternConfig.name === 'phoenix (egg-laying mythical bird)' &&
+          CANON_PHOENIX_FILES.has(normalizedFilePath)
+        ) {
+          totalPhoenixOccurrences++;
+          continue;
+        }
+
+        if (
+          patternConfig.name === 'pinion (bird feather/wing - phoenix association)' &&
+          normalizedFilePath === 'src/data/items.js'
+        ) {
           continue;
         }
         
@@ -380,6 +387,22 @@ function scanFile(filePath) {
   }
   
   results.totalFilesScanned++;
+}
+
+/**
+ * Enforce the overall phoenix usage limit across canon data files.
+ */
+function enforcePhoenixUsageLimit() {
+  if (totalPhoenixOccurrences > PHOENIX_USAGE_LIMIT) {
+    results.issues.push({
+      file: 'phoenix-usage-check',
+      line: 0,
+      column: 0,
+      type: 'policy',
+      message: `Found ${totalPhoenixOccurrences} occurrences of the word "phoenix" across canonical data files (limit ${PHOENIX_USAGE_LIMIT}).`,
+      snippet: ''
+    });
+  }
 }
 
 /**
@@ -465,6 +488,7 @@ async function main() {
   }
   
   console.log(`\nScan complete.`);
+  enforcePhoenixUsageLimit();
   
   const issueCount = generateReport();
   process.exit(issueCount > 0 ? 1 : 0);
