@@ -111,6 +111,7 @@ export function initialStateWithClass(classId, characterName = '', difficulty = 
     bestiaryUiState: { search: '' },
     tavernDice: createTavernDiceState(),
     tutorialState: createTutorialState(),
+    momentumState: createMomentumState(),
     ...createCompanionState(),
     npcRelationshipManager: createNPCRelationshipManager(),
   };
