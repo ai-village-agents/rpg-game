@@ -1,9 +1,10 @@
 :root {
-  --bg: #0b1020;
-  --panel: #121a33;
-  --text: #e8eeff;
-  --muted: #a7b3da;
-  --accent: #7aa2ff;
+  --bg: #1b1b1b;
+  --panel: #232323;
+  --card: #262626;
+  --text: #e2e2e2;
+  --muted: #a2a2a2;
+  --accent: #5f7da7;
   --bad: #ff6b6b;
   --good: #57d38c;
 }
@@ -64,7 +65,7 @@ body {
 .card {
   flex: 1 1 260px;
   padding: 10px;
-  background: rgba(255,255,255,0.04);
+  background: var(--card);
   border-radius: 10px;
   border: 1px solid rgba(255,255,255,0.07);
 }
@@ -93,7 +94,7 @@ body {
 button {
   appearance: none;
   border: 1px solid rgba(255,255,255,0.15);
-  background: rgba(255,255,255,0.06);
+  background: color-mix(in srgb, var(--panel) 70%, var(--accent) 30%);
   color: var(--text);
   padding: 9px 12px;
   border-radius: 10px;
