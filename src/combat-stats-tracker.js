@@ -33,6 +33,7 @@ export function createCombatStats(enemyName, isBoss = false) {
     abilityUses: {},      // { abilityName: count }
     itemUses: {},         // { itemName: count }
     potionCount: 0,
+    weaknessHits: 0,
     fleeAttempts: 0,
 
     // Shield/break tracking
@@ -194,6 +195,17 @@ export function recordBreakDamage(stats, damage) {
 export function recordFleeAttempt(stats) {
   if (!stats) return stats;
   stats.fleeAttempts++;
+  return stats;
+}
+
+/**
+ * Record an elemental weakness hit on the enemy.
+ * @param {object} stats - Combat stats object
+ * @returns {object} Updated stats
+ */
+export function recordWeaknessHit(stats) {
+  if (!stats) return stats;
+  stats.weaknessHits++;
   return stats;
 }
 
@@ -414,6 +426,9 @@ export function formatCombatStatsDisplay(stats) {
   }
   if (derived.mostUsedItem) {
     actionRows.push({ label: 'Most Used Item', value: derived.mostUsedItem });
+  }
+  if (stats.weaknessHits > 0) {
+    actionRows.push({ label: 'Weakness Hits', value: String(stats.weaknessHits), style: 'good' });
   }
   if (stats.fleeAttempts > 0) {
     actionRows.push({ label: 'Flee Attempts', value: String(stats.fleeAttempts) });

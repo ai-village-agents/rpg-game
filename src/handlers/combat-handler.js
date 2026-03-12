@@ -1,10 +1,10 @@
 import { playerAttack, playerDefend, playerFlee, playerUsePotion, playerUseAbility, playerUseItem, enemyAct } from '../combat.js';
-import { createGameStats, recordDamageDealt, recordTurnPlayed, recordItemUsed, recordAbilityUsed, recordDamageReceived, recordShieldBroken, recordWeaknessHit, recordDefeatedWhileBroken } from '../game-stats.js';
+import { createGameStats, recordDamageDealt, recordTurnPlayed, recordItemUsed, recordAbilityUsed, recordDamageReceived, recordShieldBroken, recordWeaknessHit as recordWeaknessHitGame, recordDefeatedWhileBroken } from '../game-stats.js';
 import { getCraftingMaterialDrops, lookupItem } from '../crafting.js';
 import { addItemToInventory } from '../items.js';
 import { trackAchievements } from '../achievements.js';
 import { companionAutoAct } from '../companions.js';
-import { createCombatStats, recordPlayerAttack, recordPlayerDefend, recordAbilityUse, recordItemUse, recordPotionUse, recordDamageReceived as csRecordDamageReceived, recordFleeAttempt, recordCompanionAction, recordTurn, finalizeCombatStats, formatCombatStatsDisplay } from '../combat-stats-tracker.js';
+import { createCombatStats, recordPlayerAttack, recordPlayerDefend, recordAbilityUse, recordItemUse, recordPotionUse, recordDamageReceived as csRecordDamageReceived, recordFleeAttempt, recordWeaknessHit, recordCompanionAction, recordTurn, finalizeCombatStats, formatCombatStatsDisplay } from '../combat-stats-tracker.js';
 
 /**
  * Handles combat-related actions dispatched during 'player-turn'.
@@ -33,7 +33,7 @@ export function handleCombatAction(state, action) {
     if (dmgDealt > 0) gs = recordDamageDealt(gs, dmgDealt);
     gs = recordTurnPlayed(gs);
     if (next._triggeredShieldBreak) gs = recordShieldBroken(gs);
-    if (next._hitWeakness) gs = recordWeaknessHit(gs);
+    if (next._hitWeakness) gs = recordWeaknessHitGame(gs);
     if (next._defeatedWhileBroken) gs = recordDefeatedWhileBroken(gs);
     applyCraftingMaterialDrops(next);
 
@@ -41,6 +41,7 @@ export function handleCombatAction(state, action) {
       recordPlayerAttack(cs, dmgDealt);
       recordTurn(cs, 'player');
     }
+    if (next._hitWeakness && cs) recordWeaknessHit(cs);
     
     return finalizeCombatState(next, { gameStats: gs, combatStats: cs });
   }
@@ -93,7 +94,7 @@ export function handleCombatAction(state, action) {
     if (dmgDealt > 0) gs = recordDamageDealt(gs, dmgDealt);
     gs = recordTurnPlayed(gs);
     if (next._triggeredShieldBreak) gs = recordShieldBroken(gs);
-    if (next._hitWeakness) gs = recordWeaknessHit(gs);
+    if (next._hitWeakness) gs = recordWeaknessHitGame(gs);
     if (next._defeatedWhileBroken) gs = recordDefeatedWhileBroken(gs);
     applyCraftingMaterialDrops(next);
 
@@ -102,6 +103,7 @@ export function handleCombatAction(state, action) {
       recordAbilityUse(cs, action.abilityId, dmgDealt, healingDone);
       recordTurn(cs, 'player');
     }
+    if (next._hitWeakness && cs) recordWeaknessHit(cs);
     
     return finalizeCombatState(next, { gameStats: gs, combatStats: cs });
   }

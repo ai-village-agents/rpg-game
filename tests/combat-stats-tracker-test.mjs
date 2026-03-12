@@ -16,6 +16,7 @@ import {
   recordEnemyBroken,
   recordBreakDamage,
   recordFleeAttempt,
+  recordWeaknessHit,
   recordCompanionAction,
   recordStatusInflicted,
   recordStatusReceived,
@@ -70,6 +71,7 @@ test('initializes all counters to zero', () => {
   assert.equal(s.defendCount, 0);
   assert.equal(s.potionCount, 0);
   assert.equal(s.fleeAttempts, 0);
+  assert.equal(s.weaknessHits, 0);
   assert.equal(s.shieldsDestroyed, 0);
   assert.equal(s.timesEnemyBroken, 0);
   assert.equal(s.breakDamageDealt, 0);
@@ -199,6 +201,21 @@ test('records item use without healing', () => {
   recordItemUse(s, 'Bomb', 0);
   assert.equal(s.itemUses['Bomb'], 1);
   assert.equal(s.totalHealingDone, 0);
+});
+
+// --- recordWeaknessHit ---
+console.log('\n[recordWeaknessHit]');
+test('increments weaknessHits', () => {
+  const s = createCombatStats('Goblin');
+  assert.equal(s.weaknessHits, 0);
+  recordWeaknessHit(s);
+  assert.equal(s.weaknessHits, 1);
+  recordWeaknessHit(s);
+  assert.equal(s.weaknessHits, 2);
+});
+
+test('handles null stats', () => {
+  assert.equal(recordWeaknessHit(null), null);
 });
 
 // --- recordPotionUse ---
