@@ -35,7 +35,7 @@ import { renderShieldBreakHUD } from './shield-break-ui.js';
 import { renderCombatStatsHtml } from './battle-summary.js';
 import { formatLogEntryHtml, getLogStyles } from './combat-log-formatter.js';
 import { triggerFloatingTextFromLog, getFloatingTextStyles } from './floating-text.js';
-import { renderBattleLogPanel, getBattleLogStyles } from './battle-log-ui.js';
+import { renderBattleLogPanel, getBattleLogStyles, renderFilterBar } from './battle-log-ui.js';
 import { getBattleLogEntries } from './combat-battle-log-integration.js';
 import { filterAndSortItems, renderSortFilterControls, SORT_MODES, FILTER_MODES } from './inventory-sort-filter.js';
 import { renderTutorialHint, attachTutorialHandlers, getTutorialStyles } from './tutorial-ui.js';
@@ -586,7 +586,7 @@ export function render(state, dispatch) {
         ${renderCompanionHUD(state)}
       </div>
       ${provisionBuffBar}
-      ${renderBattleLogPanel(getBattleLogEntries(), 8)}
+      ${renderBattleLogPanel(getBattleLogEntries(), { maxVisible: 12, grouped: true, showSummary: true, activeFilters: [] })}
     `;
 
     const isPlayerTurn = state.phase === 'player-turn';

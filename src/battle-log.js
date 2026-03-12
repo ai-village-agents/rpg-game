@@ -126,6 +126,25 @@ export class BattleLog {
     this.currentTurn = 0;
   }
 
+  getEntriesByTurn() {
+    const grouped = new Map();
+    for (const entry of this.entries) {
+      const turn = Number.isInteger(entry?.turn) ? entry.turn : 0;
+      if (!grouped.has(turn)) grouped.set(turn, []);
+      grouped.get(turn).push(entry);
+    }
+
+    return new Map([...grouped.entries()].sort((a, b) => a[0] - b[0]));
+  }
+
+  filterEntries(activeTypes) {
+    if (!Array.isArray(activeTypes) || activeTypes.length === 0) {
+      return this.entries.slice();
+    }
+    const active = new Set(activeTypes);
+    return this.entries.filter((entry) => active.has(entry?.type));
+  }
+
   #getTotalTurns() {
     if (this.entries.length === 0) return this.currentTurn;
     const turnEntries = this.entries.filter((e) => e.type === 'turn-start' || e.type === 'turn-end');

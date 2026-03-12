@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { BattleLog, battleLog } from '../src/battle-log.js';
-import { renderBattleLogPanel, getBattleLogStyles } from '../src/battle-log-ui.js';
+import { renderBattleLogPanel, getBattleLogStyles, renderFilterBar } from '../src/battle-log-ui.js';
 
 test('addEntry stores entries with timestamp and turn context', () => {
   const log = new BattleLog();
@@ -167,4 +167,89 @@ test('getBattleLogStyles exposes panel styling', () => {
   const css = getBattleLogStyles();
   assert.match(css, /\.battle-log-panel/);
   assert.match(css, /max-height:\s*200px/);
+});
+
+test('getEntriesByTurn groups entries correctly', () => {
+  const log = new BattleLog();
+  log.startTurn(1);
+  const entryOne = log.addEntry('attack', 'Strike');
+  log.endTurn();
+  log.startTurn(2);
+  const entryTwo = log.addEntry('heal', 'Bandage');
+
+  const grouped = log.getEntriesByTurn();
+
+  assert.ok(grouped instanceof Map);
+  assert.ok(grouped.has(1));
+  assert.ok(grouped.has(2));
+  assert.deepEqual(grouped.get(1).includes(entryOne), true);
+  assert.deepEqual(grouped.get(2).includes(entryTwo), true);
+});
+
+test('filterEntries returns only specified types', () => {
+  const log = new BattleLog();
+  log.startTurn(1);
+  log.addEntry('attack', 'Slash');
+  log.addEntry('heal', 'Heal up');
+  log.addEntry('ability', 'Power shot');
+
+  const filtered = log.filterEntries(['attack', 'heal']);
+
+  assert.equal(filtered.length, 2);
+  assert.ok(filtered.every((entry) => ['attack', 'heal'].includes(entry.type)));
+});
+
+test('filterEntries with empty array returns all entries', () => {
+  const log = new BattleLog();
+  log.startTurn(1);
+  log.addEntry('attack', 'Slash');
+  log.addEntry('heal', 'Heal up');
+  const filtered = log.filterEntries([]);
+  assert.equal(filtered.length, log.entries.length);
+});
+
+test('renderBattleLogPanel with grouped option uses details elements', () => {
+  const log = new BattleLog();
+  log.startTurn(1);
+  log.addEntry('attack', 'Slash');
+  const html = renderBattleLogPanel(log.entries, { grouped: true });
+
+  assert.match(html, /bl-turn-group/);
+});
+
+test('renderBattleLogPanel with showSummary=true shows damage summary when damage exists', () => {
+  const log = new BattleLog();
+  log.startTurn(1);
+  log.addEntry('damage-dealt', 'Hit', { damage: 7 });
+  const html = renderBattleLogPanel(log.entries, { showSummary: true });
+
+  assert.match(html, /bl-damage-summary/);
+});
+
+test('renderBattleLogPanel entries have data-type attribute', () => {
+  const log = new BattleLog();
+  log.startTurn(1);
+  log.addEntry('attack', 'Slash');
+  const html = renderBattleLogPanel(log.entries, 5);
+
+  assert.match(html, /data-type=/);
+});
+
+test('renderBattleLogPanel with activeFilters only shows matching types', () => {
+  const log = new BattleLog();
+  log.startTurn(1);
+  log.addEntry('attack', 'Slash');
+  log.addEntry('heal', 'Heal up');
+  const html = renderBattleLogPanel(log.entries, { activeFilters: ['heal'] });
+  const renderedEntries = (html.match(/battle-log-entry/g) || []).length;
+
+  assert.equal(renderedEntries, 1);
+});
+
+test('renderFilterBar returns filter pills', () => {
+  const html = renderFilterBar(['attack'], ['attack', 'heal']);
+
+  assert.match(html, /bl-filter-btn/);
+  assert.match(html, /bl-filter-active/);
+  assert.match(html, /data-filter-type/);
 });
