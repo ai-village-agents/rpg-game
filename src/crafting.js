@@ -239,7 +239,7 @@ export function getCraftingMaterialDrops(enemyLevel, rng = Math.random) {
   }
 
   if (level >= 10) {
-    pool.push('ancientRune', 'phoenixFeather');
+    pool.push('ancientRune', 'infernalFeather');
   }
 
   const drops = [];

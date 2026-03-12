@@ -75,13 +75,13 @@ export const ENCHANTMENTS = {
     cost: { ancientRune: 1 },
     statBonuses: { def: 8, maxHp: 5 },
   },
-  phoenixBlessing: {
-    id: 'phoenixBlessing',
+  infernalBlessing: {
+    id: 'infernalBlessing',
     name: 'Phoenix Blessing',
     description: 'A resilient blessing that bolsters vitality.',
     requiredLevel: 8,
     targetSlots: ['any'],
-    cost: { phoenixFeather: 1 },
+    cost: { infernalFeather: 1 },
     statBonuses: { maxHp: 10 },
     specialEffect: 'Once per battle, restore a small amount of health when low.',
   },

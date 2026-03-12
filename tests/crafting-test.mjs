@@ -372,7 +372,7 @@ test('max-level enemies drop all materials', () => {
   const drops = getCraftingMaterialDrops(10, () => 0);
   const ids = drops.map(d => d.materialId);
   assert.ok(ids.includes('ancientRune'));
-  assert.ok(ids.includes('phoenixFeather'));
+  assert.ok(ids.includes('infernalFeather'));
 });
 
 test('no drops with high rng', () => {

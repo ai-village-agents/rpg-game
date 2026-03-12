@@ -417,13 +417,13 @@ export const items = {
     stats: {},
     value: 200,
   },
-  phoenixPinion: {
-    id: 'phoenixPinion',
-    name: 'Phoenix Pinion',
+  infernalPinion: {
+    id: 'infernalPinion',
+    name: 'Infernal Pinion',
     type: 'consumable',
     category: 'consumable',
     rarity: 'Legendary',
-    description: 'A radiant pinion from a phoenix. Revives a fallen ally with full health.',
+    description: 'A radiant pinion from an infernal bird. Revives a fallen ally with full health.',
     effect: { revive: true, healPercent: 100 },
     stats: {},
     value: 1000,

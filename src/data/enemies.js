@@ -678,8 +678,8 @@ export const ENEMIES = {
     goldReward: 110,
     aiBehavior: 'aggressive',
   },
-  'primordial-phoenix': {
-    id: 'primordial-phoenix',
+  'primordial-inferno': {
+    id: 'primordial-inferno',
     name: 'Primordial Phoenix',
     hp: 160,
     maxHp: 160,
@@ -751,7 +751,7 @@ const ENCOUNTER_TABLE = {
   12: [['arcane-guardian', 'crimson-berserker'], ['frost-archon', 'arcane-guardian'], ['crimson-berserker', 'crystal-sentinel'], ['frost-archon', 'ember-drake'], ['arcane-guardian', 'phantom-assassin', 'ember-drake']],
   13: [['lich-king'], ['void-knight', 'thunder-titan'], ['infernal-sorcerer', 'crimson-berserker'], ['void-knight', 'arcane-guardian'], ['thunder-titan', 'infernal-sorcerer', 'frost-archon']],
   14: [['abyssal-warden'], ['celestial-wyrm'], ['chaos-spawn', 'void-knight'], ['abyssal-warden', 'thunder-titan'], ['celestial-wyrm', 'infernal-sorcerer']],
-  15: [['oblivion-lord'], ['eternal-guardian', 'chaos-spawn'], ['primordial-phoenix', 'void-knight'], ['abyssal-warden', 'celestial-wyrm'], ['eternal-guardian', 'primordial-phoenix', 'chaos-spawn']],
+  15: [['oblivion-lord'], ['eternal-guardian', 'chaos-spawn'], ['primordial-inferno', 'void-knight'], ['abyssal-warden', 'celestial-wyrm'], ['eternal-guardian', 'primordial-inferno', 'chaos-spawn']],
 };
 
 /**

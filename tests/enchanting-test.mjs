@@ -331,7 +331,7 @@ test('describeEnchantmentCost returns empty string for unknown id', () => {
 test('ENCHANTMENTS exposes expected ids', () => {
   const ids = Object.keys(ENCHANTMENTS);
   assert.ok(ids.includes('sharpening'));
-  assert.ok(ids.includes('phoenixBlessing'));
+  assert.ok(ids.includes('infernalBlessing'));
 });
 
 test('shadowCloak is restricted to accessory', () => {
@@ -339,9 +339,9 @@ test('shadowCloak is restricted to accessory', () => {
   assert.ok(!result.includes('shadowCloak'));
 });
 
-test('phoenixBlessing requires level 8', () => {
+test('infernalBlessing requires level 8', () => {
   const result = getAvailableEnchantments('armor', 7).map((entry) => entry.id);
-  assert.ok(!result.includes('phoenixBlessing'));
+  assert.ok(!result.includes('infernalBlessing'));
 });
 
 test('ancientWard is available at level 6', () => {

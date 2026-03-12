@@ -54,12 +54,12 @@ describe('Crafting Integration', () => {
       assert.ok(ids.includes('shadowShard'));
     });
 
-    it('level-10 enemy can draw ancientRune, phoenixFeather', () => {
+    it('level-10 enemy can draw ancientRune, infernalFeather', () => {
       const state = makeState();
       const result = applyCraftingMaterialDrops(state, [{ level: 10 }], rngAlways);
       const ids = getDropIds(result.drops);
       assert.ok(ids.includes('ancientRune'));
-      assert.ok(ids.includes('phoenixFeather'));
+      assert.ok(ids.includes('infernalFeather'));
     });
 
     it('adds materials to player inventory', () => {
@@ -81,7 +81,7 @@ describe('Crafting Integration', () => {
       assert.ok(ids.includes('dragonScale'));
       assert.ok(ids.includes('shadowShard'));
       assert.ok(!ids.includes('ancientRune'));
-      assert.ok(!ids.includes('phoenixFeather'));
+      assert.ok(!ids.includes('infernalFeather'));
     });
 
     it('deterministic rng returning 0 drops all materials', () => {

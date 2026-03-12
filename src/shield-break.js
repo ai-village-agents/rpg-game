@@ -194,7 +194,7 @@ export const ENEMY_SHIELD_DATABASE = {
     weaknesses: ["lightning", "nature"],
     immunities: ["physical", "fire"],
   },
-  "primordial-phoenix": {
+  "primordial-inferno": {
     shieldCount: 8,
     weaknesses: ["ice", "shadow"],
     immunities: ["fire"],

@@ -95,8 +95,8 @@ export const craftingMaterials = {
     description: 'A fragment of solidified darkness.',
     value: 75,
   },
-  phoenixFeather: {
-    id: 'phoenixFeather',
+  infernalFeather: {
+    id: 'infernalFeather',
     name: 'Phoenix Feather',
     type: 'material',
     category: 'material',
@@ -235,8 +235,8 @@ export const craftedItems = {
     stats: { maxMp: 30, magicAttack: 8 },
     value: 300,
   },
-  phoenixRing: {
-    id: 'phoenixRing',
+  infernalRing: {
+    id: 'infernalRing',
     name: 'Phoenix Ring',
     type: 'accessory',
     category: 'accessory',
@@ -387,15 +387,15 @@ export const recipes = [
     requiredLevel: 5,
   },
   {
-    id: 'recipe_phoenixRing',
+    id: 'recipe_infernalRing',
     name: 'Phoenix Ring',
     description: 'Forges a Phoenix Ring that grants a rebirth spark.',
     ingredients: [
       { itemId: 'ringOfFortune', quantity: 1 },
-      { itemId: 'phoenixFeather', quantity: 1 },
+      { itemId: 'infernalFeather', quantity: 1 },
       { itemId: 'ancientRune', quantity: 1 },
     ],
-    result: { itemId: 'phoenixRing', quantity: 1 },
+    result: { itemId: 'infernalRing', quantity: 1 },
     category: 'accessory',
     requiredLevel: 8,
   },

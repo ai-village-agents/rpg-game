@@ -229,7 +229,7 @@ export const ENEMY_DROP_TABLES = Object.freeze({
       { itemId: 'abyssalShard', weight: 20 },
       { itemId: 'abyssalRing', weight: 10 },
       { itemId: 'abyssalMail', weight: 15 },
-      { itemId: 'phoenixPinion', weight: 8 },
+      { itemId: 'infernalPinion', weight: 8 },
       { itemId: 'voidblade', weight: 12 },
       { itemId: 'abyssalScepter', weight: 10 },
       { itemId: 'megaPotion', weight: 15 },
@@ -530,11 +530,11 @@ export const ENEMY_DROP_TABLES = Object.freeze({
     ],
     bonusRarityWeights: { Common: 5, Uncommon: 13, Rare: 25, Epic: 32, Legendary: 25 },
   },
-  'primordial-phoenix': {
+  'primordial-inferno': {
     dropChance: 0.90,
     maxDrops: 3,
     drops: [
-      { itemId: 'phoenixPinion', weight: 10 },
+      { itemId: 'infernalPinion', weight: 10 },
       { itemId: 'fire-gem', weight: 25 },
       { itemId: 'dragonSpear', weight: 15 },
       { itemId: 'megaPotion', weight: 25 },
@@ -566,7 +566,7 @@ export const ENEMY_DROP_TABLES = Object.freeze({
     dropChance: 0.99,
     maxDrops: 4,
     drops: [
-      { itemId: 'phoenixPinion', weight: 12 },
+      { itemId: 'infernalPinion', weight: 12 },
       { itemId: 'abyssalRing', weight: 15 },
       { itemId: 'voidblade', weight: 15 },
       { itemId: 'abyssalShard', weight: 20 },

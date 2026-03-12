@@ -368,7 +368,7 @@ export const DUNGEON_FLOORS = [
     enemyPool: [
       "oblivion-lord",
       "eternal-guardian",
-      "primordial-phoenix",
+      "primordial-inferno",
       "abyssal-warden",
       "celestial-wyrm",
       "chaos-spawn",

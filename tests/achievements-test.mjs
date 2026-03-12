@@ -470,7 +470,7 @@ test('bestiary_complete: Unlocks with all known enemies', () => {
     'celestial-wyrm',
     'chaos-spawn',
     'eternal-guardian',
-    'primordial-phoenix',
+    'primordial-inferno',
     'oblivion-lord'
   ];
   const bestiaryMap = Object.fromEntries(bestiaryIds.map(id => [id, true]));
