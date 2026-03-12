@@ -54,7 +54,7 @@ test("F11-F15 enemy shield entries", async (t) => {
       "chaos-spawn",
       "oblivion-lord",
       "eternal-guardian",
-      "primordial-phoenix",
+      "primordial-inferno",
       "lich-king",
     ];
 
