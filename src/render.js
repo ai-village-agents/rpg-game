@@ -48,6 +48,7 @@ import { BACKGROUND_ORDER, BACKGROUNDS } from './data/backgrounds.js';
 import { renderVictoryScreen, renderVictoryActions, getVictoryScreenStyles } from './victory-screen.js';
 import { DIFFICULTY_LEVELS, DIFFICULTY_NAMES, DIFFICULTY_DESCRIPTIONS } from './difficulty.js';
 import { renderMomentumGauge, renderOverdriveButton, getMomentumStyles } from './momentum-ui.js';
+import { renderComboDisplay } from './combo-system-ui.js';
 
 /** Track previous log for floating text diff */
 let _previousLog = [];
@@ -605,6 +606,7 @@ export function render(state, dispatch) {
             <div>Potions</div><div><b>${state.player.inventory.potion ?? 0}</b></div>
           </div>
           ${state.momentumState ? renderMomentumGauge(state.momentumState, state.player.classId) : ''}
+          ${state.comboState ? renderComboDisplay(state.comboState) : ''}
         </div>
 
         <div class="card">
