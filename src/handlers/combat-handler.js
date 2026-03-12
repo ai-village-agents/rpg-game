@@ -1,10 +1,11 @@
-import { playerAttack, playerDefend, playerFlee, playerUsePotion, playerUseAbility, playerUseItem, enemyAct } from '../combat.js';
+import { playerAttack, playerDefend, playerFlee, playerUsePotion, playerUseAbility, playerUseItem, playerUseOverdrive, enemyAct } from '../combat.js';
 import { createGameStats, recordDamageDealt, recordTurnPlayed, recordItemUsed, recordAbilityUsed, recordDamageReceived, recordShieldBroken, recordWeaknessHit as recordWeaknessHitGame, recordDefeatedWhileBroken } from '../game-stats.js';
 import { getCraftingMaterialDrops, lookupItem } from '../crafting.js';
 import { addItemToInventory } from '../items.js';
 import { trackAchievements } from '../achievements.js';
 import { companionAutoAct } from '../companions.js';
 import { createCombatStats, recordPlayerAttack, recordPlayerDefend, recordAbilityUse, recordItemUse, recordPotionUse, recordDamageReceived as csRecordDamageReceived, recordFleeAttempt, recordWeaknessHit, recordCompanionAction, recordTurn, finalizeCombatStats, formatCombatStatsDisplay } from '../combat-stats-tracker.js';
+import { createMomentumState, calculateMomentumGain, addMomentum, ACTION_TYPES } from '../momentum.js';
 
 /**
  * Handles combat-related actions dispatched during 'player-turn'.
@@ -17,6 +18,8 @@ export function handleCombatAction(state, action) {
   // Only handle actions if it's player's turn
   if (state.phase !== 'player-turn') return null;
 
+  state = ensurePlayerMomentum(state);
+
   let cs = state.combatStats || null;
   if (!cs && state.enemy) {
     cs = createCombatStats(state.enemy?.name || 'Unknown Enemy', state.enemy?.isBoss || false);
@@ -28,31 +31,33 @@ export function handleCombatAction(state, action) {
     const enemyHpBefore = state.enemy?.hp ?? 0;
     const next = playerAttack(state);
     const dmgDealt = Math.max(0, enemyHpBefore - (next.enemy?.hp ?? 0));
+    const nextWithMomentum = applyPlayerMomentum(next, ACTION_TYPES.ATTACK);
     
-    let gs = next.gameStats || createGameStats();
+    let gs = nextWithMomentum.gameStats || createGameStats();
     if (dmgDealt > 0) gs = recordDamageDealt(gs, dmgDealt);
     gs = recordTurnPlayed(gs);
-    if (next._triggeredShieldBreak) gs = recordShieldBroken(gs);
-    if (next._hitWeakness) gs = recordWeaknessHitGame(gs);
-    if (next._defeatedWhileBroken) gs = recordDefeatedWhileBroken(gs);
-    applyCraftingMaterialDrops(next);
+    if (nextWithMomentum._triggeredShieldBreak) gs = recordShieldBroken(gs);
+    if (nextWithMomentum._hitWeakness) gs = recordWeaknessHitGame(gs);
+    if (nextWithMomentum._defeatedWhileBroken) gs = recordDefeatedWhileBroken(gs);
+    applyCraftingMaterialDrops(nextWithMomentum);
 
     if (cs) {
       recordPlayerAttack(cs, dmgDealt);
       recordTurn(cs, 'player');
     }
-    if (next._hitWeakness && cs) recordWeaknessHit(cs);
+    if (nextWithMomentum._hitWeakness && cs) recordWeaknessHit(cs);
     
-    return finalizeCombatState(next, { gameStats: gs, combatStats: cs });
+    return finalizeCombatState(nextWithMomentum, { gameStats: gs, combatStats: cs });
   }
 
   if (type === 'PLAYER_DEFEND') {
     const next = playerDefend(state);
+    const nextWithMomentum = applyPlayerMomentum(next, ACTION_TYPES.DEFEND);
     if (cs) {
       recordPlayerDefend(cs);
       recordTurn(cs, 'player');
     }
-    return finalizeCombatState(next, { combatStats: cs });
+    return finalizeCombatState(nextWithMomentum, { combatStats: cs });
   }
 
   if (type === 'PLAYER_FLEE') {
@@ -72,51 +77,71 @@ export function handleCombatAction(state, action) {
 
   if (type === 'PLAYER_POTION') {
     const next = playerUsePotion(state);
-    let gs = next.gameStats || createGameStats();
+    const nextWithMomentum = applyPlayerMomentum(next, ACTION_TYPES.ITEM);
+    let gs = nextWithMomentum.gameStats || createGameStats();
     gs = recordItemUsed(gs, 'potion');
     gs = recordTurnPlayed(gs);
-    applyCraftingMaterialDrops(next);
-    const healingDone = (next.player?.hp ?? 0) - (state.player?.hp ?? 0);
+    applyCraftingMaterialDrops(nextWithMomentum);
+    const healingDone = (nextWithMomentum.player?.hp ?? 0) - (state.player?.hp ?? 0);
     if (cs) {
       recordPotionUse(cs, Math.max(0, healingDone));
       recordTurn(cs, 'player');
     }
-    return finalizeCombatState(next, { gameStats: gs, combatStats: cs });
+    return finalizeCombatState(nextWithMomentum, { gameStats: gs, combatStats: cs });
   }
 
   if (type === 'PLAYER_ABILITY') {
     const enemyHpBefore = state.enemy?.hp ?? 0;
     const next = playerUseAbility(state, action.abilityId);
     const dmgDealt = Math.max(0, enemyHpBefore - (next.enemy?.hp ?? 0));
+    const nextWithMomentum = applyPlayerMomentum(next, ACTION_TYPES.SKILL);
     
-    let gs = next.gameStats || createGameStats();
+    let gs = nextWithMomentum.gameStats || createGameStats();
     gs = recordAbilityUsed(gs, action.abilityId);
     if (dmgDealt > 0) gs = recordDamageDealt(gs, dmgDealt);
     gs = recordTurnPlayed(gs);
-    if (next._triggeredShieldBreak) gs = recordShieldBroken(gs);
-    if (next._hitWeakness) gs = recordWeaknessHitGame(gs);
-    if (next._defeatedWhileBroken) gs = recordDefeatedWhileBroken(gs);
-    applyCraftingMaterialDrops(next);
+    if (nextWithMomentum._triggeredShieldBreak) gs = recordShieldBroken(gs);
+    if (nextWithMomentum._hitWeakness) gs = recordWeaknessHitGame(gs);
+    if (nextWithMomentum._defeatedWhileBroken) gs = recordDefeatedWhileBroken(gs);
+    applyCraftingMaterialDrops(nextWithMomentum);
 
-    const healingDone = Math.max(0, (next.player?.hp ?? 0) - (state.player?.hp ?? 0));
+    const healingDone = Math.max(0, (nextWithMomentum.player?.hp ?? 0) - (state.player?.hp ?? 0));
     if (cs) {
       recordAbilityUse(cs, action.abilityId, dmgDealt, healingDone);
       recordTurn(cs, 'player');
     }
-    if (next._hitWeakness && cs) recordWeaknessHit(cs);
+    if (nextWithMomentum._hitWeakness && cs) recordWeaknessHit(cs);
     
-    return finalizeCombatState(next, { gameStats: gs, combatStats: cs });
+    return finalizeCombatState(nextWithMomentum, { gameStats: gs, combatStats: cs });
   }
 
   if (type === 'PLAYER_ITEM') {
     const next = playerUseItem(state, action.itemId);
-    let gs = next.gameStats || createGameStats();
+    const nextWithMomentum = applyPlayerMomentum(next, ACTION_TYPES.ITEM);
+    let gs = nextWithMomentum.gameStats || createGameStats();
     gs = recordItemUsed(gs, action.itemId);
     gs = recordTurnPlayed(gs);
-    applyCraftingMaterialDrops(next);
-    const healingDone = Math.max(0, (next.player?.hp ?? 0) - (state.player?.hp ?? 0));
+    applyCraftingMaterialDrops(nextWithMomentum);
+    const healingDone = Math.max(0, (nextWithMomentum.player?.hp ?? 0) - (state.player?.hp ?? 0));
     if (cs) {
       recordItemUse(cs, action.itemId, healingDone);
+      recordTurn(cs, 'player');
+    }
+    return finalizeCombatState(nextWithMomentum, { gameStats: gs, combatStats: cs });
+  }
+
+  if (type === 'OVERDRIVE') {
+    const enemyHpBefore = state.enemy?.hp ?? 0;
+    const playerHpBefore = state.player?.hp ?? 0;
+    const next = playerUseOverdrive(state);
+    const dmgDealt = Math.max(0, enemyHpBefore - (next.enemy?.hp ?? enemyHpBefore));
+    const healingDone = Math.max(0, (next.player?.hp ?? playerHpBefore) - playerHpBefore);
+    let gs = next.gameStats || createGameStats();
+    if (dmgDealt > 0) gs = recordDamageDealt(gs, dmgDealt);
+    gs = recordTurnPlayed(gs);
+    applyCraftingMaterialDrops(next);
+    if (cs) {
+      recordAbilityUse(cs, 'overdrive', dmgDealt, healingDone);
       recordTurn(cs, 'player');
     }
     return finalizeCombatState(next, { gameStats: gs, combatStats: cs });
@@ -202,6 +227,24 @@ export function handleEnemyTurnLogic(state) {
 function finalizeCombatState(next, overrides = {}) {
   if (!next) return next;
   return trackAchievements({ ...next, ...overrides });
+}
+
+function ensurePlayerMomentum(state) {
+  if (state?.player?.momentum) return state;
+  return { ...state, player: { ...state.player, momentum: createMomentumState() } };
+}
+
+function applyPlayerMomentum(state, actionType) {
+  if (!state?.player) return state;
+  const currentMomentum = state.player.momentum || createMomentumState();
+  const context = {
+    hitWeakness: !!state._hitWeakness,
+    brokeShield: !!state._triggeredShieldBreak,
+    criticalHit: false,
+  };
+  const gain = calculateMomentumGain(actionType, context, currentMomentum);
+  const updatedMomentum = addMomentum(currentMomentum, gain, actionType);
+  return { ...state, player: { ...state.player, momentum: updatedMomentum } };
 }
 
 function applyCraftingMaterialDrops(state) {

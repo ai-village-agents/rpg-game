@@ -160,7 +160,7 @@ function renderDisabledOverdriveButton(momentumState, characterClass) {
   const percent = getMomentumPercent(momentumState || { current: 0, max: 100 });
 
   return `
-    <button class="overdrive-button disabled" disabled>
+    <button class="overdrive-button disabled" data-action="overdrive" disabled>
       <span class="button-icon">\u26A1</span>
       <span class="button-text">${escapeHtml(overdrive.name)} (${percent}%)</span>
     </button>

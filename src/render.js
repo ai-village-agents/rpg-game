@@ -46,6 +46,7 @@ import { renderEquipmentSetsPanel, getEquipmentSetsPanelStyles } from './equipme
 import { BACKGROUND_ORDER, BACKGROUNDS } from './data/backgrounds.js';
 import { renderVictoryScreen, renderVictoryActions, getVictoryScreenStyles } from './victory-screen.js';
 import { DIFFICULTY_LEVELS, DIFFICULTY_NAMES, DIFFICULTY_DESCRIPTIONS } from './difficulty.js';
+import { getMomentumStyles, renderMomentumGauge, renderOverdriveButton } from './momentum-ui.js';
 
 /** Track previous log for floating text diff */
 let _previousLog = [];
@@ -300,6 +301,12 @@ export function render(state, dispatch) {
     btStyleEl.id = 'boss-telegraph-styles';
     btStyleEl.textContent = getBossTelegraphStyles();
     document.head.appendChild(btStyleEl);
+  }
+  if (!document.getElementById('momentum-styles')) {
+    const momentumStyleEl = document.createElement('style');
+    momentumStyleEl.id = 'momentum-styles';
+    momentumStyleEl.textContent = getMomentumStyles();
+    document.head.appendChild(momentumStyleEl);
   }
   if (!document.getElementById('tutorial-styles')) {
     const tutStyleEl = document.createElement('style');
@@ -613,6 +620,7 @@ export function render(state, dispatch) {
           <div class="kv">
             <div>Phase</div><div><b>${esc(state.phase)}</b></div>
             <div>Turn</div><div><b>${state.turn}</b></div>
+            <div style="grid-column: 1 / -1">${renderMomentumGauge(state.player.momentum, state.player.classId)}</div>
           </div>
         </div>
 
@@ -630,6 +638,7 @@ export function render(state, dispatch) {
     const abilityBtns = abilityInfos.map(a =>
       `<button class="ability-btn" data-ability="${esc(a.id)}" ${(!isPlayerTurn || !a.canUse) ? 'disabled' : ''} title="${esc(a.description)}">${esc(a.name)} (${a.mpCost} MP)</button>`
     ).join('');
+    const overdriveBtn = renderOverdriveButton(state.player.momentum, state.player.classId);
 
     // Build combat item buttons from real inventory consumables
     const playerInv = state.player.inventory || {};
@@ -646,6 +655,7 @@ export function render(state, dispatch) {
         <button id="btnDefend" ${!isPlayerTurn ? 'disabled' : ''}>Defend</button>
         <button id="btnPotion" ${!isPlayerTurn ? 'disabled' : ''}>Use Potion</button>
         <button id="btnFlee" ${!isPlayerTurn ? 'disabled' : ''}>Flee</button>
+        ${overdriveBtn}
         ${abilityBtns}
       </div>
       ${combatItemBtns ? '<div class="buttons item-buttons"><b>Items:</b> ' + combatItemBtns + '</div>' : ''}
@@ -656,6 +666,10 @@ export function render(state, dispatch) {
     document.getElementById('btnDefend').onclick = () => dispatch({ type: 'PLAYER_DEFEND' });
     document.getElementById('btnPotion').onclick = () => dispatch({ type: 'PLAYER_POTION' });
     document.getElementById('btnFlee').onclick = () => dispatch({ type: 'PLAYER_FLEE' });
+    const overdriveBtnEl = actions.querySelector('[data-action="overdrive"]');
+    if (overdriveBtnEl && isPlayerTurn && !overdriveBtnEl.disabled) {
+      overdriveBtnEl.onclick = () => dispatch({ type: 'OVERDRIVE' });
+    }
 
     // Wire ability buttons
     actions.querySelectorAll('.ability-btn').forEach(btn => {

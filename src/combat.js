@@ -31,6 +31,7 @@ import {
 import { getEnemyShieldData, checkWeakness, applyShieldDamage, processBreakState, BREAK_DAMAGE_MULTIPLIER } from './shield-break.js';
 import { initCombatBattleLog, logPlayerAttack, logPlayerAbility, logDamageDealt, logDamageReceived, logHealing, logItemUsed, logStatusApplied, logStatusExpired, logTurnStart, logTurnEnd, logVictory, logDefeat } from './combat-battle-log-integration.js';
 import { applyDifficultyToEnemyHp, applyDifficultyToEnemyDamage, applyDifficultyToXpReward, applyDifficultyToGoldReward, DEFAULT_DIFFICULTY } from './difficulty.js';
+import { canUseOverdrive, getOverdriveAbility, consumeOverdrive, calculateOverdriveDamage, calculateOverdriveHealing } from './momentum.js';
 
 // Minimal deterministic RNG (Park-Miller LCG)
 export function nextRng(seed) {
@@ -528,6 +529,65 @@ export function playerUseAbility(state, abilityId) {
   // Transition to enemy turn
   state = { ...state, phase: 'enemy-turn' };
   return applyVictoryDefeat(state);
+}
+
+export function playerUseOverdrive(state) {
+  if (state.phase !== 'player-turn') return state;
+  const currentMomentum = state.player?.momentum;
+  if (!canUseOverdrive(currentMomentum)) {
+    return pushLog(state, 'Not enough momentum.');
+  }
+
+  const playerClass = state.player?.classId || state.player?.class || 'default';
+  const overdrive = getOverdriveAbility(playerClass);
+  const consumedMomentum = consumeOverdrive(currentMomentum);
+  let next = {
+    ...state,
+    player: { ...state.player, momentum: consumedMomentum, defending: false },
+  };
+
+  next = pushLog(next, `You unleash ${overdrive.name}!`);
+
+  if (overdrive.type === 'heal') {
+    const { healAmount, cleansesStatus } = calculateOverdriveHealing(overdrive, next.player);
+    const oldHp = next.player.hp;
+    const newHp = clamp(oldHp + healAmount, 0, next.player.maxHp);
+    const updatedPlayer = {
+      ...next.player,
+      hp: newHp,
+      statusEffects: cleansesStatus ? [] : (next.player.statusEffects ?? []),
+    };
+    next = { ...next, player: updatedPlayer };
+    next = pushLog(next, `You recover ${newHp - oldHp} HP!`);
+    if (cleansesStatus && (state.player.statusEffects ?? []).length > 0) {
+      next = pushLog(next, 'Negative effects cleansed.');
+    }
+  } else {
+    const attackerStats = getEffectiveCombatStats(next.player);
+    const { totalDamage } = calculateOverdriveDamage(
+      overdrive,
+      { atk: attackerStats.atk, level: next.player?.level ?? 1 },
+      { def: next.enemy?.def ?? 0 },
+    );
+    const enemyHp = clamp(next.enemy.hp - totalDamage, 0, next.enemy.maxHp);
+    next = {
+      ...next,
+      enemy: { ...next.enemy, hp: enemyHp, defending: false },
+      player: { ...next.player, defending: false },
+    };
+    next = pushLog(next, `${(next.enemy.displayName ?? next.enemy.name)} takes ${totalDamage} damage!`);
+  }
+
+  if (overdrive.effect) {
+    const targetKey = (overdrive.effect.type || '').endsWith('-down') ? 'enemy' : 'player';
+    next = addStatusEffect(next, targetKey, overdrive.effect);
+    const targetName = targetKey === 'enemy' ? (next.enemy.displayName ?? next.enemy.name) : 'You';
+    const effectName = overdrive.effect.name || overdrive.effect.type;
+    next = pushLog(next, `${targetName} gains ${effectName}!`);
+  }
+
+  next = { ...next, phase: 'enemy-turn' };
+  return applyVictoryDefeat(next);
 }
 
 

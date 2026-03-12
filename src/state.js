@@ -10,6 +10,7 @@ import { createCompanionState } from './companions.js';
 import { createNPCRelationshipManager } from './npc-relationships.js';
 import { createTutorialState } from './tutorial.js';
 import { DEFAULT_DIFFICULTY, applyDifficultyToEnemyHp } from './difficulty.js';
+import { createMomentumState } from './momentum.js';
 
 export function initialState() {
   const playerBase = characters.player;
@@ -31,6 +32,7 @@ export function initialState() {
       def: playerBase.def,
       defending: false,
       inventory: { potion: 2 },
+      momentum: createMomentumState(),
     },
     enemy: {
       name: enemyBase.name,
@@ -92,6 +94,7 @@ export function initialStateWithClass(classId, characterName = '', difficulty = 
       xp: 0,
       defending: false,
       inventory: { potion: 3 },
+      momentum: createMomentumState(),
     },
     enemy: {
       ...enemyBase,
