@@ -1,4 +1,5 @@
 import { getFloorData, getDungeonProgress, canAdvance, canEnterDungeon, getBossForFloor, isFloorCleared, DUNGEON_FLOORS } from './dungeon-floors.js';
+import { renderDungeonMapPanel } from './dungeon-map.js';
 
 const THEME_COLORS = {
   cavern: '#8B7355',
@@ -77,6 +78,7 @@ export function renderDungeonPanel(state) {
       ${progressBar}
       <div class="dungeon-progress-text">${progress.floorsCleared}/${progress.totalFloors} floors cleared (${progress.percentComplete}%)</div>
     </div>
+    ${renderDungeonMapPanel(state)}
   `;
 }
 
@@ -105,6 +107,7 @@ export function renderDungeonActions(state) {
   }
 
   buttons += `<button id="btnDungeonInventory">Inventory 🎒</button>`;
+  buttons += `<button id="btnDungeonMap">Map 🗺️</button>`;
   buttons += `<button id="btnDungeonExit">Exit Dungeon 🚪</button>`;
 
   return `<div class="buttons">${buttons}</div>`;
@@ -125,6 +128,14 @@ export function attachDungeonHandlers(dispatch) {
 
   const inv = document.getElementById('btnDungeonInventory');
   if (inv) inv.onclick = () => dispatch({ type: 'VIEW_INVENTORY' });
+
+  const mapBtn = document.getElementById('btnDungeonMap');
+  if (mapBtn) {
+    mapBtn.onclick = () => {
+      const panel = document.querySelector('.dungeon-map-panel');
+      if (panel) panel.style.display = panel.style.display === 'none' ? '' : 'none';
+    };
+  }
 
   const exit = document.getElementById('btnDungeonExit');
   if (exit) exit.onclick = () => dispatch({ type: 'DUNGEON_EXIT' });

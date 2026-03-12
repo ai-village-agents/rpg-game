@@ -368,3 +368,109 @@ textarea:focus {
   transition: none !important;
   scroll-behavior: auto !important;
 }
+
+/* === Dungeon Floor Map === */
+.dungeon-map-panel {
+  padding: 16px;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.dungeon-map-panel h2 {
+  margin-bottom: 8px;
+  font-size: 1.1rem;
+}
+
+.dungeon-map-progress {
+  font-size: 0.85rem;
+  color: var(--color-muted, #aaa);
+  margin-bottom: 12px;
+}
+
+.dungeon-map-floors {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.dungeon-map-floor {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  transition: background 0.15s ease;
+}
+
+.dungeon-map-floor--locked {
+  opacity: 0.4;
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.dungeon-map-floor--unvisited {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.dungeon-map-floor--current {
+  background: rgba(99, 179, 237, 0.15);
+  border-color: rgba(99, 179, 237, 0.4);
+  box-shadow: 0 0 8px rgba(99, 179, 237, 0.2);
+}
+
+.dungeon-map-floor--cleared {
+  background: rgba(72, 187, 120, 0.1);
+  border-color: rgba(72, 187, 120, 0.3);
+}
+
+.dungeon-map-floor-num {
+  font-size: 0.75rem;
+  color: var(--color-muted, #888);
+  min-width: 20px;
+  text-align: right;
+}
+
+.dungeon-map-theme-icon {
+  font-size: 1rem;
+  min-width: 22px;
+  text-align: center;
+}
+
+.dungeon-map-floor-name {
+  flex: 1;
+  font-size: 0.9rem;
+}
+
+.dungeon-map-boss-badge {
+  font-size: 0.7rem;
+  background: rgba(255, 165, 0, 0.2);
+  color: #f6ad55;
+  border: 1px solid rgba(255, 165, 0, 0.4);
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-weight: bold;
+}
+
+.dungeon-map-status-icon {
+  font-size: 0.9rem;
+  min-width: 22px;
+  text-align: center;
+}
+
+.dungeon-map-connector {
+  text-align: center;
+  color: var(--color-muted, #555);
+  font-size: 0.8rem;
+  line-height: 1;
+  padding: 1px 0;
+  margin-left: 31px;
+}
+
+/* Dark theme overrides for dungeon map */
+.dark-theme .dungeon-map-floor--current {
+  background: rgba(99, 179, 237, 0.2);
+}
+
+.dark-theme .dungeon-map-floor--cleared {
+  background: rgba(72, 187, 120, 0.15);
+}

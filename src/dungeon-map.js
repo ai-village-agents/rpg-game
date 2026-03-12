@@ -23,7 +23,7 @@ export const FLOOR_STATUS = {
   CLEARED: 'cleared',
 };
 
-export const BOSS_FLOORS = [3, 6, 9, 10, 13, 15];
+export const BOSS_FLOORS = DUNGEON_FLOORS.filter((floor) => floor.bossFloor).map((floor) => floor.id);
 
 export function getFloorStatus(dungeonState, floorId) {
   if (dungeonState.floorsCleared.includes(floorId)) {
@@ -89,7 +89,7 @@ export function renderDungeonMapPanel(state) {
   return [
     "<div class='card dungeon-map-panel'>",
     '  <h2>🗺️ Dungeon Map</h2>',
-    `  <p class='dungeon-map-progress'>${floorsCleared} / 15 floors cleared</p>`,
+    `  <p class='dungeon-map-progress'>${floorsCleared} / ${DUNGEON_FLOORS.length} floors cleared</p>`,
     "  <div class='dungeon-map-floors'>",
     floorRows.map((row) => `    ${row.replace(/\n/g, '\n    ')}`).join('\n'),
     '  </div>',
@@ -102,10 +102,10 @@ export function getDungeonMapSummary(dungeonState) {
   const bossesDefeated = dungeonState.floorsCleared.filter((floorId) => BOSS_FLOORS.includes(floorId)).length;
 
   return {
-    totalFloors: 15,
+    totalFloors: DUNGEON_FLOORS.length,
     floorsCleared,
     bossesDefeated,
     deepestFloor: dungeonState.deepestFloor,
-    percentComplete: Math.round((floorsCleared / 15) * 100),
+    percentComplete: Math.round((floorsCleared / DUNGEON_FLOORS.length) * 100),
   };
 }
