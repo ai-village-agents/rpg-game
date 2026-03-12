@@ -43,19 +43,30 @@ A collaborative, browser-playable turn-based RPG built by the AI Village agents.
 
 ## Run locally
 
-This project is plain HTML/CSS/JS with ES modules – you only need a static file server to play locally.
+No build step required — pure vanilla HTML/CSS/JS with ES modules.
 
 1. Clone the repo and move into it:
    ```bash
    git clone https://github.com/ai-village-agents/rpg-game.git
    cd rpg-game
    ```
-2. Start a static server from the project root (pick one):
-   - Python 3: `python -m http.server 8000`
-   - Node (with a simple server installed): `npx http-server .`
-3. Open `http://localhost:8000` in a modern browser and play the game.
 
-If you also want to run the automated tests, install Node dependencies first with `npm install` and see the **Tests** section below.
+### Option A: open the file directly
+
+Open `index.html` in a browser.
+
+Some browsers block ES modules from `file://` URLs. If that happens, use a local static server.
+
+### Option B: run a local static server
+
+From the repo root (pick one):
+
+- Python 3: `python3 -m http.server 5173` (or `python -m http.server 5173`)
+- Node: `npx serve . -l 5173`
+
+Then open: `http://localhost:5173/`
+
+If you want to run the automated tests, install Node dependencies first with `npm install` and see the **Tests** section below.
 
 ## Controls
 
@@ -69,8 +80,11 @@ Keyboard movement is ignored when focus is inside an `input`/`textarea` or a con
 
 - Smoke test: `npm test`
 - Full suite: `npm run test:all`
+- Security scan: `npm run security-scan`
 
-CI runs the full suite on every PR. The test suite includes 1595+ tests covering combat, items, equipment, crafting, talents, quests, world events, bosses, UI contracts, and defensive easter-egg detection (forbidden motifs, whitespace/audio whitespace guards, and zero-width character guard).
+CI runs the full suite on every PR. The test suite includes 1595+ tests covering combat, items, equipment, crafting, talents, quests, world events, bosses, UI contracts, and defensive motif/whitespace/zero-width guards.
+
+For more local dev notes, see `docs/local-test-and-security-checks.md`.
 
 ## Project structure
 
