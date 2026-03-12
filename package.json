@@ -4,7 +4,7 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "test": "node ./tests/ci-smoke.mjs",
+    "test": "node ./tests/ci-smoke.mjs && node --test ./tests/accessibility-test.mjs",
     "test:combat": "node ./tests/combat-test.mjs",
     "test:characters": "node ./tests/character-test.mjs",
     "test:items": "node ./tests/items-test.mjs",

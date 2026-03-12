@@ -1,5 +1,6 @@
 import { loadSettings } from './settings.js';
 import { applyTheme } from './data/themes.js';
+import { applyReducedMotion } from './accessibility.js';
 
 import { render } from './render.js';
 import { keyToCardinalDirection } from './input.js';
@@ -18,6 +19,7 @@ if (IS_BROWSER) {
   // Initialize theme from settings
   const initialSettings = loadSettings();
   applyTheme(initialSettings.display?.theme || 'midnight');
+  applyReducedMotion(initialSettings.display?.reducedMotion || false);
   let state = { phase: 'class-select', log: ['Welcome to AI Village RPG! Select your class.'], tutorialState: createTutorialState() };
 
   // Initialize audio system on first interaction

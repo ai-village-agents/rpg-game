@@ -23,6 +23,7 @@ export function getDefaultSettings() {
       showStatusIcons: true,
       compactLog: false,
       theme: 'midnight',
+      reducedMotion: false,
     },
     gameplay: {
       autoSave: true,

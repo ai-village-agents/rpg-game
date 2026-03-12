@@ -1,4 +1,5 @@
 import { applyTheme } from '../data/themes.js';
+import { applyReducedMotion } from '../accessibility.js';
 import { startTavernDice, guessTavernDice, cashOutTavernDice } from '../tavern-dice.js';
 import { updateAudioSettings } from '../audio-system.js';
 import { createInventoryState, handleInventoryAction } from '../inventory.js';
@@ -80,6 +81,7 @@ export function handleUIAction(state, action) {
     saveSettings(newSettings);
     updateAudioSettings(newSettings);
     if (action.path === 'display.theme') applyTheme(action.value);
+    if (action.path === 'display.reducedMotion') applyReducedMotion(action.value);
     return { ...state, settings: newSettings };
   }
 
@@ -87,7 +89,8 @@ export function handleUIAction(state, action) {
     if (state.phase !== 'settings') return null;
     const newSettings = resetSettings();
     updateAudioSettings(newSettings);
-    if (action.path === 'display.theme') applyTheme(action.value);
+    applyTheme(newSettings.display?.theme || 'midnight');
+    applyReducedMotion(newSettings.display?.reducedMotion || false);
     return pushLog({ ...state, settings: newSettings }, 'Settings reset to defaults.');
   }
 

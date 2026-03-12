@@ -115,6 +115,7 @@ export function renderSettingsPanel(settings) {
     ${renderCheckbox('setting-damage-numbers', 'Show Damage Numbers', s.display?.showDamageNumbers ?? true)}
     ${renderCheckbox('setting-status-icons', 'Show Status Icons', s.display?.showStatusIcons ?? true)}
     ${renderCheckbox('setting-compact-log', 'Compact Combat Log', s.display?.compactLog ?? false)}
+    ${renderCheckbox('setting-reduced-motion', 'Reduce motion (disable animations)', s.display?.reducedMotion ?? false)}
   `;
   
   const gameplaySection = `
@@ -279,6 +280,7 @@ export function attachSettingsHandlers(settings, onUpdate, onReset) {
     'setting-damage-numbers': 'display.showDamageNumbers',
     'setting-status-icons': 'display.showStatusIcons',
     'setting-compact-log': 'display.compactLog',
+    'setting-reduced-motion': 'display.reducedMotion',
     'setting-auto-save': 'gameplay.autoSave',
     'setting-confirm-flee': 'gameplay.confirmFlee',
     'setting-tutorial-hints': 'gameplay.showTutorialHints',
