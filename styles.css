@@ -102,7 +102,14 @@ button {
   font-weight: 600;
 }
 
-button:hover { border-color: rgba(122,162,255,0.55); }
+button:hover {
+  border-color: rgba(122,162,255,0.55);
+  background: color-mix(in srgb, var(--panel) 60%, var(--accent) 40%);
+}
+button:active {
+  transform: translateY(1px);
+  filter: brightness(0.9);
+}
 button:disabled { opacity: 0.45; cursor: not-allowed; }
 
 .bad { color: var(--bad); }
