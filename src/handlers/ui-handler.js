@@ -1,6 +1,7 @@
 import { applyTheme } from '../data/themes.js';
 import { applyReducedMotion } from '../accessibility.js';
 import { startTavernDice, guessTavernDice, cashOutTavernDice } from '../tavern-dice.js';
+import { generateBounties, acceptBounty } from '../bounty-board.js';
 import { updateAudioSettings } from '../audio-system.js';
 import { createInventoryState, handleInventoryAction } from '../inventory.js';
 import { markAllRead } from '../journal.js';
@@ -535,6 +536,26 @@ export function handleUIAction(state, action) {
     };
   }
   
+  
+  if (type === 'VIEW_BOUNTY_BOARD') {
+    return generateBounties({ ...state, phase: 'bounty-board', previousPhase: state.phase });
+  }
+
+  if (type === 'CLOSE_BOUNTY_BOARD') {
+    if (state.phase !== 'bounty-board') return null;
+    return { ...state, phase: state.previousPhase || 'town' };
+  }
+
+  if (type === 'REFRESH_BOUNTIES') {
+    if (state.phase !== 'bounty-board') return null;
+    return generateBounties({ ...state, bountyBoard: { ...state.bountyBoard, lastRefreshTime: 0 } });
+  }
+
+  if (type === 'ACCEPT_BOUNTY') {
+    if (state.phase !== 'bounty-board') return null;
+    return acceptBounty(state, action.id);
+  }
+
   if (type === 'VIEW_TAVERN') {
     if (isPreAdventure) return null;
     return { ...state, phase: 'tavern-dice', previousPhase: state.phase };

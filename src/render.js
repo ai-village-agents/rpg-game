@@ -1,5 +1,6 @@
 import { renderFastTravelButton, renderFastTravelModal, isFastTravelModalOpen, attachFastTravelHandlers, getFastTravelStyles } from './fast-travel-ui.js';
 import { renderTavernDicePanel } from './tavern-dice-ui.js';
+import { renderBountyBoardPanel } from './bounty-board-ui.js';
 import { saveToLocalStorage } from './state.js';
 import { CLASS_DEFINITIONS } from './characters/classes.js';
 import { DEFAULT_WORLD_DATA, getRoomExits } from './map.js';
@@ -539,6 +540,7 @@ export function render(state, dispatch) {
         <button id="btnHelp">Help ❓</button>
         <button id="btnTalents">Talents ⭐</button>
         <button id="btnTavern">Tavern 🍺</button>
+        <button id="btnBountyBoard">Bounty Board 📜</button>
         <button id="btnJournal">Journal 📔${renderJournalBadge(state)}</button>
         <button id="btnCompanions">Companions 🤝${renderCompanionBadge(state)}</button>
         <button id="btnProvisions">Provisions 🍖</button>
@@ -562,6 +564,7 @@ export function render(state, dispatch) {
     document.getElementById('btnTalents').onclick = () => dispatch({ type: 'VIEW_TALENTS' });
     document.getElementById('btnHelp').onclick = () => dispatch({ type: 'TOGGLE_HELP' });
     document.getElementById('btnTavern').onclick = () => dispatch({ type: 'VIEW_TAVERN' });
+    document.getElementById('btnBountyBoard').onclick = () => dispatch({ type: 'VIEW_BOUNTY_BOARD' });
     document.getElementById('btnJournal').onclick = () => dispatch({ type: 'OPEN_JOURNAL' });
     document.getElementById('btnCompanions').onclick = () => dispatch({ type: 'OPEN_COMPANIONS' });
     document.getElementById('btnProvisions').onclick = () => dispatch({ type: 'OPEN_PROVISIONS' });
@@ -1682,7 +1685,20 @@ if (state.phase === 'achievements') {
     return;
   }
 
-    if (state.phase === 'tavern-dice') {
+    
+  if (state.phase === 'bounty-board') {
+    document.getElementById('hud').style.display = 'block';
+    hud.innerHTML = renderBountyBoardPanel(state);
+    
+    actions.innerHTML = '<div class="buttons"><button id="btnCloseBountyBoard">Leave Board</button></div>';
+    
+    const closeBtn = document.getElementById('btnCloseBountyBoard');
+    if (closeBtn) closeBtn.onclick = () => dispatch({ type: 'CLOSE_BOUNTY_BOARD' });
+    
+    return;
+  }
+
+  if (state.phase === 'tavern-dice') {
     hud.innerHTML = renderTavernDicePanel(state);
     actions.innerHTML = '<div class="buttons"><button id="btnCloseTavern">Leave Tavern</button></div>';
     

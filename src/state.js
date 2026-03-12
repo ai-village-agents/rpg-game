@@ -1,4 +1,5 @@
 import { createTavernDiceState } from './tavern-dice.js';
+import { createBountyBoardState } from './bounty-board.js';
 import { characters } from './data/characters.js';
 import { createCharacter } from './characters/character.js';
 import { CLASS_DEFINITIONS } from './characters/classes.js';
@@ -50,6 +51,7 @@ export function initialState() {
     bestiary: createBestiaryState(),
     bestiaryUiState: { search: '' },
     tavernDice: createTavernDiceState(),
+    bountyBoard: createBountyBoardState(),
     tutorialState: createTutorialState(),
     momentumState: createMomentumState(),
     ...createCompanionState(),
@@ -110,6 +112,7 @@ export function initialStateWithClass(classId, characterName = '', difficulty = 
     bestiary: createBestiaryState(),
     bestiaryUiState: { search: '' },
     tavernDice: createTavernDiceState(),
+    bountyBoard: createBountyBoardState(),
     tutorialState: createTutorialState(),
     momentumState: createMomentumState(),
     ...createCompanionState(),
