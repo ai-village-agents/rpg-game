@@ -298,6 +298,12 @@ export function render(state, dispatch) {
     tutStyleEl.textContent = getTutorialStyles();
     document.head.appendChild(tutStyleEl);
   }
+  if (!document.getElementById('fast-travel-styles')) {
+    const ftStyleEl = document.createElement('style');
+    ftStyleEl.id = 'fast-travel-styles';
+    ftStyleEl.textContent = getFastTravelStyles();
+    document.head.appendChild(ftStyleEl);
+  }
 
   const finalizeRender = () => {
     if (state.fastTravelModalOpen) {
