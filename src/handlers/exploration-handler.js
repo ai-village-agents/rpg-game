@@ -359,3 +359,80 @@ export function handleExplorationAction(state, action) {
 
   return null;
 }
+
+// Fast Travel Handlers
+
+import {
+  getUnlockedFastTravelDestinations,
+  isRoomUnlockedForFastTravel,
+  executeFastTravel,
+  canUseFastTravel,
+} from '../fast-travel.js';
+
+export function handleFastTravelAction(state, action) {
+  if (state.phase !== 'exploration' && action.type !== 'CLOSE_FAST_TRAVEL') {
+    return null;
+  }
+
+  const type = action.type;
+
+  if (type === 'OPEN_FAST_TRAVEL') {
+    const { canTravel, reason } = canUseFastTravel(state);
+    if (!canTravel) {
+      return pushLog(state, reason || 'Fast travel is not available right now.');
+    }
+    return { ...state, fastTravelModalOpen: true };
+  }
+
+  if (type === 'CLOSE_FAST_TRAVEL') {
+    return { ...state, fastTravelModalOpen: false };
+  }
+
+  if (type === 'FAST_TRAVEL') {
+    const destinationId = action.destination;
+    if (!destinationId) {
+      return pushLog(state, 'No destination specified for fast travel.');
+    }
+
+    // Check if destination is unlocked
+    if (!isRoomUnlockedForFastTravel(state.visitedRooms, destinationId)) {
+      return pushLog(state, 'You have not discovered that location yet.');
+    }
+
+    // Execute the fast travel
+    const result = executeFastTravel(state.world, destinationId);
+    if (!result.success) {
+      return pushLog(state, result.message);
+    }
+
+    let next = {
+      ...state,
+      world: result.worldState,
+      fastTravelModalOpen: false,
+    };
+
+    next = pushLog(next, result.message);
+
+    // Quest Integration - check for room-based quest completion
+    const roomId = destinationId;
+    if (next.questState) {
+      const questResult = onRoomEnter(next.questState, roomId);
+      next = { ...next, questState: questResult.questState };
+      const newRewards = buildPendingRewards(questResult.completedQuests);
+      if (newRewards.length > 0) {
+        const existing = next.pendingQuestRewards || [];
+        next = { ...next, pendingQuestRewards: [...existing, ...newRewards] };
+      }
+      next = applyQuestRelationshipEffects(next, questResult.completedQuests);
+    }
+
+    // Transition to quest reward phase if rewards pending
+    if (hasPendingRewards(next.pendingQuestRewards)) {
+      return { ...next, phase: 'quest-reward', preRewardPhase: 'exploration' };
+    }
+
+    return next;
+  }
+
+  return null;
+}

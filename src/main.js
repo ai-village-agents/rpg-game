@@ -4,7 +4,7 @@ import { applyTheme } from './data/themes.js';
 import { render } from './render.js';
 import { keyToCardinalDirection } from './input.js';
 import { handleCombatAction, handleEnemyTurnLogic } from './handlers/combat-handler.js';
-import { handleExplorationAction } from './handlers/exploration-handler.js';
+import { handleExplorationAction, handleFastTravelAction } from './handlers/exploration-handler.js';
 import { handleSystemAction } from './handlers/system-handler.js';
 import { handleUIAction } from './handlers/ui-handler.js';
 import { handleDungeonAction } from './handlers/dungeon-handler.js';
@@ -60,6 +60,7 @@ if (IS_BROWSER) {
     const next = handleCombatAction(state, action) ||
                  handleDungeonAction(state, action) ||
                  handleExplorationAction(state, action) ||
+                 handleFastTravelAction(state, action) ||
                  handleSystemAction(state, action) ||
                  handleUIAction(state, action);
 

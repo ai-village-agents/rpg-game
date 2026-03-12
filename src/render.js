@@ -1,3 +1,4 @@
+import { renderFastTravelButton, renderFastTravelModal, isFastTravelModalOpen, attachFastTravelHandlers, getFastTravelStyles } from './fast-travel-ui.js';
 import { renderTavernDicePanel } from './tavern-dice-ui.js';
 import { saveToLocalStorage } from './state.js';
 import { CLASS_DEFINITIONS } from './characters/classes.js';
@@ -299,6 +300,11 @@ export function render(state, dispatch) {
   }
 
   const finalizeRender = () => {
+    if (state.fastTravelModalOpen) {
+      hud.innerHTML += renderFastTravelModal(state);
+      attachFastTravelHandlers(dispatch);
+    }
+
     if (state.showHelp) {
       hud.innerHTML += renderHelpModal();
       attachHelpHandlers(dispatch);
@@ -490,6 +496,7 @@ export function render(state, dispatch) {
         <button id="btnJournal">Journal 📔${renderJournalBadge(state)}</button>
         <button id="btnCompanions">Companions 🤝${renderCompanionBadge(state)}</button>
         <button id="btnProvisions">Provisions 🍖</button>
+        <button id="btnFastTravel">🗺️ Fast Travel</button>
       </div>
     `;
 
@@ -512,6 +519,7 @@ export function render(state, dispatch) {
     document.getElementById('btnJournal').onclick = () => dispatch({ type: 'OPEN_JOURNAL' });
     document.getElementById('btnCompanions').onclick = () => dispatch({ type: 'OPEN_COMPANIONS' });
     document.getElementById('btnProvisions').onclick = () => dispatch({ type: 'OPEN_PROVISIONS' });
+    document.getElementById('btnFastTravel').onclick = () => dispatch({ type: 'OPEN_FAST_TRAVEL' });
 
     hud.querySelectorAll('.npc-talk-btn').forEach((btn) => {
       btn.onclick = () => dispatch({ type: 'TALK_TO_NPC', npcId: btn.dataset.npcid });
