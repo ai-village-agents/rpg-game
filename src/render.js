@@ -38,6 +38,7 @@ import { triggerFloatingTextFromLog, getFloatingTextStyles } from './floating-te
 import { renderBattleLogPanel, getBattleLogStyles, renderFilterBar } from './battle-log-ui.js';
 import { getBattleLogEntries } from './combat-battle-log-integration.js';
 import { filterAndSortItems, renderSortFilterControls, SORT_MODES, FILTER_MODES } from './inventory-sort-filter.js';
+import { getBossTelegraphStyles, renderBossTelegraphPanel } from './boss-telegraph-ui.js';
 import { renderTutorialHint, attachTutorialHandlers, getTutorialStyles } from './tutorial-ui.js';
 import { getTutorialProgressStyles, renderTutorialProgressPanel, attachTutorialProgressHandlers } from './tutorial-progress-ui.js';
 import { getTutorialHint } from './tutorial.js';
@@ -292,6 +293,12 @@ export function render(state, dispatch) {
     blStyleEl.id = 'battle-log-styles';
     blStyleEl.textContent = getBattleLogStyles();
     document.head.appendChild(blStyleEl);
+  }
+  if (!document.getElementById('boss-telegraph-styles')) {
+    const btStyleEl = document.createElement('style');
+    btStyleEl.id = 'boss-telegraph-styles';
+    btStyleEl.textContent = getBossTelegraphStyles();
+    document.head.appendChild(btStyleEl);
   }
   if (!document.getElementById('tutorial-styles')) {
     const tutStyleEl = document.createElement('style');
@@ -628,6 +635,7 @@ export function render(state, dispatch) {
         ${abilityBtns}
       </div>
       ${combatItemBtns ? '<div class="buttons item-buttons"><b>Items:</b> ' + combatItemBtns + '</div>' : ''}
+      ${renderBossTelegraphPanel(state)}
     `;
 
     document.getElementById('btnAttack').onclick = () => dispatch({ type: 'PLAYER_ATTACK' });
