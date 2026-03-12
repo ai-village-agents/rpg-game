@@ -313,6 +313,7 @@ function scanFile(filePath) {
           patternConfig.name === 'phoenix (egg-laying mythical bird)' &&
           CANON_PHOENIX_FILES.has(normalizedFilePath)
         ) {
+          totalPhoenixOccurrences++;
           continue;
         }
 
