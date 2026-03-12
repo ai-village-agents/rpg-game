@@ -9,7 +9,7 @@
 import { strict as assert } from 'node:assert';
 import { getEquipmentBonuses, getItemDetails, EQUIPMENT_SLOTS } from '../src/inventory.js';
 import { getEffectiveCombatStats, getEquipmentBonusDisplay, hasEquipmentBonuses } from '../src/combat/equipment-bonuses.js';
-import { getEquipmentSetBonuses } from '../src/equipment-sets.js';
+import { calculateSetBonusStats } from '../src/equipment-sets.js';
 import { items } from '../src/data/items.js';
 
 let passed = 0;
@@ -69,7 +69,7 @@ test('stacks bonuses from multiple slots', () => {
   const armorId = Object.keys(items).find(id => items[id].type === 'armor' && items[id].stats?.defense);
   if (weaponId && armorId) {
     const equipment = { weapon: weaponId, armor: armorId, accessory: null };
-    const setBonuses = getEquipmentSetBonuses(equipment);
+    const setBonuses = calculateSetBonusStats(equipment);
     const b = getEquipmentBonuses(equipment);
     const expectedAttack = (items[weaponId].stats.attack || 0) + (setBonuses.attack || 0);
     const expectedDefense = (items[armorId].stats.defense || 0) + (setBonuses.defense || 0);
@@ -142,7 +142,7 @@ test('effective stats stack weapon + armor', () => {
   if (weaponId && armorId) {
     const equipment = { weapon: weaponId, armor: armorId, accessory: null };
     const combatant = { atk: 10, def: 8, spd: 5, equipment };
-    const setBonuses = getEquipmentSetBonuses(equipment);
+    const setBonuses = calculateSetBonusStats(equipment);
     const eff = getEffectiveCombatStats(combatant);
     const expectedAttack = 10 + (items[weaponId].stats.attack || 0) + (setBonuses.attack || 0);
     const expectedDefense = 8 + (items[armorId].stats.defense || 0) + (setBonuses.defense || 0);
