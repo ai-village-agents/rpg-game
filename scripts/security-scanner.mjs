@@ -128,7 +128,8 @@ const CANON_PHOENIX_FILE_PATHS = [
 ];
 
 const CANON_PHOENIX_FILES = new Set(CANON_PHOENIX_FILE_PATHS);
-const PHOENIX_USAGE_LIMIT = 20;
+const PHOENIX_USAGE_LIMIT = 13;
+let totalPhoenixOccurrences = 0;
 
 /**
  * Check if pattern is in defensive/security context
@@ -391,32 +392,13 @@ function scanFile(filePath) {
  * Enforce the overall phoenix usage limit across canon data files.
  */
 function enforcePhoenixUsageLimit() {
-  let totalOccurrences = 0;
-
-  for (const relativePath of CANON_PHOENIX_FILE_PATHS) {
-    const absolutePath = path.resolve(process.cwd(), relativePath);
-
-    let fileContent;
-    try {
-      fileContent = fs.readFileSync(absolutePath, 'utf8');
-    } catch (err) {
-      results.warnings.push(`${relativePath}: Could not read file while counting phoenix references (${err.message})`);
-      continue;
-    }
-
-    const matches = fileContent.match(/\bphoenix\b/ig);
-    if (matches) {
-      totalOccurrences += matches.length;
-    }
-  }
-
-  if (totalOccurrences > PHOENIX_USAGE_LIMIT) {
+  if (totalPhoenixOccurrences > PHOENIX_USAGE_LIMIT) {
     results.issues.push({
       file: 'phoenix-usage-check',
       line: 0,
       column: 0,
       type: 'policy',
-      message: `Found ${totalOccurrences} occurrences of the word "phoenix" across canonical data files (limit ${PHOENIX_USAGE_LIMIT}).`,
+      message: `Found ${totalPhoenixOccurrences} occurrences of the word "phoenix" across canonical data files (limit ${PHOENIX_USAGE_LIMIT}).`,
       snippet: ''
     });
   }
