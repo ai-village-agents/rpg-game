@@ -1,4 +1,4 @@
-import { playerAttack, playerDefend, playerFlee, playerUsePotion, playerUseAbility, playerUseItem, enemyAct } from '../combat.js';
+import { playerAttack, playerDefend, playerFlee, playerUsePotion, playerUseAbility, playerUseOverdrive, playerUseItem, enemyAct } from '../combat.js';
 import { createGameStats, recordDamageDealt, recordTurnPlayed, recordItemUsed, recordAbilityUsed, recordDamageReceived, recordShieldBroken, recordWeaknessHit as recordWeaknessHitGame, recordDefeatedWhileBroken } from '../game-stats.js';
 import { getCraftingMaterialDrops, lookupItem } from '../crafting.js';
 import { addItemToInventory } from '../items.js';
@@ -105,6 +105,24 @@ export function handleCombatAction(state, action) {
     }
     if (next._hitWeakness && cs) recordWeaknessHit(cs);
     
+    return finalizeCombatState(next, { gameStats: gs, combatStats: cs });
+  }
+
+  if (type === 'PLAYER_OVERDRIVE') {
+    const enemyHpBefore = state.enemy?.hp ?? 0;
+    const next = playerUseOverdrive(state);
+    const dmgDealt = Math.max(0, enemyHpBefore - (next.enemy?.hp ?? 0));
+
+    let gs = next.gameStats || createGameStats();
+    if (dmgDealt > 0) gs = recordDamageDealt(gs, dmgDealt);
+    gs = recordTurnPlayed(gs);
+    applyCraftingMaterialDrops(next);
+
+    if (cs) {
+      recordAbilityUse(cs, 'overdrive', dmgDealt, 0);
+      recordTurn(cs, 'player');
+    }
+
     return finalizeCombatState(next, { gameStats: gs, combatStats: cs });
   }
 

@@ -31,6 +31,7 @@ import {
 import { getEnemyShieldData, checkWeakness, applyShieldDamage, processBreakState, BREAK_DAMAGE_MULTIPLIER } from './shield-break.js';
 import { initCombatBattleLog, logPlayerAttack, logPlayerAbility, logDamageDealt, logDamageReceived, logHealing, logItemUsed, logStatusApplied, logStatusExpired, logTurnStart, logTurnEnd, logVictory, logDefeat } from './combat-battle-log-integration.js';
 import { applyDifficultyToEnemyHp, applyDifficultyToEnemyDamage, applyDifficultyToXpReward, applyDifficultyToGoldReward, DEFAULT_DIFFICULTY } from './difficulty.js';
+import { ACTION_TYPES, calculateMomentumGain, addMomentum, consumeOverdrive, applyMomentumDecay, getOverdriveAbility, calculateOverdriveDamage, canUseOverdrive, createMomentumState } from './momentum.js';
 
 // Minimal deterministic RNG (Park-Miller LCG)
 export function nextRng(seed) {
@@ -241,6 +242,7 @@ export function startNewEncounter(state, zoneLevel = 1) {
     phase: 'player-turn',
     turn: 1,
     player: { ...state.player, defending: false, statusEffects: [] },
+    momentumState: state.momentumState ? createMomentumState() : undefined,
   };
   if (isEnemyAttacksFirst(next.worldEvent || state.worldEvent)) {
     next = { ...next, phase: 'enemy-turn' };
@@ -325,6 +327,13 @@ export function playerAttack(state) {
   if (state.phase === 'victory' || state.phase === 'defeat') return state;
   state = processTurnStart(state, 'enemy');
   if (state.phase === 'victory' || state.phase === 'defeat') return state;
+  if (state.momentumState) {
+    const isCrit = false; // base attacks don't crit by default
+    const brokeShield = state._triggeredShieldBreak === true;
+    const hitWeakness = state._hitWeakness === true;
+    const gain = calculateMomentumGain(ACTION_TYPES.ATTACK, { hitWeakness, brokeShield, criticalHit: isCrit }, state.momentumState);
+    state = { ...state, momentumState: addMomentum(state.momentumState, gain, ACTION_TYPES.ATTACK), _triggeredShieldBreak: undefined, _hitWeakness: undefined };
+  }
   return { ...state, phase: 'enemy-turn' };
 }
 
@@ -344,6 +353,10 @@ export function playerDefend(state) {
   state = pushLog(state, `You brace for impact.`);
   state = processTurnStart(state, 'enemy');
   if (state.phase === 'victory' || state.phase === 'defeat') return state;
+  if (state.momentumState) {
+    const gain = calculateMomentumGain(ACTION_TYPES.DEFEND, {}, state.momentumState);
+    state = { ...state, momentumState: addMomentum(state.momentumState, gain, ACTION_TYPES.DEFEND) };
+  }
   return { ...state, phase: 'enemy-turn' };
 }
 
@@ -400,6 +413,10 @@ export function playerUsePotion(state) {
   };
 
   state = pushLog(state, `You drink a potion and heal ${hp - (state.player.hp)} HP.`);
+  if (state.momentumState) {
+    const gain = calculateMomentumGain(ACTION_TYPES.ITEM, {}, state.momentumState);
+    state = { ...state, momentumState: addMomentum(state.momentumState, gain, ACTION_TYPES.ITEM) };
+  }
   state = processTurnStart(state, 'enemy');
   if (state.phase === 'victory' || state.phase === 'defeat') return state;
   return { ...state, phase: 'enemy-turn' };
@@ -525,9 +542,40 @@ export function playerUseAbility(state, abilityId) {
     }
   }
 
+  if (state.momentumState) {
+    const hitWeakness = state._hitWeakness === true;
+    const brokeShield = state._triggeredShieldBreak === true;
+    const gain = calculateMomentumGain(ACTION_TYPES.SKILL, { hitWeakness, brokeShield }, state.momentumState);
+    state = { ...state, momentumState: addMomentum(state.momentumState, gain, ACTION_TYPES.SKILL), _triggeredShieldBreak: undefined, _hitWeakness: undefined };
+  }
+
   // Transition to enemy turn
   state = { ...state, phase: 'enemy-turn' };
   return applyVictoryDefeat(state);
+}
+
+export function playerUseOverdrive(state) {
+  if (state.phase !== 'player-turn') return state;
+  if (!state.momentumState || !canUseOverdrive(state.momentumState)) return state;
+  if (isIncapacitated(state.player)) {
+    const reason = isFrozen(state.player) ? 'frozen solid' : 'stunned';
+    state = pushLog(state, `You are ${reason} and cannot act!`);
+    state = processTurnStart(state, 'enemy');
+    if (state.phase === 'victory' || state.phase === 'defeat') return state;
+    return { ...state, phase: 'enemy-turn' };
+  }
+  const ability = getOverdriveAbility(state.player.classId);
+  const damage = calculateOverdriveDamage(ability, state.player, state.enemy);
+  const totalDamage = damage * (ability.hits || 1);
+  const enemyHp = clamp(state.enemy.hp - totalDamage, 0, state.enemy.maxHp);
+  state = { ...state, enemy: { ...state.enemy, hp: enemyHp, defending: false }, player: { ...state.player, defending: false } };
+  state = pushLog(state, `OVERDRIVE: ${ability.name}! Deals ${totalDamage} damage (${ability.hits || 1} hits)!`);
+  state = { ...state, momentumState: consumeOverdrive(state.momentumState) };
+  state = applyVictoryDefeat(state);
+  if (state.phase === 'victory' || state.phase === 'defeat') return state;
+  state = processTurnStart(state, 'enemy');
+  if (state.phase === 'victory' || state.phase === 'defeat') return state;
+  return { ...state, phase: 'enemy-turn' };
 }
 
 
@@ -748,6 +796,9 @@ export function enemyAct(state) {
   state = processTurnStart(state, 'player');
   if (state.phase === 'victory' || state.phase === 'defeat') return state;
   state = pushLog(state, `Your turn.`);
+  if (state.momentumState) {
+    state = { ...state, momentumState: applyMomentumDecay(state.momentumState, false) };
+  }
   return { ...state, phase: 'player-turn' };
 }
 

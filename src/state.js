@@ -10,6 +10,7 @@ import { createCompanionState } from './companions.js';
 import { createNPCRelationshipManager } from './npc-relationships.js';
 import { createTutorialState } from './tutorial.js';
 import { DEFAULT_DIFFICULTY, applyDifficultyToEnemyHp } from './difficulty.js';
+import { createMomentumState } from './momentum.js';
 
 export function initialState() {
   const playerBase = characters.player;
@@ -50,6 +51,7 @@ export function initialState() {
     bestiaryUiState: { search: '' },
     tavernDice: createTavernDiceState(),
     tutorialState: createTutorialState(),
+    momentumState: createMomentumState(),
     ...createCompanionState(),
     npcRelationshipManager: createNPCRelationshipManager(),
   };
