@@ -57,6 +57,7 @@ import { renderEnemyIntent } from './enemy-intent-ui.js';
 import { renderAtmospherePanel } from './location-atmosphere.js';
 import { renderAreaScene, getAreaSceneStyles } from './area-scene-renderer.js';
 import { renderCombatHpSection, getCombatHpBarStyles } from './combat-hp-bars.js';
+import { renderNotificationToasts, getNotificationToastStyles } from './notification-toast.js';
 
 /** Track previous log for floating text diff */
 let _previousLog = [];
@@ -78,6 +79,7 @@ export function getStyles() {
     getMomentumStyles(),
     getSporelingEvolutionStyles(),
     getCombatHpBarStyles(),
+    getNotificationToastStyles(),
   ];
 }
 
@@ -388,6 +390,18 @@ export function render(state, dispatch) {
     if ((state.achievementNotifications || []).length > 0) {
       renderAchievementToasts(state, dispatch);
       setTimeout(() => dispatch({ type: 'CONSUME_ACHIEVEMENT_NOTIFICATIONS' }), 0);
+    }
+    // General notification toasts (always rendered, independent of achievements)
+    {
+      const toastsContainer = document.getElementById('notification-toasts-container');
+      if (toastsContainer) {
+        toastsContainer.innerHTML = renderNotificationToasts(state);
+      } else {
+        const toastDiv = document.createElement('div');
+        toastDiv.id = 'notification-toasts-container';
+        toastDiv.innerHTML = renderNotificationToasts(state);
+        document.body.appendChild(toastDiv);
+      }
     }
     // Trigger floating damage/heal text for combat phases
     const combatPhases = ['player-turn', 'enemy-turn', 'dungeon-combat', 'dungeon-boss'];
