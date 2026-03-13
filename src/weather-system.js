@@ -1,517 +1,353 @@
 /**
- * Weather System
- * Affects combat conditions with dynamic weather that modifies stats and elements
+ * Weather System - Dynamic weather effects for the RPG
  */
 
-/**
- * Weather types
- */
 export const WEATHER_TYPES = {
-  CLEAR: 'clear',
-  RAIN: 'rain',
-  STORM: 'storm',
-  SNOW: 'snow',
-  BLIZZARD: 'blizzard',
-  SANDSTORM: 'sandstorm',
-  FOG: 'fog',
-  HEATWAVE: 'heatwave',
-  AURORA: 'aurora',
-  VOID_RIFT: 'void-rift',
+  CLEAR: { id: 'clear', name: 'Clear', icon: '☀️', color: '#ffd700' },
+  CLOUDY: { id: 'cloudy', name: 'Cloudy', icon: '☁️', color: '#9e9e9e' },
+  RAIN: { id: 'rain', name: 'Rain', icon: '🌧️', color: '#42a5f5' },
+  STORM: { id: 'storm', name: 'Storm', icon: '⛈️', color: '#5c6bc0' },
+  SNOW: { id: 'snow', name: 'Snow', icon: '❄️', color: '#e3f2fd' },
+  FOG: { id: 'fog', name: 'Fog', icon: '🌫️', color: '#b0bec5' },
+  WIND: { id: 'wind', name: 'Windy', icon: '💨', color: '#80cbc4' },
+  HAIL: { id: 'hail', name: 'Hail', icon: '🌨️', color: '#b3e5fc' }
 };
 
-/**
- * Weather data definitions
- */
-export const WEATHER_DATA = {
-  [WEATHER_TYPES.CLEAR]: {
-    name: 'Clear Skies',
-    icon: '\u2600\uFE0F', // ☀️
-    description: 'The sky is clear with no weather effects.',
-    effects: {},
-    elementBonus: null,
-    elementPenalty: null,
-    statusImmunity: null,
-    visibility: 1.0,
-  },
-  [WEATHER_TYPES.RAIN]: {
-    name: 'Rain',
-    icon: '\uD83C\uDF27\uFE0F', // 🌧️
-    description: 'Rain falls steadily, boosting water attacks.',
-    effects: {
-      accuracyMod: -0.05, // -5% accuracy
-    },
-    elementBonus: 'ice',
-    elementBonusAmount: 0.2,
-    elementPenalty: 'fire',
-    elementPenaltyAmount: 0.2,
-    statusImmunity: null,
-    visibility: 0.9,
-  },
-  [WEATHER_TYPES.STORM]: {
-    name: 'Thunderstorm',
-    icon: '\u26C8\uFE0F', // ⛈️
-    description: 'Thunder roars as lightning crackles. Electric attacks surge.',
-    effects: {
-      accuracyMod: -0.1, // -10% accuracy
-      lightningChance: 0.1, // 10% chance of random lightning strike
-    },
-    elementBonus: 'lightning',
-    elementBonusAmount: 0.3,
-    elementPenalty: 'fire',
-    elementPenaltyAmount: 0.3,
-    statusImmunity: null,
-    visibility: 0.7,
-  },
-  [WEATHER_TYPES.SNOW]: {
-    name: 'Snow',
-    icon: '\uD83C\uDF28\uFE0F', // 🌨️
-    description: 'Gentle snow falls, chilling the battlefield.',
-    effects: {
-      speedMod: -0.1, // -10% speed
-    },
-    elementBonus: 'ice',
-    elementBonusAmount: 0.25,
-    elementPenalty: 'nature',
-    elementPenaltyAmount: 0.15,
-    statusImmunity: 'burn',
-    visibility: 0.85,
-  },
-  [WEATHER_TYPES.BLIZZARD]: {
-    name: 'Blizzard',
-    icon: '\u2744\uFE0F', // ❄️
-    description: 'A fierce blizzard rages, hampering all movement.',
-    effects: {
-      speedMod: -0.25, // -25% speed
-      accuracyMod: -0.15, // -15% accuracy
-      damagePerTurn: 5,
-    },
-    elementBonus: 'ice',
-    elementBonusAmount: 0.4,
-    elementPenalty: 'fire',
-    elementPenaltyAmount: 0.4,
-    statusImmunity: 'burn',
-    visibility: 0.5,
-  },
-  [WEATHER_TYPES.SANDSTORM]: {
-    name: 'Sandstorm',
-    icon: '\uD83C\uDF2A\uFE0F', // 🌪️
-    description: 'Swirling sand obscures vision and damages exposed combatants.',
-    effects: {
-      accuracyMod: -0.2, // -20% accuracy
-      damagePerTurn: 8,
-    },
-    elementBonus: null,
-    elementPenalty: null,
-    statusImmunity: null,
-    visibility: 0.4,
-    immuneTypes: ['rock', 'ground', 'steel'], // Some enemy types immune
-  },
-  [WEATHER_TYPES.FOG]: {
-    name: 'Dense Fog',
-    icon: '\uD83C\uDF2B\uFE0F', // 🌫️
-    description: 'Thick fog blankets the area, reducing visibility drastically.',
-    effects: {
-      accuracyMod: -0.25, // -25% accuracy
-      evasionMod: 0.15, // +15% evasion
-    },
-    elementBonus: null,
-    elementPenalty: null,
-    statusImmunity: null,
-    visibility: 0.3,
-  },
-  [WEATHER_TYPES.HEATWAVE]: {
-    name: 'Heatwave',
-    icon: '\uD83D\uDD25', // 🔥
-    description: 'Scorching heat intensifies fire and saps stamina.',
-    effects: {
-      staminaDrain: 5, // Drain 5 stamina per turn
-    },
-    elementBonus: 'fire',
-    elementBonusAmount: 0.3,
-    elementPenalty: 'ice',
-    elementPenaltyAmount: 0.3,
-    statusImmunity: 'freeze',
-    visibility: 0.95,
-  },
-  [WEATHER_TYPES.AURORA]: {
-    name: 'Aurora',
-    icon: '\u2728', // ✨
-    description: 'Mystical lights dance in the sky, empowering magical attacks.',
-    effects: {
-      magicMod: 0.2, // +20% magic damage
-      mpRegenMod: 0.1, // +10% MP regen
-    },
-    elementBonus: 'holy',
-    elementBonusAmount: 0.2,
-    elementPenalty: null,
-    statusImmunity: null,
-    visibility: 1.0,
-  },
-  [WEATHER_TYPES.VOID_RIFT]: {
-    name: 'Void Rift',
-    icon: '\uD83C\uDF11', // 🌑
-    description: 'Reality tears open, empowering shadow magic but draining life.',
-    effects: {
-      damagePerTurn: 3,
-      shadowMod: 0.3, // +30% shadow damage
-    },
-    elementBonus: 'shadow',
-    elementBonusAmount: 0.35,
-    elementPenalty: 'holy',
-    elementPenaltyAmount: 0.25,
-    statusImmunity: null,
-    visibility: 0.6,
-  },
+export const SEASONS = {
+  SPRING: { id: 'spring', name: 'Spring', icon: '🌸', months: [3, 4, 5] },
+  SUMMER: { id: 'summer', name: 'Summer', icon: '🌻', months: [6, 7, 8] },
+  AUTUMN: { id: 'autumn', name: 'Autumn', icon: '🍂', months: [9, 10, 11] },
+  WINTER: { id: 'winter', name: 'Winter', icon: '❄️', months: [12, 1, 2] }
 };
 
-/**
- * Default weather configuration
- */
-export const DEFAULT_CONFIG = {
-  defaultWeather: WEATHER_TYPES.CLEAR,
-  minDuration: 3,
-  maxDuration: 8,
-  transitionChance: 0.15, // 15% chance to change weather per turn
+export const WEATHER_EFFECTS = {
+  clear: { visibility: 1.0, movementSpeed: 1.0, combatAccuracy: 1.0, fireResist: -0.1 },
+  cloudy: { visibility: 0.9, movementSpeed: 1.0, combatAccuracy: 0.95, fireResist: 0 },
+  rain: { visibility: 0.7, movementSpeed: 0.9, combatAccuracy: 0.85, fireResist: 0.2 },
+  storm: { visibility: 0.5, movementSpeed: 0.7, combatAccuracy: 0.7, fireResist: 0.3, lightningChance: 0.05 },
+  snow: { visibility: 0.6, movementSpeed: 0.75, combatAccuracy: 0.8, coldDamage: 0.1 },
+  fog: { visibility: 0.3, movementSpeed: 0.85, combatAccuracy: 0.6, stealthBonus: 0.2 },
+  wind: { visibility: 0.95, movementSpeed: 0.85, combatAccuracy: 0.9, rangedPenalty: 0.15 },
+  hail: { visibility: 0.6, movementSpeed: 0.7, combatAccuracy: 0.75, periodicDamage: 0.05 }
 };
 
-/**
- * Create weather state for a battle
- * @param {Object} options - Configuration options
- * @returns {Object} Weather state
- */
-export function createWeatherState(options = {}) {
-  const {
-    initialWeather = DEFAULT_CONFIG.defaultWeather,
-    duration = null,
-    locked = false,
-  } = options;
+const SEASON_WEATHER_CHANCES = {
+  spring: { clear: 0.3, cloudy: 0.25, rain: 0.3, storm: 0.1, fog: 0.05 },
+  summer: { clear: 0.5, cloudy: 0.2, rain: 0.15, storm: 0.1, wind: 0.05 },
+  autumn: { clear: 0.2, cloudy: 0.3, rain: 0.25, fog: 0.15, wind: 0.1 },
+  winter: { clear: 0.15, cloudy: 0.25, snow: 0.35, hail: 0.1, fog: 0.1, storm: 0.05 }
+};
 
-  const weatherDuration = duration ||
-    Math.floor(Math.random() * (DEFAULT_CONFIG.maxDuration - DEFAULT_CONFIG.minDuration + 1)) +
-    DEFAULT_CONFIG.minDuration;
-
+export function initWeatherState(state) {
   return {
-    current: initialWeather,
-    turnsRemaining: weatherDuration,
-    totalTurns: 0,
-    locked, // If true, weather won't change
-    history: [initialWeather],
+    state: {
+      ...state,
+      weather: {
+        current: 'clear',
+        intensity: 0.5,
+        duration: 0,
+        season: 'spring',
+        dayTime: 'day',
+        temperature: 20,
+        history: [],
+        forecasts: []
+      }
+    },
+    success: true
   };
 }
 
-/**
- * Get weather data for a weather type
- * @param {string} weatherType - Weather type
- * @returns {Object} Weather data
- */
-export function getWeatherData(weatherType) {
-  return WEATHER_DATA[weatherType] || WEATHER_DATA[WEATHER_TYPES.CLEAR];
-}
-
-/**
- * Calculate element damage modifier based on weather
- * @param {string} element - Attack element
- * @param {string} weatherType - Current weather
- * @returns {number} Damage multiplier (1.0 = no change)
- */
-export function getElementWeatherModifier(element, weatherType) {
-  if (!element || !weatherType) return 1.0;
-
-  const weather = WEATHER_DATA[weatherType];
-  if (!weather) return 1.0;
-
-  const normalizedElement = element.toLowerCase();
-
-  // Check for bonus
-  if (weather.elementBonus && normalizedElement === weather.elementBonus.toLowerCase()) {
-    return 1.0 + (weather.elementBonusAmount || 0);
+export function setWeather(state, weatherType, options = {}) {
+  const { intensity = 0.5, duration = 3600000 } = options;
+  
+  const type = WEATHER_TYPES[weatherType.toUpperCase()];
+  if (!type) {
+    return { success: false, error: 'Invalid weather type' };
   }
-
-  // Check for penalty
-  if (weather.elementPenalty && normalizedElement === weather.elementPenalty.toLowerCase()) {
-    return 1.0 - (weather.elementPenaltyAmount || 0);
-  }
-
-  return 1.0;
-}
-
-/**
- * Apply weather effects to stats
- * @param {Object} baseStats - Base stats { accuracy, speed, evasion, magic }
- * @param {string} weatherType - Current weather
- * @returns {Object} Modified stats
- */
-export function applyWeatherToStats(baseStats, weatherType) {
-  if (!baseStats) return baseStats;
-
-  const weather = WEATHER_DATA[weatherType];
-  if (!weather || !weather.effects) return baseStats;
-
-  const { effects } = weather;
-  const modifiedStats = { ...baseStats };
-
-  if (effects.accuracyMod && typeof modifiedStats.accuracy === 'number') {
-    modifiedStats.accuracy = modifiedStats.accuracy * (1 + effects.accuracyMod);
-  }
-
-  if (effects.speedMod && typeof modifiedStats.speed === 'number') {
-    modifiedStats.speed = Math.floor(modifiedStats.speed * (1 + effects.speedMod));
-  }
-
-  if (effects.evasionMod && typeof modifiedStats.evasion === 'number') {
-    modifiedStats.evasion = modifiedStats.evasion + effects.evasionMod;
-  }
-
-  if (effects.magicMod && typeof modifiedStats.magic === 'number') {
-    modifiedStats.magic = Math.floor(modifiedStats.magic * (1 + effects.magicMod));
-  }
-
-  return modifiedStats;
-}
-
-/**
- * Get weather damage per turn
- * @param {string} weatherType - Current weather
- * @param {Object} entity - Entity with potential immunities
- * @returns {number} Damage to apply
- */
-export function getWeatherDamage(weatherType, entity = {}) {
-  const weather = WEATHER_DATA[weatherType];
-  if (!weather || !weather.effects || !weather.effects.damagePerTurn) {
-    return 0;
-  }
-
-  // Check immunity
-  const immuneTypes = weather.immuneTypes || [];
-  const entityType = entity.type || '';
-  if (immuneTypes.includes(entityType.toLowerCase())) {
-    return 0;
-  }
-
-  return weather.effects.damagePerTurn;
-}
-
-/**
- * Check if status effect is blocked by weather
- * @param {string} statusType - Status effect type
- * @param {string} weatherType - Current weather
- * @returns {boolean} Whether status is immune
- */
-export function isStatusBlockedByWeather(statusType, weatherType) {
-  const weather = WEATHER_DATA[weatherType];
-  if (!weather || !weather.statusImmunity) return false;
-
-  return statusType.toLowerCase() === weather.statusImmunity.toLowerCase();
-}
-
-/**
- * Get a random weather type (weighted by context)
- * @param {Object} context - Context for weather selection
- * @returns {string} Weather type
- */
-export function getRandomWeather(context = {}) {
-  const { biome = 'standard', excludeCurrent = null } = context;
-
-  // Define weather pools by biome
-  const biomePools = {
-    standard: [
-      WEATHER_TYPES.CLEAR,
-      WEATHER_TYPES.RAIN,
-      WEATHER_TYPES.FOG,
-    ],
-    mountain: [
-      WEATHER_TYPES.CLEAR,
-      WEATHER_TYPES.SNOW,
-      WEATHER_TYPES.BLIZZARD,
-      WEATHER_TYPES.FOG,
-    ],
-    desert: [
-      WEATHER_TYPES.CLEAR,
-      WEATHER_TYPES.SANDSTORM,
-      WEATHER_TYPES.HEATWAVE,
-    ],
-    coast: [
-      WEATHER_TYPES.CLEAR,
-      WEATHER_TYPES.RAIN,
-      WEATHER_TYPES.STORM,
-      WEATHER_TYPES.FOG,
-    ],
-    magical: [
-      WEATHER_TYPES.CLEAR,
-      WEATHER_TYPES.AURORA,
-      WEATHER_TYPES.VOID_RIFT,
-      WEATHER_TYPES.FOG,
-    ],
-    void: [
-      WEATHER_TYPES.VOID_RIFT,
-      WEATHER_TYPES.FOG,
-    ],
+  
+  const previous = state.weather.current;
+  const historyEntry = {
+    weather: previous,
+    endedAt: Date.now(),
+    duration: state.weather.duration
   };
-
-  const pool = biomePools[biome] || biomePools.standard;
-  const filtered = excludeCurrent
-    ? pool.filter(w => w !== excludeCurrent)
-    : pool;
-
-  if (filtered.length === 0) return WEATHER_TYPES.CLEAR;
-
-  return filtered[Math.floor(Math.random() * filtered.length)];
+  
+  return {
+    success: true,
+    state: {
+      ...state,
+      weather: {
+        ...state.weather,
+        current: type.id,
+        intensity: Math.max(0, Math.min(1, intensity)),
+        duration,
+        startedAt: Date.now(),
+        history: [...state.weather.history.slice(-9), historyEntry]
+      }
+    },
+    previousWeather: previous
+  };
 }
 
-/**
- * Process weather turn (potentially change weather)
- * @param {Object} state - Weather state
- * @param {Object} options - Processing options
- * @returns {Object} Updated state and change info
- */
-export function processWeatherTurn(state, options = {}) {
-  if (!state) return { state: createWeatherState(), changed: false };
-
-  const { biome = 'standard', forceChange = false, rngValue = Math.random() } = options;
-
-  let newState = {
-    ...state,
-    turnsRemaining: Math.max(0, state.turnsRemaining - 1),
-    totalTurns: state.totalTurns + 1,
+export function setSeason(state, season) {
+  const s = SEASONS[season.toUpperCase()];
+  if (!s) {
+    return { success: false, error: 'Invalid season' };
+  }
+  
+  return {
+    success: true,
+    state: {
+      ...state,
+      weather: {
+        ...state.weather,
+        season: s.id
+      }
+    }
   };
+}
 
-  let changed = false;
-  let newWeather = null;
+export function setDayTime(state, dayTime) {
+  const validTimes = ['dawn', 'day', 'dusk', 'night'];
+  if (!validTimes.includes(dayTime)) {
+    return { success: false, error: 'Invalid day time' };
+  }
+  
+  return {
+    success: true,
+    state: {
+      ...state,
+      weather: {
+        ...state.weather,
+        dayTime
+      }
+    }
+  };
+}
 
-  // Check for weather change
-  if (!state.locked) {
-    const shouldChange = forceChange ||
-      (newState.turnsRemaining === 0) ||
-      (rngValue < DEFAULT_CONFIG.transitionChance);
+export function setTemperature(state, temperature) {
+  if (typeof temperature !== 'number') {
+    return { success: false, error: 'Temperature must be a number' };
+  }
+  
+  return {
+    success: true,
+    state: {
+      ...state,
+      weather: {
+        ...state.weather,
+        temperature: Math.max(-50, Math.min(50, temperature))
+      }
+    }
+  };
+}
 
-    if (shouldChange) {
-      newWeather = getRandomWeather({ biome, excludeCurrent: state.current });
-      const newDuration = Math.floor(Math.random() * (DEFAULT_CONFIG.maxDuration - DEFAULT_CONFIG.minDuration + 1)) +
-        DEFAULT_CONFIG.minDuration;
-
-      newState = {
-        ...newState,
-        current: newWeather,
-        turnsRemaining: newDuration,
-        history: [...newState.history, newWeather],
-      };
-      changed = true;
+export function generateRandomWeather(state, seed = null) {
+  const season = state.weather.season;
+  const chances = SEASON_WEATHER_CHANCES[season];
+  
+  if (!chances) {
+    return { success: false, error: 'Invalid season for weather generation' };
+  }
+  
+  const rand = seed !== null ? seed : Math.random();
+  let cumulative = 0;
+  let selectedWeather = 'clear';
+  
+  for (const [weather, chance] of Object.entries(chances)) {
+    cumulative += chance;
+    if (rand <= cumulative) {
+      selectedWeather = weather;
+      break;
     }
   }
-
-  return {
-    state: newState,
-    changed,
-    previousWeather: changed ? state.current : null,
-    newWeather: changed ? newWeather : null,
-  };
+  
+  const intensity = 0.3 + Math.random() * 0.5;
+  const duration = 1800000 + Math.random() * 3600000;
+  
+  return setWeather(state, selectedWeather, { intensity, duration });
 }
 
-/**
- * Force set weather
- * @param {Object} state - Weather state
- * @param {string} weatherType - Weather to set
- * @param {number} duration - Duration in turns
- * @returns {Object} Updated state
- */
-export function setWeather(state, weatherType, duration = null) {
-  if (!state || !WEATHER_DATA[weatherType]) {
-    return state || createWeatherState();
-  }
-
-  const weatherDuration = duration ||
-    Math.floor(Math.random() * (DEFAULT_CONFIG.maxDuration - DEFAULT_CONFIG.minDuration + 1)) +
-    DEFAULT_CONFIG.minDuration;
-
-  return {
-    ...state,
-    current: weatherType,
-    turnsRemaining: weatherDuration,
-    history: [...state.history, weatherType],
-  };
-}
-
-/**
- * Get weather summary for display
- * @param {Object} state - Weather state
- * @returns {Object} Summary info
- */
-export function getWeatherSummary(state) {
-  if (!state) {
+export function advanceWeather(state, elapsedTime) {
+  const weather = state.weather;
+  const remainingDuration = weather.duration - elapsedTime;
+  
+  if (remainingDuration > 0) {
     return {
-      name: 'Clear Skies',
-      icon: '\u2600\uFE0F',
-      turnsRemaining: 0,
-      effects: {},
+      success: true,
+      state: {
+        ...state,
+        weather: {
+          ...weather,
+          duration: remainingDuration
+        }
+      },
+      weatherChanged: false
     };
   }
-
-  const weatherData = getWeatherData(state.current);
+  
+  const result = generateRandomWeather(state);
   return {
-    type: state.current,
-    name: weatherData.name,
-    icon: weatherData.icon,
-    description: weatherData.description,
-    turnsRemaining: state.turnsRemaining,
-    effects: weatherData.effects,
-    visibility: weatherData.visibility,
-    elementBonus: weatherData.elementBonus,
-    elementPenalty: weatherData.elementPenalty,
+    ...result,
+    weatherChanged: true,
+    newWeather: result.state ? result.state.weather.current : null
   };
 }
 
-/**
- * Get all weather types
- * @returns {Array} Array of weather type strings
- */
+export function generateForecast(state, periods = 3) {
+  const forecasts = [];
+  let tempState = state;
+  
+  for (let i = 0; i < periods; i++) {
+    const result = generateRandomWeather(tempState, Math.random());
+    if (result.success) {
+      const weatherType = WEATHER_TYPES[result.state.weather.current.toUpperCase()];
+      forecasts.push({
+        period: i + 1,
+        weather: result.state.weather.current,
+        name: weatherType ? weatherType.name : result.state.weather.current,
+        icon: weatherType ? weatherType.icon : '?',
+        intensity: result.state.weather.intensity
+      });
+      tempState = result.state;
+    }
+  }
+  
+  return {
+    success: true,
+    state: {
+      ...state,
+      weather: {
+        ...state.weather,
+        forecasts
+      }
+    },
+    forecasts
+  };
+}
+
+export function getCurrentWeather(state) {
+  const weather = state.weather;
+  const type = WEATHER_TYPES[weather.current.toUpperCase()];
+  const effects = WEATHER_EFFECTS[weather.current] || {};
+  
+  return {
+    found: true,
+    weather: {
+      type: weather.current,
+      name: type ? type.name : weather.current,
+      icon: type ? type.icon : '?',
+      color: type ? type.color : '#ffffff',
+      intensity: weather.intensity,
+      duration: weather.duration,
+      effects: { ...effects },
+      season: weather.season,
+      dayTime: weather.dayTime,
+      temperature: weather.temperature
+    }
+  };
+}
+
+export function getWeatherEffects(state) {
+  const weather = state.weather;
+  const baseEffects = WEATHER_EFFECTS[weather.current] || {};
+  const intensity = weather.intensity;
+  
+  const scaledEffects = {};
+  for (const [key, value] of Object.entries(baseEffects)) {
+    if (typeof value === 'number') {
+      if (key === 'visibility' || key === 'movementSpeed' || key === 'combatAccuracy') {
+        scaledEffects[key] = 1 - (1 - value) * intensity;
+      } else {
+        scaledEffects[key] = value * intensity;
+      }
+    } else {
+      scaledEffects[key] = value;
+    }
+  }
+  
+  // Day time modifiers
+  if (weather.dayTime === 'night') {
+    scaledEffects.visibility = (scaledEffects.visibility || 1) * 0.6;
+  } else if (weather.dayTime === 'dawn' || weather.dayTime === 'dusk') {
+    scaledEffects.visibility = (scaledEffects.visibility || 1) * 0.8;
+  }
+  
+  return {
+    found: true,
+    effects: scaledEffects,
+    weather: weather.current,
+    intensity: weather.intensity,
+    dayTime: weather.dayTime
+  };
+}
+
+export function applyWeatherToStats(baseStats, weatherEffects) {
+  const modified = { ...baseStats };
+  
+  if (weatherEffects.movementSpeed && modified.speed !== undefined) {
+    modified.speed = Math.round(modified.speed * weatherEffects.movementSpeed);
+  }
+  
+  if (weatherEffects.combatAccuracy && modified.accuracy !== undefined) {
+    modified.accuracy = Math.round(modified.accuracy * weatherEffects.combatAccuracy);
+  }
+  
+  if (weatherEffects.rangedPenalty && modified.rangedAccuracy !== undefined) {
+    modified.rangedAccuracy = Math.round(modified.rangedAccuracy * (1 - weatherEffects.rangedPenalty));
+  }
+  
+  if (weatherEffects.stealthBonus && modified.stealth !== undefined) {
+    modified.stealth = Math.round(modified.stealth * (1 + weatherEffects.stealthBonus));
+  }
+  
+  return modified;
+}
+
+export function getSeasonInfo(state) {
+  const season = SEASONS[state.weather.season.toUpperCase()];
+  return season ? { found: true, season } : { found: false };
+}
+
+export function getDayTimeInfo(state) {
+  const dayTime = state.weather.dayTime;
+  const info = {
+    dawn: { name: 'Dawn', icon: '🌅', lightLevel: 0.5 },
+    day: { name: 'Day', icon: '☀️', lightLevel: 1.0 },
+    dusk: { name: 'Dusk', icon: '🌆', lightLevel: 0.5 },
+    night: { name: 'Night', icon: '🌙', lightLevel: 0.2 }
+  };
+  
+  return info[dayTime] ? { found: true, dayTime: { id: dayTime, ...info[dayTime] } } : { found: false };
+}
+
+export function getWeatherHistory(state, limit = 10) {
+  return state.weather.history.slice(-limit);
+}
+
+export function getForecasts(state) {
+  return state.weather.forecasts || [];
+}
+
 export function getAllWeatherTypes() {
   return Object.values(WEATHER_TYPES);
 }
 
-/**
- * Check if weather blocks a specific action
- * @param {string} actionType - Type of action
- * @param {string} weatherType - Current weather
- * @returns {boolean} Whether action is blocked
- */
-export function isActionBlockedByWeather(actionType, weatherType) {
-  // Flying actions blocked in blizzard/sandstorm
-  if (actionType === 'fly') {
-    return [WEATHER_TYPES.BLIZZARD, WEATHER_TYPES.SANDSTORM, WEATHER_TYPES.STORM].includes(weatherType);
-  }
-
-  return false;
+export function getAllSeasons() {
+  return Object.values(SEASONS);
 }
 
-/**
- * Get visibility modifier for weather
- * @param {string} weatherType - Current weather
- * @returns {number} Visibility multiplier (0-1)
- */
-export function getVisibilityModifier(weatherType) {
-  const weather = WEATHER_DATA[weatherType];
-  return weather ? weather.visibility : 1.0;
+export function isHazardousWeather(weatherType) {
+  const hazardous = ['storm', 'hail', 'snow'];
+  return hazardous.includes(weatherType);
 }
 
-/**
- * Calculate chance of random weather event
- * @param {string} weatherType - Current weather
- * @param {number} rngValue - Random value 0-1
- * @returns {Object|null} Random event or null
- */
-export function checkRandomWeatherEvent(weatherType, rngValue = Math.random()) {
-  const weather = WEATHER_DATA[weatherType];
-  if (!weather || !weather.effects) return null;
-
-  // Lightning strike during storm
-  if (weather.effects.lightningChance && rngValue < weather.effects.lightningChance) {
-    return {
-      type: 'lightning_strike',
-      damage: 25,
-      element: 'lightning',
-      message: 'Lightning strikes from the storm!',
-    };
-  }
-
-  return null;
+export function getTemperatureDescription(temperature) {
+  if (temperature <= -20) return { desc: 'Freezing', icon: '🥶', danger: true };
+  if (temperature <= 0) return { desc: 'Very Cold', icon: '❄️', danger: false };
+  if (temperature <= 10) return { desc: 'Cold', icon: '🌡️', danger: false };
+  if (temperature <= 20) return { desc: 'Cool', icon: '🌤️', danger: false };
+  if (temperature <= 30) return { desc: 'Warm', icon: '☀️', danger: false };
+  if (temperature <= 40) return { desc: 'Hot', icon: '🔥', danger: false };
+  return { desc: 'Extreme Heat', icon: '🥵', danger: true };
 }

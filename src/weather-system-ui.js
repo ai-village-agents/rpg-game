@@ -1,427 +1,287 @@
 /**
- * Weather System UI Components
- * Renders weather indicators and effects
+ * Weather System UI
  */
 
 import {
   WEATHER_TYPES,
-  WEATHER_DATA,
-  getWeatherData,
-  getWeatherSummary,
-  getVisibilityModifier,
+  SEASONS,
+  getCurrentWeather,
+  getWeatherEffects,
+  getSeasonInfo,
+  getDayTimeInfo,
+  getWeatherHistory,
+  getForecasts,
+  getAllWeatherTypes,
+  getAllSeasons,
+  isHazardousWeather,
+  getTemperatureDescription
 } from './weather-system.js';
 
-/**
- * Get CSS styles for weather system
- * @returns {string} CSS styles
- */
-export function getWeatherStyles() {
-  return `
-.weather-container {
-  position: relative;
-  padding: 8px 12px;
-  border-radius: 8px;
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-  border: 1px solid #0f3460;
-  margin-bottom: 10px;
+function escapeHtml(text) {
+  if (typeof text !== 'string') return '';
+  return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\"/g, '&quot;').replace(/'/g, '&#039;');
 }
 
-.weather-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 6px;
-}
-
-.weather-icon {
-  font-size: 24px;
-  line-height: 1;
-}
-
-.weather-name {
-  font-size: 14px;
-  font-weight: bold;
-  color: #e8e8e8;
-}
-
-.weather-duration {
-  font-size: 11px;
-  color: #888;
-  margin-left: auto;
-}
-
-.weather-description {
-  font-size: 11px;
-  color: #aaa;
-  font-style: italic;
-  margin-bottom: 6px;
-}
-
-.weather-effects {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.weather-effect {
-  font-size: 10px;
-  padding: 2px 6px;
-  border-radius: 4px;
-  background: rgba(255,255,255,0.1);
-}
-
-.weather-effect.bonus {
-  background: rgba(100,200,100,0.2);
-  color: #8f8;
-}
-
-.weather-effect.penalty {
-  background: rgba(200,100,100,0.2);
-  color: #f88;
-}
-
-.weather-effect.neutral {
-  background: rgba(150,150,200,0.2);
-  color: #aaf;
-}
-
-/* Weather-specific themes */
-.weather-container.rain {
-  background: linear-gradient(135deg, #1a2a3e 0%, #0f1f2e 100%);
-  border-color: #2a4a6a;
-}
-
-.weather-container.storm {
-  background: linear-gradient(135deg, #1a1a3e 0%, #0f0f2e 100%);
-  border-color: #4a4a8a;
-  animation: storm-flash 3s infinite;
-}
-
-@keyframes storm-flash {
-  0%, 90%, 100% { opacity: 1; }
-  92% { opacity: 0.8; }
-  94% { opacity: 1; }
-  96% { opacity: 0.7; }
-}
-
-.weather-container.snow, .weather-container.blizzard {
-  background: linear-gradient(135deg, #2a3a4a 0%, #1a2a3a 100%);
-  border-color: #6a8aaa;
-}
-
-.weather-container.sandstorm {
-  background: linear-gradient(135deg, #3a2a1a 0%, #2a1a0a 100%);
-  border-color: #8a6a4a;
-}
-
-.weather-container.fog {
-  background: linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 100%);
-  border-color: #5a5a5a;
-}
-
-.weather-container.heatwave {
-  background: linear-gradient(135deg, #3a1a0a 0%, #2a0a0a 100%);
-  border-color: #aa4a2a;
-}
-
-.weather-container.aurora {
-  background: linear-gradient(135deg, #1a2a3a 0%, #2a1a3a 100%);
-  border-color: #6a8aaa;
-  animation: aurora-glow 4s infinite;
-}
-
-@keyframes aurora-glow {
-  0%, 100% { border-color: #6a8aaa; }
-  33% { border-color: #8aaa6a; }
-  66% { border-color: #aa6a8a; }
-}
-
-.weather-container.void-rift {
-  background: linear-gradient(135deg, #0a0a1a 0%, #1a0a2a 100%);
-  border-color: #4a2a6a;
-  animation: void-pulse 2s infinite;
-}
-
-@keyframes void-pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.85; }
-}
-
-/* Weather transition animation */
-.weather-transition {
-  animation: weather-change 0.5s ease-out;
-}
-
-@keyframes weather-change {
-  0% { transform: scale(0.95); opacity: 0.5; }
-  100% { transform: scale(1); opacity: 1; }
-}
-
-/* Visibility overlay */
-.visibility-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  pointer-events: none;
-  border-radius: 8px;
-}
-
-.visibility-overlay.low {
-  background: rgba(0,0,0,0.3);
-}
-
-.visibility-overlay.very-low {
-  background: rgba(0,0,0,0.5);
-}
-
-/* Weather change notification */
-.weather-change-notice {
-  padding: 8px 12px;
-  background: linear-gradient(135deg, #2a2a4a 0%, #1a1a3a 100%);
-  border: 1px solid #4a4a8a;
-  border-radius: 6px;
-  text-align: center;
-  animation: notice-fade 3s ease-out forwards;
-}
-
-@keyframes notice-fade {
-  0% { opacity: 1; transform: translateY(0); }
-  70% { opacity: 1; }
-  100% { opacity: 0; transform: translateY(-10px); }
-}
-
-.weather-change-notice .change-icon {
-  font-size: 20px;
-  margin-bottom: 4px;
-}
-
-.weather-change-notice .change-text {
-  font-size: 12px;
-  color: #ccc;
-}
-`;
-}
-
-/**
- * Render weather indicator
- * @param {Object} state - Weather state
- * @returns {string} HTML string
- */
-export function renderWeatherIndicator(state) {
-  if (!state) {
-    return '<div class="weather-container clear"><span class="weather-icon">\u2600\uFE0F</span> Clear</div>';
+export function renderWeatherWidget(state, options = {}) {
+  const { compact = false } = options;
+  const weather = getCurrentWeather(state);
+  
+  if (!weather.found) {
+    return '<div class="weather-widget empty">Weather unavailable</div>';
   }
-
-  const summary = getWeatherSummary(state);
-  const weatherClass = state.current.replace('-', '');
-
-  return `
-    <div class="weather-container ${weatherClass}">
-      <div class="weather-header">
-        <span class="weather-icon">${escapeHtml(summary.icon)}</span>
-        <span class="weather-name">${escapeHtml(summary.name)}</span>
-        <span class="weather-duration">${summary.turnsRemaining} turns</span>
-      </div>
-    </div>
-  `.trim();
+  
+  const w = weather.weather;
+  const tempInfo = getTemperatureDescription(w.temperature);
+  
+  if (compact) {
+    return '<div class="weather-widget compact" style="background-color: ' + w.color + '20">' +
+      '<span class="weather-icon">' + w.icon + '</span>' +
+      '<span class="weather-name">' + escapeHtml(w.name) + '</span>' +
+      '<span class="temperature">' + w.temperature + '°</span>' +
+    '</div>';
+  }
+  
+  const hazardWarning = isHazardousWeather(w.type) 
+    ? '<div class="hazard-warning">⚠️ Hazardous Conditions</div>' 
+    : '';
+  
+  return '<div class="weather-widget" style="background-color: ' + w.color + '20; border-color: ' + w.color + '">' +
+    '<div class="weather-main">' +
+      '<span class="weather-icon large">' + w.icon + '</span>' +
+      '<div class="weather-info">' +
+        '<span class="weather-name">' + escapeHtml(w.name) + '</span>' +
+        '<span class="weather-intensity">Intensity: ' + Math.round(w.intensity * 100) + '%</span>' +
+      '</div>' +
+    '</div>' +
+    '<div class="weather-details">' +
+      '<div class="temperature-row">' +
+        '<span class="temp-icon">' + tempInfo.icon + '</span>' +
+        '<span class="temp-value">' + w.temperature + '°C</span>' +
+        '<span class="temp-desc">' + escapeHtml(tempInfo.desc) + '</span>' +
+      '</div>' +
+      '<div class="time-row">' +
+        '<span class="season">' + escapeHtml(w.season) + '</span>' +
+        '<span class="day-time">' + escapeHtml(w.dayTime) + '</span>' +
+      '</div>' +
+    '</div>' +
+    hazardWarning +
+  '</div>';
 }
 
-/**
- * Render detailed weather display
- * @param {Object} state - Weather state
- * @returns {string} HTML string
- */
-export function renderWeatherDisplay(state) {
-  if (!state) {
-    return renderWeatherIndicator(null);
+export function renderWeatherEffects(state) {
+  const result = getWeatherEffects(state);
+  
+  if (!result.found) {
+    return '<div class="weather-effects empty">No effects</div>';
   }
-
-  const summary = getWeatherSummary(state);
-  const weatherClass = state.current.replace('-', '');
-  const effects = formatWeatherEffects(summary);
-  const visibility = getVisibilityModifier(state.current);
-  const visibilityClass = visibility < 0.5 ? 'very-low' : visibility < 0.8 ? 'low' : '';
-
-  return `
-    <div class="weather-container ${weatherClass}">
-      ${visibilityClass ? `<div class="visibility-overlay ${visibilityClass}"></div>` : ''}
-      <div class="weather-header">
-        <span class="weather-icon">${escapeHtml(summary.icon)}</span>
-        <span class="weather-name">${escapeHtml(summary.name)}</span>
-        <span class="weather-duration">${summary.turnsRemaining} turns</span>
-      </div>
-      <div class="weather-description">${escapeHtml(summary.description)}</div>
-      ${effects.length > 0 ? `
-        <div class="weather-effects">
-          ${effects.join('')}
-        </div>
-      ` : ''}
-    </div>
-  `.trim();
+  
+  const effects = result.effects;
+  const rows = [];
+  
+  if (effects.visibility !== undefined) {
+    const vis = Math.round(effects.visibility * 100);
+    rows.push('<div class="effect-row"><span class="effect-name">👁️ Visibility</span><span class="effect-value">' + vis + '%</span></div>');
+  }
+  
+  if (effects.movementSpeed !== undefined) {
+    const speed = Math.round(effects.movementSpeed * 100);
+    rows.push('<div class="effect-row"><span class="effect-name">🏃 Movement</span><span class="effect-value">' + speed + '%</span></div>');
+  }
+  
+  if (effects.combatAccuracy !== undefined) {
+    const acc = Math.round(effects.combatAccuracy * 100);
+    rows.push('<div class="effect-row"><span class="effect-name">🎯 Accuracy</span><span class="effect-value">' + acc + '%</span></div>');
+  }
+  
+  if (effects.stealthBonus !== undefined && effects.stealthBonus > 0) {
+    const stealth = Math.round(effects.stealthBonus * 100);
+    rows.push('<div class="effect-row bonus"><span class="effect-name">🥷 Stealth</span><span class="effect-value">+' + stealth + '%</span></div>');
+  }
+  
+  if (effects.rangedPenalty !== undefined && effects.rangedPenalty > 0) {
+    const penalty = Math.round(effects.rangedPenalty * 100);
+    rows.push('<div class="effect-row penalty"><span class="effect-name">🏹 Ranged</span><span class="effect-value">-' + penalty + '%</span></div>');
+  }
+  
+  if (effects.fireResist !== undefined && effects.fireResist !== 0) {
+    const resist = Math.round(effects.fireResist * 100);
+    const sign = resist > 0 ? '+' : '';
+    rows.push('<div class="effect-row"><span class="effect-name">🔥 Fire Resist</span><span class="effect-value">' + sign + resist + '%</span></div>');
+  }
+  
+  return '<div class="weather-effects">' +
+    '<h4>Weather Effects</h4>' +
+    rows.join('') +
+  '</div>';
 }
 
-/**
- * Format weather effects for display
- * @param {Object} summary - Weather summary
- * @returns {Array} Array of effect HTML strings
- */
-function formatWeatherEffects(summary) {
-  const effects = [];
-
-  // Element bonus
-  if (summary.elementBonus) {
-    effects.push(`<span class="weather-effect bonus">${capitalize(summary.elementBonus)} +</span>`);
+export function renderForecast(state) {
+  const forecasts = getForecasts(state);
+  
+  if (forecasts.length === 0) {
+    return '<div class="weather-forecast empty">No forecast available</div>';
   }
-
-  // Element penalty
-  if (summary.elementPenalty) {
-    effects.push(`<span class="weather-effect penalty">${capitalize(summary.elementPenalty)} -</span>`);
-  }
-
-  // Stat effects
-  const statEffects = summary.effects || {};
-
-  if (statEffects.accuracyMod) {
-    const mod = Math.round(statEffects.accuracyMod * 100);
-    const cls = mod > 0 ? 'bonus' : 'penalty';
-    effects.push(`<span class="weather-effect ${cls}">Accuracy ${mod > 0 ? '+' : ''}${mod}%</span>`);
-  }
-
-  if (statEffects.speedMod) {
-    const mod = Math.round(statEffects.speedMod * 100);
-    const cls = mod > 0 ? 'bonus' : 'penalty';
-    effects.push(`<span class="weather-effect ${cls}">Speed ${mod > 0 ? '+' : ''}${mod}%</span>`);
-  }
-
-  if (statEffects.evasionMod) {
-    const mod = Math.round(statEffects.evasionMod * 100);
-    const cls = mod > 0 ? 'bonus' : 'penalty';
-    effects.push(`<span class="weather-effect ${cls}">Evasion ${mod > 0 ? '+' : ''}${mod}%</span>`);
-  }
-
-  if (statEffects.magicMod) {
-    const mod = Math.round(statEffects.magicMod * 100);
-    effects.push(`<span class="weather-effect bonus">Magic +${mod}%</span>`);
-  }
-
-  if (statEffects.damagePerTurn) {
-    effects.push(`<span class="weather-effect penalty">${statEffects.damagePerTurn} dmg/turn</span>`);
-  }
-
-  if (statEffects.lightningChance) {
-    effects.push(`<span class="weather-effect neutral">Lightning strikes!</span>`);
-  }
-
-  return effects;
+  
+  const items = forecasts.map(f => {
+    const type = WEATHER_TYPES[f.weather.toUpperCase()] || {};
+    return '<div class="forecast-item" style="border-color: ' + (type.color || '#ccc') + '">' +
+      '<span class="forecast-period">+' + f.period + 'h</span>' +
+      '<span class="forecast-icon">' + f.icon + '</span>' +
+      '<span class="forecast-name">' + escapeHtml(f.name) + '</span>' +
+    '</div>';
+  }).join('');
+  
+  return '<div class="weather-forecast">' +
+    '<h4>Forecast</h4>' +
+    '<div class="forecast-items">' + items + '</div>' +
+  '</div>';
 }
 
-/**
- * Render weather change notification
- * @param {string} oldWeather - Previous weather type
- * @param {string} newWeather - New weather type
- * @returns {string} HTML string
- */
-export function renderWeatherChangeNotice(oldWeather, newWeather) {
-  const oldData = getWeatherData(oldWeather);
-  const newData = getWeatherData(newWeather);
-
-  return `
-    <div class="weather-change-notice">
-      <div class="change-icon">${escapeHtml(oldData.icon)} \u2192 ${escapeHtml(newData.icon)}</div>
-      <div class="change-text">The weather changed to ${escapeHtml(newData.name)}!</div>
-    </div>
-  `.trim();
+export function renderWeatherHistory(state, limit = 5) {
+  const history = getWeatherHistory(state, limit);
+  
+  if (history.length === 0) {
+    return '<div class="weather-history empty">No history</div>';
+  }
+  
+  const items = history.map(h => {
+    const type = WEATHER_TYPES[h.weather.toUpperCase()] || {};
+    return '<div class="history-item">' +
+      '<span class="history-icon">' + (type.icon || '?') + '</span>' +
+      '<span class="history-name">' + escapeHtml(type.name || h.weather) + '</span>' +
+    '</div>';
+  }).join('');
+  
+  return '<div class="weather-history">' +
+    '<h4>Recent Weather</h4>' +
+    items +
+  '</div>';
 }
 
-/**
- * Render weather event notification
- * @param {Object} event - Weather event
- * @returns {string} HTML string
- */
-export function renderWeatherEventNotice(event) {
-  if (!event) return '';
-
-  const icons = {
-    lightning_strike: '\u26A1',
-  };
-
-  return `
-    <div class="weather-change-notice">
-      <div class="change-icon">${icons[event.type] || '\u26A0\uFE0F'}</div>
-      <div class="change-text">${escapeHtml(event.message)}</div>
-    </div>
-  `.trim();
+export function renderSeasonDisplay(state) {
+  const result = getSeasonInfo(state);
+  
+  if (!result.found) {
+    return '<div class="season-display empty">Unknown season</div>';
+  }
+  
+  const season = result.season;
+  return '<div class="season-display">' +
+    '<span class="season-icon">' + season.icon + '</span>' +
+    '<span class="season-name">' + escapeHtml(season.name) + '</span>' +
+  '</div>';
 }
 
-/**
- * Render weather catalog (all weather types)
- * @returns {string} HTML string
- */
-export function renderWeatherCatalog() {
-  const types = Object.values(WEATHER_TYPES);
-
-  const items = types.map(type => {
-    const data = WEATHER_DATA[type];
-    return `
-      <div class="weather-catalog-item">
-        <span class="weather-icon">${escapeHtml(data.icon)}</span>
-        <span class="weather-name">${escapeHtml(data.name)}</span>
-        <span class="weather-desc">${escapeHtml(data.description)}</span>
-      </div>
-    `;
-  });
-
-  return `
-    <div class="weather-catalog">
-      ${items.join('')}
-    </div>
-  `.trim();
+export function renderDayTimeDisplay(state) {
+  const result = getDayTimeInfo(state);
+  
+  if (!result.found) {
+    return '<div class="day-time-display empty">Unknown time</div>';
+  }
+  
+  const dt = result.dayTime;
+  return '<div class="day-time-display">' +
+    '<span class="time-icon">' + dt.icon + '</span>' +
+    '<span class="time-name">' + escapeHtml(dt.name) + '</span>' +
+    '<span class="light-level">Light: ' + Math.round(dt.lightLevel * 100) + '%</span>' +
+  '</div>';
 }
 
-/**
- * Get weather background effect class
- * @param {string} weatherType - Current weather
- * @returns {string} CSS class name
- */
-export function getWeatherBackgroundClass(weatherType) {
-  const classMap = {
-    [WEATHER_TYPES.RAIN]: 'bg-rain',
-    [WEATHER_TYPES.STORM]: 'bg-storm',
-    [WEATHER_TYPES.SNOW]: 'bg-snow',
-    [WEATHER_TYPES.BLIZZARD]: 'bg-blizzard',
-    [WEATHER_TYPES.SANDSTORM]: 'bg-sandstorm',
-    [WEATHER_TYPES.FOG]: 'bg-fog',
-    [WEATHER_TYPES.HEATWAVE]: 'bg-heatwave',
-    [WEATHER_TYPES.AURORA]: 'bg-aurora',
-    [WEATHER_TYPES.VOID_RIFT]: 'bg-void',
-  };
-
-  return classMap[weatherType] || 'bg-clear';
+export function renderTemperatureGauge(state) {
+  const weather = getCurrentWeather(state);
+  if (!weather.found) {
+    return '<div class="temperature-gauge empty">--</div>';
+  }
+  
+  const temp = weather.weather.temperature;
+  const info = getTemperatureDescription(temp);
+  const position = ((temp + 50) / 100) * 100;
+  
+  return '<div class="temperature-gauge">' +
+    '<div class="gauge-bar">' +
+      '<div class="gauge-marker" style="left: ' + Math.max(0, Math.min(100, position)) + '%"></div>' +
+    '</div>' +
+    '<div class="gauge-labels">' +
+      '<span>-50°</span><span>0°</span><span>50°</span>' +
+    '</div>' +
+    '<div class="current-temp' + (info.danger ? ' danger' : '') + '">' +
+      info.icon + ' ' + temp + '°C - ' + escapeHtml(info.desc) +
+    '</div>' +
+  '</div>';
 }
 
-/**
- * Escape HTML special characters
- * @param {string} str - String to escape
- * @returns {string} Escaped string
- */
-function escapeHtml(str) {
-  if (typeof str !== 'string') return '';
-  return str
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
+export function renderWeatherSelector(selectedType = null) {
+  const types = getAllWeatherTypes();
+  
+  const options = types.map(t =>
+    '<button class="weather-btn' + (selectedType === t.id ? ' active' : '') + '" ' +
+    'data-weather="' + t.id + '" style="--weather-color: ' + t.color + '">' +
+      t.icon + ' ' + escapeHtml(t.name) +
+    '</button>'
+  ).join('');
+  
+  return '<div class="weather-selector">' +
+    '<h4>Set Weather</h4>' +
+    '<div class="weather-options">' + options + '</div>' +
+  '</div>';
 }
 
-/**
- * Capitalize first letter
- * @param {string} str - String to capitalize
- * @returns {string} Capitalized string
- */
-function capitalize(str) {
-  if (typeof str !== 'string' || str.length === 0) return '';
-  return str.charAt(0).toUpperCase() + str.slice(1);
+export function renderSeasonSelector(selectedSeason = null) {
+  const seasons = getAllSeasons();
+  
+  const options = seasons.map(s =>
+    '<button class="season-btn' + (selectedSeason === s.id ? ' active' : '') + '" data-season="' + s.id + '">' +
+      s.icon + ' ' + escapeHtml(s.name) +
+    '</button>'
+  ).join('');
+  
+  return '<div class="season-selector">' +
+    '<h4>Set Season</h4>' +
+    '<div class="season-options">' + options + '</div>' +
+  '</div>';
+}
+
+export function renderWeatherPage(state) {
+  const weather = getCurrentWeather(state);
+  
+  return '<div class="weather-page">' +
+    '<header class="page-header"><h1>Weather</h1></header>' +
+    '<div class="page-content">' +
+      '<div class="main-weather">' +
+        renderWeatherWidget(state) +
+        renderTemperatureGauge(state) +
+      '</div>' +
+      '<div class="weather-sidebar">' +
+        renderSeasonDisplay(state) +
+        renderDayTimeDisplay(state) +
+        renderWeatherEffects(state) +
+      '</div>' +
+      '<div class="weather-bottom">' +
+        renderForecast(state) +
+        renderWeatherHistory(state) +
+      '</div>' +
+    '</div>' +
+  '</div>';
+}
+
+export function renderWeatherNotification(weatherType, previousWeather) {
+  const newType = WEATHER_TYPES[weatherType.toUpperCase()] || { icon: '?', name: weatherType };
+  const oldType = WEATHER_TYPES[previousWeather.toUpperCase()] || { icon: '?', name: previousWeather };
+  
+  return '<div class="weather-notification">' +
+    '<span class="old-weather">' + oldType.icon + '</span>' +
+    '<span class="arrow">→</span>' +
+    '<span class="new-weather">' + newType.icon + '</span>' +
+    '<span class="notification-text">Weather changed to ' + escapeHtml(newType.name) + '</span>' +
+  '</div>';
+}
+
+export function renderMiniWeather(state) {
+  const weather = getCurrentWeather(state);
+  if (!weather.found) return '<span class="mini-weather">--</span>';
+  
+  const w = weather.weather;
+  return '<span class="mini-weather" title="' + escapeHtml(w.name) + '">' +
+    w.icon + ' ' + w.temperature + '°' +
+  '</span>';
 }
