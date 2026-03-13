@@ -59,6 +59,7 @@ import { renderAreaScene, getAreaSceneStyles } from './area-scene-renderer.js';
 import { renderCombatHpSection, getCombatHpBarStyles } from './combat-hp-bars.js';
 import { renderNotificationToasts, getNotificationToastStyles } from './notification-toast.js';
 import { createRewardsState, renderRewardsHtml, getRewardsStyles } from './combat-rewards-animator.js';
+import { renderStatsDashboardPhase, renderStatsDashboardActions, attachStatsDashboardHandlers, initStatsDashboard, getStatsDashboardIntegrationStyles } from './statistics-dashboard-integration.js';
 let _victoryAnimStartTime = 0;
 
 /** Track previous log for floating text diff */
@@ -82,6 +83,7 @@ export function getStyles() {
     getSporelingEvolutionStyles(),
     getCombatHpBarStyles(),
     getNotificationToastStyles(),
+    getStatsDashboardIntegrationStyles(),
   ];
 }
 
@@ -607,6 +609,7 @@ export function render(state, dispatch) {
         <button id="btnProvisions">Provisions 🍖</button>
         <button id="btnFastTravel">🗺️ Fast Travel</button>
         <button id="btnDailyChallenges">Daily 📅</button>
+        <button id="btnStatsDashboard">📈 Statistics</button>
       </div>
     `;
 
@@ -636,6 +639,7 @@ export function render(state, dispatch) {
     document.getElementById('btnProvisions').onclick = () => dispatch({ type: 'OPEN_PROVISIONS' });
     document.getElementById('btnFastTravel').onclick = () => dispatch({ type: 'OPEN_FAST_TRAVEL' });
     document.getElementById('btnDailyChallenges').onclick = () => dispatch({ type: 'OPEN_DAILY_CHALLENGES' });
+    document.getElementById('btnStatsDashboard').onclick = () => dispatch({ type: 'OPEN_STATISTICS_DASHBOARD' });
 
     hud.querySelectorAll('.npc-talk-btn').forEach((btn) => {
       btn.onclick = () => dispatch({ type: 'TALK_TO_NPC', npcId: btn.dataset.npcid });
@@ -1046,6 +1050,17 @@ export function render(state, dispatch) {
     `;
     actions.innerHTML = '<div class="buttons"><button id="btnCloseStats">Close 📊</button></div>';
     document.getElementById('btnCloseStats').onclick = () => dispatch({ type: 'CLOSE_STATS' });
+    log.innerHTML = state.log.slice().reverse().map(line => formatLogEntryHtml(line)).join('');
+    finalizeRender();
+    return;
+  }
+
+  // --- Statistics Dashboard Phase ---
+  if (state.phase === 'statistics-dashboard') {
+    initStatsDashboard();
+    hud.innerHTML = renderStatsDashboardPhase(state);
+    actions.innerHTML = renderStatsDashboardActions();
+    attachStatsDashboardHandlers(document, dispatch);
     log.innerHTML = state.log.slice().reverse().map(line => formatLogEntryHtml(line)).join('');
     finalizeRender();
     return;
