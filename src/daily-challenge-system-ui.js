@@ -432,6 +432,29 @@ export function getDailyChallengeStyles() {
   min-width: 40px;
   text-align: right;
 }
+
+.daily-challenge-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 1200;
+}
+
+.daily-challenge-modal {
+  width: min(860px, 95vw);
+  max-height: 88vh;
+  overflow-y: auto;
+}
+
+.daily-challenge-modal-close {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 10px;
+}
 `;
 }
 
@@ -744,4 +767,57 @@ export function renderAllCompleteMessage(state) {
       ` : ''}
     </div>
   `.trim();
+}
+
+/**
+ * Render daily challenge modal UI into the document.
+ * @param {Object} gameState - Full game state
+ * @param {Function} dispatch - Game dispatcher
+ */
+export function renderDailyChallengesUI(gameState, dispatch) {
+  if (typeof document === 'undefined') return;
+
+  if (!document.getElementById('daily-challenge-styles')) {
+    const styleEl = document.createElement('style');
+    styleEl.id = 'daily-challenge-styles';
+    styleEl.textContent = getDailyChallengeStyles();
+    document.head.appendChild(styleEl);
+  }
+
+  let root = document.getElementById('daily-challenge-ui-root');
+  if (!root) {
+    root = document.createElement('div');
+    root.id = 'daily-challenge-ui-root';
+    document.body.appendChild(root);
+  }
+
+  const challengeState = gameState?.dailyChallengeState;
+  const isOpen = Boolean(gameState?.showDailyChallenges);
+  if (!challengeState || !isOpen) {
+    root.innerHTML = '';
+    return;
+  }
+
+  root.innerHTML = `
+    <div class="daily-challenge-overlay">
+      <div class="daily-challenge-modal">
+        <div class="daily-challenge-modal-close">
+          <button id="btnCloseDailyChallenges">Close</button>
+        </div>
+        ${renderDailyChallengePanel(challengeState)}
+      </div>
+    </div>
+  `.trim();
+
+  const closeBtn = document.getElementById('btnCloseDailyChallenges');
+  if (closeBtn) {
+    closeBtn.onclick = () => dispatch({ type: 'CLOSE_DAILY_CHALLENGES' });
+  }
+
+  root.querySelectorAll('.claim-button').forEach((btn) => {
+    btn.onclick = () => dispatch({
+      type: 'CLAIM_DAILY_CHALLENGE',
+      challengeId: btn.dataset.challenge,
+    });
+  });
 }

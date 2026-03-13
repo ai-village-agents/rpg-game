@@ -450,6 +450,7 @@ export function initializeDailyChallenges(state, date = new Date()) {
       completedToday: [],
       dailyProgress: {},
       streak: newStreak,
+      lastCompletedDate: today,
     };
   }
 

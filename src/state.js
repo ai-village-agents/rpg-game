@@ -15,6 +15,7 @@ import { createNPCRelationshipManager } from './npc-relationships.js';
 import { createTavernDiceState } from './tavern-dice.js';
 import { createTutorialState } from './tutorial.js';
 import { createWeatherState } from './weather.js';
+import { createDailyChallengeState } from './daily-challenge-system.js';
 
 export function initialState() {
   const playerBase = characters.player;
@@ -60,6 +61,8 @@ export function initialState() {
     comboState: createComboState(),
     factionReputation: createReputationState(),
     guildSystemState: createGuildSystemState(),
+    dailyChallengeState: createDailyChallengeState(),
+    showDailyChallenges: false,
     ...createCompanionState(),
     npcRelationshipManager: createNPCRelationshipManager(),
   };
@@ -124,6 +127,8 @@ export function initialStateWithClass(classId, characterName = '', difficulty = 
     comboState: createComboState(),
     factionReputation: createReputationState(),
     guildSystemState: createGuildSystemState(),
+    dailyChallengeState: createDailyChallengeState(),
+    showDailyChallenges: false,
     ...createCompanionState(),
     npcRelationshipManager: createNPCRelationshipManager(),
   };
