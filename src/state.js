@@ -12,6 +12,7 @@ import { createGuildSystemState } from './guild-system.js';
 import { createWorldState } from './map.js';
 import { createMomentumState } from './momentum.js';
 import { createNPCRelationshipManager } from './npc-relationships.js';
+import { createEncounterState } from './random-encounter-system.js';
 import { createTavernDiceState } from './tavern-dice.js';
 import { createTutorialState } from './tutorial.js';
 import { createWeatherState } from './weather.js';
@@ -63,6 +64,7 @@ export function initialState() {
     guildSystemState: createGuildSystemState(),
     dailyChallengeState: createDailyChallengeState(),
     showDailyChallenges: false,
+    encounterState: createEncounterState(),
     ...createCompanionState(),
     npcRelationshipManager: createNPCRelationshipManager(),
   };
@@ -129,6 +131,7 @@ export function initialStateWithClass(classId, characterName = '', difficulty = 
     guildSystemState: createGuildSystemState(),
     dailyChallengeState: createDailyChallengeState(),
     showDailyChallenges: false,
+    encounterState: createEncounterState(),
     ...createCompanionState(),
     npcRelationshipManager: createNPCRelationshipManager(),
   };

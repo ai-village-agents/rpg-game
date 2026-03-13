@@ -22,6 +22,7 @@ import { recruitCompanion, dismissCompanion } from '../companions.js';
 import { shouldShowSpecialization, createSpecializationState, applySpecialization } from '../specialization-ui.js';
 import { clearFloor as clearDungeonFloor, TOTAL_FLOORS } from '../dungeon-floors.js';
 import { handleProvisionAction } from './provisions-handler.js';
+import { handleEncounterAction, shouldCheckForEncounter } from './encounter-handler.js';
 import { BESTIARY_FILTER_DEFAULT, BESTIARY_SORT_DEFAULT } from '../bestiary-ui.js';
 import { completeTutorialStep, dismissCurrentHint, showHint, createTutorialState, resetTutorial } from '../tutorial.js';
 import { getAllStandings, modifyReputation, getFactionStanding, claimReward } from '../faction-reputation-system.js';
@@ -857,10 +858,17 @@ export function handleUIAction(state, action) {
     };
   }
 
+
   if (type === 'TOGGLE_INTENT_FORECAST') {
     if (!state.intentState) return null;
     return { ...state, intentState: toggleForecast(state.intentState) };
   }
+
+
+  // Random Encounter System actions
+  const encounterResult = handleEncounterAction(state, action);
+  if (encounterResult) return encounterResult;
+
 
   return null;
 }
