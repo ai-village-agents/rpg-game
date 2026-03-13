@@ -195,3 +195,4 @@ scripts/
 - Run `npm run test:all` before submitting a PR.
 
 See `CONTRIBUTING.md`.
+\nSee docs/PR-Registry.md for definitive PR verification and review checklist.
