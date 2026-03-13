@@ -13,6 +13,13 @@ import { handleDungeonAction } from './handlers/dungeon-handler.js';
 import { handleStateTransitions } from './state-transitions.js';
 import { initAudio } from './audio-system.js';
 import { createTutorialState } from './tutorial.js';
+import {
+  createDailyChallengeState,
+  initializeDailyChallenges,
+  updateChallengeProgress,
+  claimChallengeReward,
+} from './daily-challenge-system.js';
+import { renderDailyChallengesUI } from './daily-challenge-system-ui.js';
 
 const IS_BROWSER = typeof window !== 'undefined' && typeof document !== 'undefined';
 
@@ -21,7 +28,77 @@ if (IS_BROWSER) {
   const initialSettings = loadSettings();
   applyTheme(initialSettings.display?.theme || 'midnight');
   applyReducedMotion(initialSettings.display?.reducedMotion || false);
-  let state = { phase: 'class-select', log: ['Welcome to AI Village RPG! Select your class.'], tutorialState: createTutorialState() };
+  let state = {
+    phase: 'class-select',
+    log: ['Welcome to AI Village RPG! Select your class.'],
+    tutorialState: createTutorialState(),
+    dailyChallengeState: initializeDailyChallenges(createDailyChallengeState()),
+    showDailyChallenges: false,
+  };
+
+  function appendLogLine(nextState, line) {
+    const currentLog = Array.isArray(nextState.log) ? nextState.log : [];
+    return { ...nextState, log: [...currentLog, line].slice(-200) };
+  }
+
+  function ensureDailyChallengeState(nextState) {
+    if (!nextState || typeof nextState !== 'object') return nextState;
+    const baseDailyState = nextState.dailyChallengeState || createDailyChallengeState();
+    const initializedDailyState = initializeDailyChallenges(baseDailyState);
+    if (nextState.dailyChallengeState !== initializedDailyState || nextState.showDailyChallenges === undefined) {
+      return {
+        ...nextState,
+        dailyChallengeState: initializedDailyState,
+        showDailyChallenges: Boolean(nextState.showDailyChallenges),
+      };
+    }
+    return nextState;
+  }
+
+  function applyDailyProgressFromTransition(prevState, nextState, action) {
+    const dailyState = nextState.dailyChallengeState;
+    if (!dailyState) return nextState;
+
+    let updatedDailyState = dailyState;
+    const newlyCompleted = [];
+    const applyProgress = (stat, amount = 1) => {
+      const result = updateChallengeProgress(updatedDailyState, stat, amount);
+      updatedDailyState = result.state;
+      if (Array.isArray(result.newlyCompleted) && result.newlyCompleted.length > 0) {
+        newlyCompleted.push(...result.newlyCompleted);
+      }
+    };
+
+    const enteredBattleSummary = nextState.phase === 'battle-summary' && prevState.phase !== 'battle-summary';
+    if (enteredBattleSummary) {
+      applyProgress('battlesWon', 1);
+      applyProgress('enemiesDefeated', 1);
+      if (nextState.enemy?.isBoss) {
+        applyProgress('bossesDefeated', 1);
+      }
+      if ((nextState.goldGained ?? 0) > 0) {
+        applyProgress('goldCollected', nextState.goldGained);
+      }
+    }
+
+    if (action?.type === 'PLAYER_POTION') {
+      applyProgress('potionsUsed', 1);
+    }
+    if (action?.type === 'EXPLORE') {
+      applyProgress('stepsTaken', 1);
+    }
+
+    if (updatedDailyState === dailyState && newlyCompleted.length === 0) {
+      return nextState;
+    }
+
+    let withDaily = { ...nextState, dailyChallengeState: updatedDailyState };
+    const uniqueCompleted = [...new Map(newlyCompleted.map((c) => [c.id, c])).values()];
+    for (const challenge of uniqueCompleted) {
+      withDaily = appendLogLine(withDaily, `Daily Challenge Complete: ${challenge.name}`);
+    }
+    return withDaily;
+  }
 
   // Initialize audio system on first interaction
   const startAudio = async () => {
@@ -37,13 +114,16 @@ if (IS_BROWSER) {
   window.addEventListener('click', startAudio, { once: true });
   window.addEventListener('keydown', startAudio, { once: true });
 
-  function setState(next) {
+  function setState(next, action = null) {
     // Apply automatic state transitions (Level Up, Battle Summary)
     // We pass (state, next) because some transitions depend on phase changes
-    const transitionedState = handleStateTransitions(state, next);
+    let transitionedState = handleStateTransitions(state, next);
+    transitionedState = ensureDailyChallengeState(transitionedState);
+    transitionedState = applyDailyProgressFromTransition(state, transitionedState, action);
     
     state = transitionedState;
     render(state, dispatch);
+    renderDailyChallengesUI(state, dispatch);
 
     // If it became enemy turn, resolve after a short pause.
     if (state.phase === 'enemy-turn') {
@@ -59,6 +139,51 @@ if (IS_BROWSER) {
   }
 
   function dispatch(action) {
+    if (action.type === 'OPEN_DAILY_CHALLENGES') {
+      setState({ ...state, showDailyChallenges: true }, action);
+      return;
+    }
+
+    if (action.type === 'CLOSE_DAILY_CHALLENGES') {
+      setState({ ...state, showDailyChallenges: false }, action);
+      return;
+    }
+
+    if (action.type === 'CLAIM_DAILY_CHALLENGE') {
+      const currentDailyState = state.dailyChallengeState || createDailyChallengeState();
+      const claimResult = claimChallengeReward(currentDailyState, action.challengeId);
+
+      if (claimResult.error) {
+        setState(appendLogLine(state, `Daily Challenge: ${claimResult.error}.`), action);
+        return;
+      }
+
+      let next = { ...state, dailyChallengeState: claimResult.state };
+
+      if (claimResult.rewards && next.player) {
+        const inventory = { ...(next.player.inventory || {}) };
+        for (const itemId of claimResult.rewards.items || []) {
+          inventory[itemId] = (inventory[itemId] || 0) + 1;
+        }
+
+        next = {
+          ...next,
+          player: {
+            ...next.player,
+            xp: (next.player.xp || 0) + (claimResult.rewards.xp || 0),
+            gold: (next.player.gold || 0) + (claimResult.rewards.gold || 0),
+            inventory,
+          },
+        };
+      }
+
+      const rewardXp = claimResult.rewards?.xp || 0;
+      const rewardGold = claimResult.rewards?.gold || 0;
+      next = appendLogLine(next, `Claimed daily reward: +${rewardXp} XP, +${rewardGold} gold.`);
+      setState(next, action);
+      return;
+    }
+
     // Try each handler in order
     const next = handleCombatAction(state, action) ||
                  handleDungeonAction(state, action) ||
@@ -68,17 +193,19 @@ if (IS_BROWSER) {
                  handleUIAction(state, action);
 
     if (next) {
-      setState(next);
+      setState(next, action);
     } else {
       // No-op or unknown action
       // console.warn('Unhandled action:', action);
       // Render current state to maintain consistency
       render(state, dispatch);
+      renderDailyChallengesUI(state, dispatch);
     }
   }
 
   // Initial Render
   render(state, dispatch);
+  renderDailyChallengesUI(state, dispatch);
 
   // Keyboard shortcuts: WASD/arrow keys to explore
   window.addEventListener('keydown', (event) => {

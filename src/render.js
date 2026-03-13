@@ -549,6 +549,7 @@ export function render(state, dispatch) {
         <button id="btnCompanions">Companions 🤝${renderCompanionBadge(state)}</button>
         <button id="btnProvisions">Provisions 🍖</button>
         <button id="btnFastTravel">🗺️ Fast Travel</button>
+        <button id="btnDailyChallenges">Daily 📅</button>
       </div>
     `;
 
@@ -574,6 +575,7 @@ export function render(state, dispatch) {
     document.getElementById('btnCompanions').onclick = () => dispatch({ type: 'OPEN_COMPANIONS' });
     document.getElementById('btnProvisions').onclick = () => dispatch({ type: 'OPEN_PROVISIONS' });
     document.getElementById('btnFastTravel').onclick = () => dispatch({ type: 'OPEN_FAST_TRAVEL' });
+    document.getElementById('btnDailyChallenges').onclick = () => dispatch({ type: 'OPEN_DAILY_CHALLENGES' });
 
     hud.querySelectorAll('.npc-talk-btn').forEach((btn) => {
       btn.onclick = () => dispatch({ type: 'TALK_TO_NPC', npcId: btn.dataset.npcid });
