@@ -1,3 +1,4 @@
+import { createKeyboardShortcuts } from "./keyboard-shortcuts.js";
 import { loadSettings } from './settings.js';
 import { applyTheme } from './data/themes.js';
 import { applyReducedMotion } from './accessibility.js';
@@ -206,6 +207,9 @@ if (IS_BROWSER) {
   // Initial Render
   render(state, dispatch);
   renderDailyChallengesUI(state, dispatch);
+
+  // Initialize context-sensitive keyboard shortcuts (combat 1-4, exploration menus, etc.)
+  createKeyboardShortcuts(() => state, dispatch);
 
   // Keyboard shortcuts: WASD/arrow keys to explore
   window.addEventListener('keydown', (event) => {
