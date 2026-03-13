@@ -1,5 +1,6 @@
 import { applyTheme } from '../data/themes.js';
 import { applyReducedMotion } from '../accessibility.js';
+import { toggleForecast } from '../enemy-intent.js';
 import { startTavernDice, guessTavernDice, cashOutTavernDice } from '../tavern-dice.js';
 import { generateBounties, acceptBounty } from '../bounty-board.js';
 import { updateAudioSettings } from '../audio-system.js';
@@ -854,6 +855,11 @@ export function handleUIAction(state, action) {
       ...state,
       tutorialState: resetTutorial(),
     };
+  }
+
+  if (type === 'TOGGLE_INTENT_FORECAST') {
+    if (!state.intentState) return null;
+    return { ...state, intentState: toggleForecast(state.intentState) };
   }
 
   return null;

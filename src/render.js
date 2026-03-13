@@ -51,6 +51,7 @@ import { DIFFICULTY_LEVELS, DIFFICULTY_NAMES, DIFFICULTY_DESCRIPTIONS } from './
 import { renderMomentumGauge, renderOverdriveButton, getMomentumStyles } from './momentum-ui.js';
 import { renderComboDisplay } from './combo-system-ui.js';
 import { renderGuildPanel, renderCreateGuildForm, renderGuildBrowser, renderGuildHud } from './guild-system-ui.js';
+import { renderEnemyIntent } from './enemy-intent-ui.js';
 
 /** Track previous log for floating text diff */
 let _previousLog = [];
@@ -624,6 +625,7 @@ export function render(state, dispatch) {
             <div>Defending</div><div><b>${state.enemy.defending ? 'Yes' : 'No'}</b></div>
             ${renderStatusEffectsRow(state.enemy.statusEffects ?? [])}
             ${state.enemy?.maxShields > 0 ? `<div style="grid-column: 1 / -1">${renderShieldBreakHUD(state.enemy)}</div>` : ''}
+            ${state.intentState ? renderEnemyIntent(state.intentState) : ''}
           </div>
         </div>
 
@@ -690,6 +692,12 @@ export function render(state, dispatch) {
     actions.querySelectorAll('.item-btn').forEach(btn => {
       btn.onclick = () => dispatch({ type: 'PLAYER_ITEM', itemId: btn.dataset.item });
     });
+
+    // Wire enemy intent toggle
+    const intentToggle = hud.querySelector('[data-action="toggle-intent-forecast"]');
+    if (intentToggle) {
+      intentToggle.onclick = () => dispatch({ type: 'TOGGLE_INTENT_FORECAST' });
+    }
 
     log.innerHTML = state.log
       .slice()

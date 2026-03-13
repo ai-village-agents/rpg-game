@@ -33,6 +33,7 @@ import { initCombatBattleLog, logPlayerAttack, logPlayerAbility, logDamageDealt,
 import { applyDifficultyToEnemyHp, applyDifficultyToEnemyDamage, applyDifficultyToXpReward, applyDifficultyToGoldReward, DEFAULT_DIFFICULTY } from './difficulty.js';
 import { ACTION_TYPES, calculateMomentumGain, addMomentum, consumeOverdrive, applyMomentumDecay, getOverdriveAbility, calculateOverdriveDamage, canUseOverdrive, createMomentumState } from './momentum.js';
 import { registerHit, checkComboDecay, resetCombo, isComboBreaker, getChainBonus, getComboMultiplier } from './combo-system.js';
+import { initIntentState, updateIntentState } from './enemy-intent.js';
 
 // Minimal deterministic RNG (Park-Miller LCG)
 export function nextRng(seed) {
@@ -244,6 +245,7 @@ export function startNewEncounter(state, zoneLevel = 1) {
     turn: 1,
     player: { ...state.player, defending: false, statusEffects: [] },
     momentumState: state.momentumState ? createMomentumState() : undefined,
+    intentState: initIntentState(),
   };
   if (isEnemyAttacksFirst(next.worldEvent || state.worldEvent)) {
     next = { ...next, phase: 'enemy-turn' };
@@ -700,6 +702,11 @@ export function playerUseItem(state, itemId) {
 export function enemyAct(state) {
   if (state.phase !== 'enemy-turn') return state;
   if (state.enemy.hp <= 0 || state.player.hp <= 0) return applyVictoryDefeat(state);
+
+  // Update enemy intent prediction at the start of every enemy turn
+  if (state.intentState) {
+    state = { ...state, intentState: updateIntentState(state.intentState, state.enemy, state.rngSeed ?? 1) };
+  }
 
   const wasEnemyStunned = (state.enemy.statusEffects ?? []).some(
     (effect) => effect.type === 'stun' && (effect.duration ?? 0) > 0
