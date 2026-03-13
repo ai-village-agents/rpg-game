@@ -61,6 +61,7 @@ import { renderNotificationToasts, getNotificationToastStyles } from './notifica
 import { createRewardsState, renderRewardsHtml, getRewardsStyles } from './combat-rewards-animator.js';
 import { renderStatsDashboardPhase, renderStatsDashboardActions, attachStatsDashboardHandlers, initStatsDashboard, getStatsDashboardIntegrationStyles } from './statistics-dashboard-integration.js';
 import { renderEncounterPopup, getEncounterStyles } from './random-encounter-system-ui.js';
+import { renderDefeatScreen, renderDefeatActions, getDefeatScreenStyles } from './defeat-screen-ui.js';
 let _victoryAnimStartTime = 0;
 
 /** Track previous log for floating text diff */
@@ -84,6 +85,7 @@ export function getStyles() {
     getSporelingEvolutionStyles(),
     getCombatHpBarStyles(),
     getNotificationToastStyles(),
+    getDefeatScreenStyles(),
     getStatsDashboardIntegrationStyles(),
   ];
 }
@@ -1010,28 +1012,16 @@ export function render(state, dispatch) {
 
   // --- Defeat Phase ---
   if (state.phase === 'defeat') {
-    hud.innerHTML = `
-      <div class="row">
-        <div class="card">
-          <h2 class="bad">Defeat</h2>
-          <div class="kv">
-            <div>HP</div><div><b class="bad">0 / ${state.player.maxHp}</b></div>
-            <div>Slain by</div><div><b>${esc(state.enemy?.name ?? 'Unknown')}</b></div>
-          </div>
-        </div>
-        ${renderStatsPanel(state.gameStats ?? {}, { title: 'Run Statistics' })}
-      </div>
-    `;
+    hud.innerHTML = renderDefeatScreen(state);
 
-    actions.innerHTML = `
-      <div class="buttons">
-        <button id="btnTryAgain">Try Again</button>
-        <button id="btnLoad">Load Save</button>
-      </div>
-    `;
+    actions.innerHTML = renderDefeatActions();
 
     document.getElementById('btnTryAgain').onclick = () => dispatch({ type: 'TRY_AGAIN' });
     document.getElementById('btnLoad').onclick = () => dispatch({ type: 'LOAD' });
+    const btnViewStats = document.getElementById('btnViewStats');
+    if (btnViewStats) {
+      btnViewStats.onclick = () => dispatch({ type: 'SHOW_STATS' });
+    }
 
     log.innerHTML = state.log
       .slice()
