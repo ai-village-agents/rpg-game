@@ -55,6 +55,7 @@ import { renderArenaPanel, getArenaStyles } from './arena-tournament-system-ui.j
 import { renderGuildPanel, renderCreateGuildForm, renderGuildBrowser, renderGuildHud } from './guild-system-ui.js';
 import { renderEnemyIntent } from './enemy-intent-ui.js';
 import { renderAtmospherePanel } from './location-atmosphere.js';
+import { renderAreaScene, getAreaSceneStyles } from './area-scene-renderer.js';
 
 /** Track previous log for floating text diff */
 let _previousLog = [];
@@ -359,6 +360,12 @@ export function render(state, dispatch) {
     styleEl.textContent = getSporelingEvolutionStyles();
     document.head.appendChild(styleEl);
   }
+  if (!document.getElementById('area-scene-styles')) {
+    const areaSceneStyleEl = document.createElement('style');
+    areaSceneStyleEl.id = 'area-scene-styles';
+    areaSceneStyleEl.textContent = getAreaSceneStyles();
+    document.head.appendChild(areaSceneStyleEl);
+  }
 
   const finalizeRender = () => {
     if (state.fastTravelModalOpen) {
@@ -520,6 +527,7 @@ export function render(state, dispatch) {
     hud.innerHTML = `
       ${renderWorldEventBanner(state.worldEvent || null)}
       ${renderAtmospherePanel(state)}
+      ${renderAreaScene(state)}
       <div class="row">
         <div class="card">
           <h2>${esc(state.player.name)}</h2>
