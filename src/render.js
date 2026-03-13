@@ -57,6 +57,7 @@ import { renderEnemyIntent } from './enemy-intent-ui.js';
 import { renderAtmospherePanel } from './location-atmosphere.js';
 import { renderAreaScene, getAreaSceneStyles } from './area-scene-renderer.js';
 import { renderCombatHpSection, getCombatHpBarStyles } from './combat-hp-bars.js';
+import { renderNotificationToasts, getNotificationToastStyles } from './notification-toast.js';
 
 /** Track previous log for floating text diff */
 let _previousLog = [];
@@ -78,6 +79,7 @@ export function getStyles() {
     getMomentumStyles(),
     getSporelingEvolutionStyles(),
     getCombatHpBarStyles(),
+    getNotificationToastStyles(),
   ];
 }
 
@@ -383,6 +385,17 @@ export function render(state, dispatch) {
     if (state.ui?.tutorialProgressVisible) {
       hud.innerHTML += renderTutorialProgressPanel(state.tutorialState);
       attachTutorialProgressHandlers(dispatch);
+    }
+
+    // General notification toasts
+    const toastsContainer = document.getElementById('notification-toasts-container');
+    if (toastsContainer) {
+      toastsContainer.innerHTML = renderNotificationToasts(state);
+    } else {
+      const toastDiv = document.createElement('div');
+      toastDiv.id = 'notification-toasts-container';
+      toastDiv.innerHTML = renderNotificationToasts(state);
+      document.body.appendChild(toastDiv);
     }
 
     if ((state.achievementNotifications || []).length > 0) {
