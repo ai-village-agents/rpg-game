@@ -101,8 +101,8 @@ export function renderCombatHpSection(entity, options = {}) {
     });
   }
 
-  if (entity.shield != null || entity.maxShield != null) {
-    html += renderHpBar(entity.shield ?? 0, entity.maxShield ?? 0, {
+  if (entity.shields != null || entity.maxShields != null) {
+    html += renderHpBar(entity.shields ?? 0, entity.maxShields ?? 0, {
       label: 'Shield',
       colorScheme: 'shield'
     });
