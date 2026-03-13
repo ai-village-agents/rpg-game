@@ -21,7 +21,7 @@ import {
   recordPlayTime,
   getStatisticsSummary,
   getTopEnemiesDefeated
-} from './statistics-dashboard.js';
+} from '../src/statistics-dashboard.js';
 
 describe('Statistics Dashboard', () => {
   describe('initializeStatistics', () => {
