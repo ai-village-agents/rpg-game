@@ -136,6 +136,17 @@ export function handleUIAction(state, action) {
     return { ...state, phase: state.previousPhase || 'exploration' };
   }
 
+  // Statistics Dashboard
+  if (type === 'OPEN_STATISTICS_DASHBOARD') {
+    if (isPreAdventure) return null;
+    return { ...state, phase: 'statistics-dashboard', previousPhase: state.phase };
+  }
+
+  if (type === 'CLOSE_STATISTICS_DASHBOARD') {
+    if (state.phase !== 'statistics-dashboard') return null;
+    return { ...state, phase: state.previousPhase || 'exploration' };
+  }
+
   if (type === 'ACCEPT_QUEST') {
     if (!state.questState) return pushLog(state, 'Quest system not initialized.');
     const result = acceptQuest(state.questState, action.questId);
