@@ -7,6 +7,7 @@ import { createComboState } from './combo-system.js';
 import { characters } from './data/characters.js';
 import { getEncounter, getEnemy } from './data/enemies.js';
 import { DEFAULT_DIFFICULTY, applyDifficultyToEnemyHp } from './difficulty.js';
+import { createArenaState } from './arena-tournament-system.js';
 import { createReputationState } from './faction-reputation-system.js';
 import { createWorldState } from './map.js';
 import { createMomentumState } from './momentum.js';
@@ -57,6 +58,7 @@ export function initialState() {
     tutorialState: createTutorialState(),
     momentumState: createMomentumState(),
     comboState: createComboState(),
+    arenaState: createArenaState(),
     factionReputation: createReputationState(),
     ...createCompanionState(),
     npcRelationshipManager: createNPCRelationshipManager(),
@@ -120,6 +122,7 @@ export function initialStateWithClass(classId, characterName = '', difficulty = 
     tutorialState: createTutorialState(),
     momentumState: createMomentumState(),
     comboState: createComboState(),
+    arenaState: createArenaState(),
     factionReputation: createReputationState(),
     ...createCompanionState(),
     npcRelationshipManager: createNPCRelationshipManager(),

@@ -50,6 +50,7 @@ import { renderVictoryScreen, renderVictoryActions, getVictoryScreenStyles } fro
 import { DIFFICULTY_LEVELS, DIFFICULTY_NAMES, DIFFICULTY_DESCRIPTIONS } from './difficulty.js';
 import { renderMomentumGauge, renderOverdriveButton, getMomentumStyles } from './momentum-ui.js';
 import { renderComboDisplay } from './combo-system-ui.js';
+import { renderArenaPanel, getArenaStyles } from './arena-tournament-system-ui.js';
 
 /** Track previous log for floating text diff */
 let _previousLog = [];
@@ -545,6 +546,7 @@ export function render(state, dispatch) {
         <button id="btnBountyBoard">Bounty Board 📜</button>
         <button id="btnJournal">Journal 📔${renderJournalBadge(state)}</button>
         <button id="btnFactions">Factions 👑</button>
+        <button id="btnArena">Arena ⚔️</button>
         <button id="btnCompanions">Companions 🤝${renderCompanionBadge(state)}</button>
         <button id="btnProvisions">Provisions 🍖</button>
         <button id="btnFastTravel">🗺️ Fast Travel</button>
@@ -570,6 +572,7 @@ export function render(state, dispatch) {
     document.getElementById('btnBountyBoard').onclick = () => dispatch({ type: 'VIEW_BOUNTY_BOARD' });
     document.getElementById('btnJournal').onclick = () => dispatch({ type: 'OPEN_JOURNAL' });
     document.getElementById('btnFactions').onclick = () => dispatch({ type: 'OPEN_FACTIONS' });
+    document.getElementById('btnArena').onclick = () => dispatch({ type: 'OPEN_ARENA' });
     document.getElementById('btnCompanions').onclick = () => dispatch({ type: 'OPEN_COMPANIONS' });
     document.getElementById('btnProvisions').onclick = () => dispatch({ type: 'OPEN_PROVISIONS' });
     document.getElementById('btnFastTravel').onclick = () => dispatch({ type: 'OPEN_FAST_TRAVEL' });
@@ -1641,6 +1644,36 @@ if (state.phase === 'achievements') {
         factionId: btn.dataset.factionId,
         level: btn.dataset.level
       });
+    });
+
+    log.innerHTML = state.log.slice().reverse().map(line => formatLogEntryHtml(line)).join('');
+    finalizeRender();
+    return;
+  }
+
+  if (state.phase === 'arena') {
+    if (!document.getElementById('arena-styles')) {
+      const styleEl = document.createElement('style');
+      styleEl.id = 'arena-styles';
+      styleEl.textContent = getArenaStyles();
+      document.head.appendChild(styleEl);
+    }
+
+    hud.innerHTML = renderArenaPanel(state.arenaState, { showQuickMatch: true, showTournaments: true });
+    actions.innerHTML = '<div class="buttons"><button id="btnArenaQuickMatch">Quick Match ⚔️</button><button id="btnArenaTournament">Tournaments 🏆</button><button id="btnCloseArena">Close</button></div>';
+
+    const quickMatchBtn = document.getElementById('btnArenaQuickMatch');
+    if (quickMatchBtn) quickMatchBtn.onclick = () => dispatch({ type: 'START_ARENA_MATCH' });
+    const tournamentBtn = document.getElementById('btnArenaTournament');
+    if (tournamentBtn) tournamentBtn.onclick = () => dispatch({ type: 'ENTER_TOURNAMENT', tournamentId: 'weekly_brawl' });
+    const closeBtn = document.getElementById('btnCloseArena');
+    if (closeBtn) closeBtn.onclick = () => dispatch({ type: 'CLOSE_ARENA' });
+
+    hud.querySelectorAll('[data-action="quick-match"]').forEach(btn => {
+      btn.onclick = () => dispatch({ type: 'START_ARENA_MATCH' });
+    });
+    hud.querySelectorAll('[data-action="enter-tournament"]').forEach(btn => {
+      btn.onclick = () => dispatch({ type: 'ENTER_TOURNAMENT', tournamentId: btn.dataset.tournamentId });
     });
 
     log.innerHTML = state.log.slice().reverse().map(line => formatLogEntryHtml(line)).join('');

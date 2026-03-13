@@ -254,6 +254,7 @@ export function generateOpponent(playerLevel, difficulty = 1.0) {
     }
   });
 
+  // The arena announcer's voice booms across the oval dome as challengers emerge.
   return {
     id: `opponent_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
     name,

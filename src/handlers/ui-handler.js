@@ -23,8 +23,9 @@ import { clearFloor as clearDungeonFloor, TOTAL_FLOORS } from '../dungeon-floors
 import { handleProvisionAction } from './provisions-handler.js';
 import { BESTIARY_FILTER_DEFAULT, BESTIARY_SORT_DEFAULT } from '../bestiary-ui.js';
 import { completeTutorialStep, dismissCurrentHint, showHint, createTutorialState, resetTutorial } from '../tutorial.js';
-import { getAllStandings, modifyReputation, getFactionStanding, claimReputationReward } from '../faction-reputation-system.js';
+import { getAllStandings, modifyReputation, getFactionStanding, claimReward } from '../faction-reputation-system.js';
 import { renderReputationPanel } from '../faction-reputation-system-ui.js';
+import { processMatchResult, createTournament, recordTournamentMatchResult, getTournamentRewards, resetSeason, generateOpponent } from '../arena-tournament-system.js';
 
 function getRoomDescription(worldState) {
   const room = getCurrentRoom(worldState);
@@ -497,6 +498,75 @@ export function handleUIAction(state, action) {
     return { ...state, phase: state.previousPhase || 'exploration' };
   }
 
+  // Arena
+  if (type === 'OPEN_ARENA') {
+    if (isPreAdventure) return null;
+    return { ...state, phase: 'arena' };
+  }
+
+  if (type === 'CLOSE_ARENA') {
+    if (state.phase !== 'arena') return null;
+    return { ...state, phase: 'exploration' };
+  }
+
+  if (type === 'START_ARENA_MATCH') {
+    if (isPreAdventure || !state.arenaState) return null;
+    const playerLevel = state.player.level || 1;
+    const opponent = generateOpponent(playerLevel);
+    const levelDelta = playerLevel - opponent.level;
+    const winChance = Math.min(0.85, Math.max(0.15, 0.5 + (levelDelta * 0.05)));
+    const result = Math.random() < winChance ? 'win' : 'loss';
+    const opponentRating = Math.max(0, (state.arenaState.rating || 1000) + ((opponent.level - playerLevel) * 25));
+    const matchData = {
+      opponentRating,
+      result,
+      duration: 60 + Math.floor(Math.random() * 120),
+      damageDealt: Math.floor(opponent.stats.hp * (result === 'win' ? 1 : 0.6)),
+      damageTaken: Math.floor(opponent.stats.hp * (result === 'win' ? 0.4 : 1))
+    };
+    const { state: arenaState } = processMatchResult(state.arenaState, matchData);
+    const next = { ...state, arenaState, phase: 'exploration' };
+    return pushLog(next, 'You enter the arena for a quick match!');
+  }
+
+  if (type === 'ENTER_TOURNAMENT') {
+    if (!action.tournamentId || !state.arenaState) return null;
+    const tournament = createTournament(action.tournamentId, {
+      name: state.player.name,
+      level: state.player.level || 1,
+      rating: state.arenaState.rating
+    });
+    if (tournament.error) {
+      return pushLog(state, tournament.error);
+    }
+    const arenaState = {
+      ...state.arenaState,
+      tournaments: {
+        ...state.arenaState.tournaments,
+        [action.tournamentId]: tournament
+      },
+      activeTournament: action.tournamentId
+    };
+    const next = { ...state, arenaState, phase: 'exploration' };
+    return pushLog(next, `You enter the ${tournament.name}.`);
+  }
+
+  if (type === 'ARENA_CLAIM_REWARDS') {
+    const activeId = state.arenaState?.activeTournament;
+    const activeTournament = activeId ? state.arenaState.tournaments?.[activeId] : null;
+    if (!activeTournament || activeTournament.status !== 'completed') return null;
+    const rewards = getTournamentRewards(activeTournament);
+    if (!rewards) return null;
+    const next = {
+      ...state,
+      player: {
+        ...state.player,
+        gold: (state.player.gold || 0) + (rewards.gold || 0)
+      }
+    };
+    return next;
+  }
+
   if (type === 'MODIFY_REPUTATION') {
     if (!action.factionId || action.amount === undefined) return null;
     const result = modifyReputation(state.factionReputation, action.factionId, action.amount, action.multiplier);
@@ -506,7 +576,7 @@ export function handleUIAction(state, action) {
 
   if (type === 'CLAIM_FACTION_REWARD') {
     if (!action.factionId || !action.level) return null;
-    const result = claimReputationReward(state.factionReputation, action.factionId, action.level);
+    const result = claimReward(state.factionReputation, action.factionId, action.level);
     if (result.error) return null;
     return { ...state, factionReputation: result.state };
   }
