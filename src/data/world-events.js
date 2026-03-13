@@ -235,3 +235,15 @@ export const EVENT_POOL = [
 
 /** Chance per room move to trigger a world event (when no event is active) */
 export const WORLD_EVENT_TRIGGER_CHANCE = 0.15;
+
+/**
+ * Check if the current world event causes enemies to attack first
+ * @param {Object} worldEvent - The active world event object
+ * @returns {boolean} True if enemies should attack first
+ */
+export function isEnemyAttacksFirst(worldEvent) {
+  if (!worldEvent) return false;
+  const eventData = WORLD_EVENTS[worldEvent.id || worldEvent];
+  if (!eventData) return false;
+  return eventData.effect?.type === 'enemy_attacks_first' && eventData.effect?.value === true;
+}
