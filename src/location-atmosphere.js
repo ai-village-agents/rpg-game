@@ -149,7 +149,7 @@ const LOCATION_DATA = {
 };
 
 /** Map from (row, col) coordinates to room ID */
-const COORD_TO_ROOM = {
+export const COORD_TO_ROOM = {
   '0,0': 'nw', '0,1': 'n', '0,2': 'ne',
   '1,0': 'w',  '1,1': 'center', '1,2': 'e',
   '2,0': 'sw', '2,1': 's', '2,2': 'se',
