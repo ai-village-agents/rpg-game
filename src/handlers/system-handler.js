@@ -136,6 +136,7 @@ export function handleSystemAction(state, action) {
     return {
       phase: 'class-select',
       log: ['The adventure ends... but another awaits. Select your class.'],
+      tutorialState: state.tutorialState,
     };
   }
 
@@ -169,6 +170,7 @@ export function handleSystemAction(state, action) {
     return {
       phase: 'class-select',
       log: ['The hero\'s legend is complete. A new adventure begins.'],
+      tutorialState: state.tutorialState,
     };
   }
 

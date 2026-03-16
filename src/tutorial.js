@@ -86,10 +86,15 @@ export const TUTORIAL_STEPS = [
 ];
 
 export function createTutorialState() {
+  let hintsEnabled = true;
+  try {
+    const stored = typeof localStorage !== 'undefined' && localStorage.getItem('aiVillageRpg_hintsEnabled');
+    if (stored === 'false') hintsEnabled = false;
+  } catch(e) {}
   return {
     completedSteps: [],
     currentHint: null,
-    hintsEnabled: true,
+    hintsEnabled,
   };
 }
 
