@@ -22,6 +22,7 @@ import { renderSettingsPanel, getSettingsStyles, attachSettingsHandlers } from '
 import { renderQuestRewardScreen, renderQuestRewardActions, attachQuestRewardHandlers, getQuestRewardStyles } from './quest-rewards-ui.js';
 import { renderShopPanel, getShopStyles, attachShopHandlers } from './shop-ui.js';
 import { renderCraftingPanel, getCraftingStyles, attachCraftingHandlers } from './crafting-ui.js';
+import { lookupItem } from './crafting.js';
 import { renderTalentTree, getTalentTreeStyles, attachTalentHandlers } from './talents-ui.js';
 import { renderHelpModal, getHelpStyles, attachHelpHandlers } from './help-ui.js';
 import { renderAchievementsPanel, attachAchievementsHandlers } from './achievements-ui.js';
@@ -160,7 +161,11 @@ function inventorySummary(player) {
   const inv = player?.inventory || {};
   const entries = Object.entries(inv)
     .filter(([, count]) => count > 0)
-    .map(([item, count]) => `<div>${esc(item)}</div><div><b>${count}</b></div>`)
+    .map(([itemId, count]) => {
+      const itemData = lookupItem(itemId);
+      const displayName = itemData ? itemData.name : itemId;
+      return `<div>${esc(displayName)}</div><div><b>${count}</b></div>`;
+    })
     .join('');
   const gold = player?.gold ?? 0;
   return entries + `<div>Gold</div><div><b>${gold}</b></div>`;
@@ -186,10 +191,12 @@ function summarizeBonuses(bonuses) {
   add('gold', bonuses.gold);
 
   if (bonuses.inventory && typeof bonuses.inventory === 'object') {
-    for (const [item, count] of Object.entries(bonuses.inventory)) {
+    for (const [itemId, count] of Object.entries(bonuses.inventory)) {
       if (typeof count === 'number' && count !== 0) {
         const sign = count > 0 ? '+' : '';
-        parts.push(`${sign}${count} ${item}`);
+        const itemData = lookupItem(itemId);
+        const displayName = itemData ? itemData.name : itemId;
+        parts.push(`${sign}${count} ${displayName}`);
       }
     }
   }
@@ -918,7 +925,11 @@ export function render(state, dispatch) {
     const lootHtml = lootedItems.length > 0
       ? lootedItems.map(item => {
           const isString = typeof item === 'string';
-          const name = isString ? item : (item.name ?? item.itemId ?? 'Item');
+          const itemId = isString ? item : (item.itemId ?? null);
+          const lookupData = itemId ? lookupItem(itemId) : null;
+          const name = isString
+            ? (lookupData ? lookupData.name : item)
+            : (item.name ?? (lookupData ? lookupData.name : item.itemId) ?? 'Item');
           const rarity = isString ? null : (item.rarity ?? null);
           const rarityKey = typeof rarity === 'string' ? rarity : null;
           const color = getRarityMeta(rarityKey).color;
@@ -1360,7 +1371,8 @@ if (state.phase === 'achievements') {
     const eqRows = Object.entries(EQUIPMENT_SLOTS).map(([slot, label]) => {
       const itemId = equipment[slot];
       const detail = itemId ? getItemDetails(itemId) : null;
-      const itemName = detail ? detail.name : (itemId || '—');
+      const lookupData = itemId ? lookupItem(itemId) : null;
+      const itemName = detail ? detail.name : (lookupData ? lookupData.name : (itemId || '—'));
       const rarityKey = detail && typeof detail.rarity === 'string' ? detail.rarity : null;
       const rarityColor = getRarityMeta(rarityKey).color;
       const rarityEmoji = (() => {
@@ -1400,7 +1412,7 @@ if (state.phase === 'achievements') {
       : '<div><i>No bonuses</i></div><div></div>';
 
     // Build inventory items list HTML with sort & filter
-    const allItemsRaw = [...categorized.consumables, ...categorized.weapons, ...categorized.armors, ...categorized.accessories, ...categorized.unknown];
+    const allItemsRaw = [...categorized.consumables, ...categorized.weapons, ...categorized.armors, ...categorized.accessories, ...(categorized.materials || []), ...categorized.unknown];
     const currentSort = invState.sortBy || SORT_MODES.TYPE;
     const currentFilter = invState.filterBy || FILTER_MODES.ALL;
     const allItems = filterAndSortItems(allItemsRaw, currentFilter, currentSort);

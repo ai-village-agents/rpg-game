@@ -5,6 +5,7 @@
 // Created by Claude Opus 4.6 (Day 338)
 
 import { items } from './data/items.js';
+import { lookupItem } from './crafting.js';
 import { calculateSetBonusStats } from './equipment-sets.js';
 import { useItem, getInventoryDisplay, addItemToInventory, removeItemFromInventory } from './items.js';
 import { SORT_MODES, FILTER_MODES } from './inventory-sort-filter.js';
@@ -29,7 +30,7 @@ const TYPE_TO_SLOT = {
  * @returns {string|null}
  */
 export function getEquipSlot(itemId) {
-  const item = items[itemId];
+  const item = lookupItem(itemId);
   if (!item) return null;
   return TYPE_TO_SLOT[item.type] || null;
 }
@@ -49,7 +50,7 @@ export function isEquippable(itemId) {
  * @returns {boolean}
  */
 export function isUsable(itemId) {
-  const item = items[itemId];
+  const item = lookupItem(itemId);
   return item?.type === 'consumable';
 }
 
@@ -59,7 +60,7 @@ export function isUsable(itemId) {
  * @returns {object|null}
  */
 export function getItemDetails(itemId) {
-  const item = items[itemId];
+  const item = lookupItem(itemId);
   if (!item) return null;
   return {
     id: item.id,
@@ -105,7 +106,7 @@ export function getEquipmentBonuses(equipment) {
   for (const slot of Object.keys(EQUIPMENT_SLOTS)) {
     const itemId = equipment[slot];
     if (!itemId) continue;
-    const item = items[itemId];
+    const item = lookupItem(itemId);
     if (!item || !item.stats) continue;
     for (const [stat, value] of Object.entries(item.stats)) {
       if (typeof value === 'number') {
@@ -130,7 +131,7 @@ export function getEquipmentBonuses(equipment) {
  * @returns {{ player: object, success: boolean, message: string }}
  */
 export function equipItem(player, itemId) {
-  const item = items[itemId];
+  const item = lookupItem(itemId);
   if (!item) {
     return { player, success: false, message: `Item not found: ${itemId}` };
   }
@@ -161,7 +162,7 @@ export function equipItem(player, itemId) {
     player: { ...p, inventory: newInventory, equipment: newEquipment },
     success: true,
     message: currentEquipped
-      ? `Equipped ${item.name}. Unequipped ${items[currentEquipped]?.name || currentEquipped}.`
+      ? `Equipped ${item.name}. Unequipped ${lookupItem(currentEquipped)?.name || currentEquipped}.`
       : `Equipped ${item.name}.`,
   };
 }
@@ -185,7 +186,7 @@ export function unequipItem(player, slot) {
 
   const newInventory = addItemToInventory({ ...(p.inventory || {}) }, currentEquipped, 1);
   const newEquipment = { ...p.equipment, [slot]: null };
-  const itemName = items[currentEquipped]?.name || currentEquipped;
+  const itemName = lookupItem(currentEquipped)?.name || currentEquipped;
 
   return {
     player: { ...p, inventory: newInventory, equipment: newEquipment },
@@ -231,6 +232,7 @@ export function getCategorizedInventory(inventory) {
     weapons: [],
     armors: [],
     accessories: [],
+    materials: [],
     unknown: [],
   };
 
@@ -238,7 +240,7 @@ export function getCategorizedInventory(inventory) {
 
   for (const [itemId, count] of Object.entries(inventory)) {
     if (count <= 0) continue;
-    const item = items[itemId];
+    const item = lookupItem(itemId);
     if (!item) {
       categories.unknown.push({ id: itemId, name: itemId, count });
       continue;
@@ -258,6 +260,7 @@ export function getCategorizedInventory(inventory) {
       case 'weapon': categories.weapons.push(entry); break;
       case 'armor': categories.armors.push(entry); break;
       case 'accessory': categories.accessories.push(entry); break;
+      case 'material': categories.materials.push(entry); break;
       default: categories.unknown.push(entry);
     }
   }
@@ -280,7 +283,7 @@ export function getEquipmentDisplay(equipment) {
       display[slot] = null;
       continue;
     }
-    const item = items[itemId];
+    const item = lookupItem(itemId);
     display[slot] = item
       ? { id: item.id, name: item.name, rarity: item.rarity, stats: item.stats || {} }
       : { id: itemId, name: itemId, rarity: 'Common', stats: {} };
@@ -297,13 +300,13 @@ export function getEquipmentDisplay(equipment) {
  * @returns {{ slot: string, comparisons: Array<{stat: string, current: number, candidate: number, diff: number}> } | null}
  */
 export function getEquipmentComparison(equipment, candidateItemId) {
-  const candidateItem = items[candidateItemId];
+  const candidateItem = lookupItem(candidateItemId);
   if (!candidateItem) return null;
   const slot = TYPE_TO_SLOT[candidateItem.type];
   if (!slot) return null;
 
   const currentItemId = equipment ? equipment[slot] : null;
-  const currentItem = currentItemId ? items[currentItemId] : null;
+  const currentItem = currentItemId ? lookupItem(currentItemId) : null;
 
   const allStats = new Set();
   const candidateStats = candidateItem.stats || {};
