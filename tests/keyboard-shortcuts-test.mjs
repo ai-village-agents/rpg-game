@@ -278,13 +278,22 @@ describe('KeyboardShortcuts', () => {
   });
 
   describe('universal shortcuts', () => {
-    it('should dispatch GO_BACK on Escape from sub-menu phases', () => {
+    it('should dispatch the correct CLOSE action on Escape from sub-menu phases', () => {
       const ks = createKeyboardShortcuts(getState, dispatch);
-      for (const phase of ['inventory', 'quests', 'journal', 'crafting', 'talents', 'shop', 'settings']) {
+      const phases = [
+        { phase: 'inventory', action: 'CLOSE_INVENTORY' },
+        { phase: 'quests', action: 'CLOSE_QUESTS' },
+        { phase: 'journal', action: 'CLOSE_JOURNAL' },
+        { phase: 'crafting', action: 'CLOSE_CRAFTING' },
+        { phase: 'talents', action: 'CLOSE_TALENTS' },
+        { phase: 'shop', action: 'CLOSE_SHOP' },
+        { phase: 'settings', action: 'CLOSE_SETTINGS' },
+      ];
+      for (const { phase, action } of phases) {
         dispatched = [];
         currentState = { phase };
         domMock.fireKeydown('Escape');
-        assert.deepStrictEqual(dispatched, [{ type: 'GO_BACK' }], `Should dispatch GO_BACK from ${phase}`);
+        assert.deepStrictEqual(dispatched, [{ type: action }], `Should dispatch ${action} from ${phase}`);
       }
       ks.destroy();
     });

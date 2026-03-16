@@ -41,6 +41,32 @@ const SUB_MENU_PHASES = new Set([
   'arena', 'bestiary', 'tavern',
 ]);
 
+const PHASE_CLOSE_ACTIONS = {
+  'inventory': 'CLOSE_INVENTORY',
+  'quests': 'CLOSE_QUESTS',
+  'journal': 'CLOSE_JOURNAL',
+  'crafting': 'CLOSE_CRAFTING',
+  'talents': 'CLOSE_TALENTS',
+  'shop': 'CLOSE_SHOP',
+  'settings': 'CLOSE_SETTINGS',
+  'stats': 'CLOSE_STATS',
+  'achievements': 'CLOSE_ACHIEVEMENTS',
+  'companions': 'CLOSE_COMPANIONS',
+  'factions': 'CLOSE_FACTIONS',
+  'guilds': 'CLOSE_GUILDS',
+  'sporeling': 'CLOSE_SPORELING',
+  'provisions': 'CLOSE_PROVISIONS',
+  'dialog': 'DIALOG_FAREWELL',
+  'arena': 'CLOSE_ARENA',
+  'bestiary': 'CLOSE_BESTIARY',
+  'tavern': 'CLOSE_TAVERN',
+  'bounty-board': 'CLOSE_BOUNTY_BOARD',
+  'statistics-dashboard': 'CLOSE_STATISTICS_DASHBOARD',
+  'save-slots': 'CLOSE_SAVE_SLOTS',
+  'help': 'CLOSE_HELP',
+  'fast-travel': 'CLOSE_FAST_TRAVEL',
+};
+
 const HELP_OVERLAY_ID = 'keyboard-shortcuts-overlay';
 const STYLE_ID = 'keyboard-shortcuts-styles';
 
@@ -126,11 +152,37 @@ export class KeyboardShortcuts {
       }
     }
 
-    // Escape to go back from sub-menus
-    if (key === 'Escape' && SUB_MENU_PHASES.has(phase)) {
-      event.preventDefault();
-      this._dispatch({ type: 'GO_BACK' });
-      return;
+    // Toggle: pressing the same key that opened a sub-menu closes it
+    const TOGGLE_KEYS = {
+      'i': 'inventory', 'I': 'inventory',
+      'j': 'journal', 'J': 'journal',
+      'c': 'crafting', 'C': 'crafting',
+      't': 'talents', 'T': 'talents',
+      'q': 'quests', 'Q': 'quests',
+      'p': 'provisions', 'P': 'provisions',
+      'f': 'fast-travel', 'F': 'fast-travel',
+      'k': 'companions', 'K': 'companions',
+      'n': 'factions', 'N': 'factions',
+      'b': 'bestiary', 'B': 'bestiary',
+    };
+    const togglePhase = TOGGLE_KEYS[key];
+    if (togglePhase && phase === togglePhase) {
+      const closeAction = PHASE_CLOSE_ACTIONS[phase];
+      if (closeAction) {
+        event.preventDefault();
+        this._dispatch({ type: closeAction });
+        return;
+      }
+    }
+
+    // Escape to close current sub-menu and return to exploration
+    if (key === 'Escape') {
+      const closeAction = PHASE_CLOSE_ACTIONS[phase];
+      if (closeAction) {
+        event.preventDefault();
+        this._dispatch({ type: closeAction });
+        return;
+      }
     }
 
     // Enter to continue on summary/victory/defeat screens
@@ -330,4 +382,4 @@ export function createKeyboardShortcuts(getState, dispatch) {
 }
 
 // For testing: export the key maps
-export { COMBAT_KEYS, EXPLORATION_KEYS, SUB_MENU_PHASES };
+export { COMBAT_KEYS, EXPLORATION_KEYS, PHASE_CLOSE_ACTIONS, SUB_MENU_PHASES };
