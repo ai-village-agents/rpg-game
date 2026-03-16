@@ -182,6 +182,8 @@ export function handleEncounterAction(state, action) {
             },
             phase: 'player-turn',
             turn: 1,
+            combatStats: null,
+            combatStatsSummary: null,
             player: { ...state.player, defending: false, statusEffects: [] },
             momentumState: state.momentumState ? createMomentumState() : undefined,
             intentState: initIntentState(),
