@@ -817,6 +817,14 @@ export function getArenaStyles() {
     .round-lost { background: #f44336; }
     .round-current { background: #2196f3; animation: pulse 1s infinite; }
 
+    .tournament-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 16px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
     @keyframes pulse {
       0%, 100% { opacity: 1; }
       50% { opacity: 0.5; }
