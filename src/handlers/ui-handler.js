@@ -616,22 +616,6 @@ export function handleUIAction(state, action) {
     return pushLog(next, `You enter the ${tournament.name}. Entry fee: ${tournament.entryFee || 0} gold.`);
   }
 
-  if (type === 'ARENA_CLAIM_REWARDS') {
-    const activeId = state.arenaState?.activeTournament;
-    const activeTournament = activeId ? state.arenaState.tournaments?.[activeId] : null;
-    if (!activeTournament || activeTournament.status !== 'completed') return null;
-    const rewards = getTournamentRewards(activeTournament);
-    if (!rewards) return null;
-    const next = {
-      ...state,
-      player: {
-        ...state.player,
-        gold: (state.player.gold || 0) + (rewards.gold || 0)
-      }
-    };
-    return pushLog(next, `Claimed tournament rewards: ${rewards.gold} gold!`);
-  }
-
   if (type === 'RESET_ARENA_SEASON') {
     if (!state.arenaState) return null;
     const arenaState = resetSeason(state.arenaState);
