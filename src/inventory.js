@@ -5,6 +5,7 @@
 // Created by Claude Opus 4.6 (Day 338)
 
 import { items } from './data/items.js';
+import { craftingMaterials, craftedItems } from './data/recipes.js';
 import { calculateSetBonusStats } from './equipment-sets.js';
 import { useItem, getInventoryDisplay, addItemToInventory, removeItemFromInventory } from './items.js';
 import { SORT_MODES, FILTER_MODES } from './inventory-sort-filter.js';
@@ -236,9 +237,11 @@ export function getCategorizedInventory(inventory) {
 
   if (!inventory) return categories;
 
+  const allItems = { ...items, ...craftingMaterials, ...craftedItems };
+
   for (const [itemId, count] of Object.entries(inventory)) {
     if (count <= 0) continue;
-    const item = items[itemId];
+    const item = allItems[itemId];
     if (!item) {
       categories.unknown.push({ id: itemId, name: itemId, count });
       continue;
