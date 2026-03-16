@@ -23,7 +23,7 @@ export function startTavernDice(state, wagerAmount) {
   }
 
   const { seed: nextSeed, value: rngValue } = nextRng(state.rngSeed || Date.now());
-  const firstRoll = (rngValue % 6) + 1;
+  const firstRoll = Math.floor(rngValue * 6) + 1;
 
   return {
     ...state,
@@ -45,7 +45,7 @@ export function guessTavernDice(state, guess) {
   const gameStats = state.gameStats || {};
 
   const { seed: nextSeed, value: rngValue } = nextRng(state.rngSeed || Date.now());
-  const nextRoll = (rngValue % 6) + 1;
+  const nextRoll = Math.floor(rngValue * 6) + 1;
 
   const prevRoll = state.tavernDice.currentRoll;
   let won = false;
