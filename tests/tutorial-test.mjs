@@ -10,7 +10,7 @@ import {
   resetTutorial,
   getTutorialProgress,
 } from '../src/tutorial.js';
-import { renderTutorialHint, attachTutorialHandlers } from '../src/tutorial-ui.js';
+import { getTutorialStyles, renderTutorialHint, attachTutorialHandlers } from '../src/tutorial-ui.js';
 
 describe('createTutorialState', () => {
   it('returns object with empty completedSteps array', () => {
@@ -170,6 +170,17 @@ describe('getTutorialProgress', () => {
   });
 });
 
+
+
+describe('getTutorialStyles', () => {
+  it('keeps overlay non-blocking while tooltip remains interactive', () => {
+    const css = getTutorialStyles();
+    assert.ok(css.includes('.tutorial-overlay'));
+    assert.ok(css.includes('pointer-events: none;'));
+    assert.ok(css.includes('.tutorial-tooltip'));
+    assert.ok(css.includes('pointer-events: auto;'));
+  });
+});
 describe('renderTutorialHint', () => {
   it('returns empty string when state is null', () => {
     assert.equal(renderTutorialHint(null), '');

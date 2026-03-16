@@ -8,7 +8,7 @@ export function getTutorialStyles() {
   background: rgba(0,0,0,0.4);
   z-index: 10001;
   display: flex;
-  pointer-events: auto;
+  pointer-events: none;
 }
 
 .tutorial-tooltip {
@@ -21,6 +21,7 @@ export function getTutorialStyles() {
   font-family: monospace;
   box-shadow: 0 8px 32px rgba(0,0,0,0.6);
   animation: tutorialFadeIn 0.3s ease-out;
+  pointer-events: auto;
 }
 
 .tutorial-tooltip.position-top {
