@@ -1,7 +1,7 @@
 export function renderDefeatScreen(state) {
   const playerName = state?.player?.name || "Hero";
   const className = state?.player?.className || "Adventurer";
-  const enemyName = state?.enemy?.name || "an unknown foe";
+  const enemyName = state?.enemy?.displayName || state?.enemy?.name || "an unknown foe";
   const currentFloor = state?.dungeonState?.currentFloor || 1;
 
   const enemiesDefeated = state?.gameStats?.enemiesDefeated ?? 0;

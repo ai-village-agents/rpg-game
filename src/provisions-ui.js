@@ -44,11 +44,24 @@ function formatEffect(effect) {
  */
 function getPlayerProvisions(inventory) {
   if (!inventory) return [];
+  const getQty = (inv, id) => Array.isArray(inv) ? (inv.find((i) => i.id === id)?.quantity ?? 0) : (inv[id] ?? 0);
   const results = [];
-  for (const item of inventory) {
-    const provData = PROVISIONS[item.id];
-    if (provData && item.quantity > 0) {
-      results.push({ ...provData, quantity: item.quantity });
+
+  if (Array.isArray(inventory)) {
+    for (const item of inventory) {
+      const provData = PROVISIONS[item.id];
+      if (provData && item.quantity > 0) {
+        results.push({ ...provData, id: item.id, quantity: item.quantity });
+      }
+    }
+    return results;
+  }
+
+  for (const [itemId] of Object.entries(inventory)) {
+    const quantity = getQty(inventory, itemId);
+    const provData = PROVISIONS[itemId];
+    if (provData && quantity > 0) {
+      results.push({ ...provData, id: itemId, quantity });
     }
   }
   return results;
@@ -164,6 +177,7 @@ function renderUseTab(provisions, selectedId) {
 
 function renderCookTab(state) {
   const inventory = state.player?.inventory || [];
+  const getQty = (inv, id) => Array.isArray(inv) ? (inv.find((i) => i.id === id)?.quantity ?? 0) : (inv[id] ?? 0);
   const playerLevel = state.player?.level || 1;
 
   if (COOKING_RECIPES.length === 0) {
@@ -173,8 +187,7 @@ function renderCookTab(state) {
   const recipesHtml = COOKING_RECIPES.map((recipe) => {
     const canCook = playerLevel >= recipe.requiredLevel;
     const ingredientsHtml = recipe.ingredients.map((ing) => {
-      const item = inventory.find((i) => i.id === ing.itemId);
-      const have = item ? item.quantity : 0;
+      const have = getQty(inventory, ing.itemId);
       const enough = have >= ing.quantity;
       return `<span class="recipe-ingredient${enough ? ' has-enough' : ' not-enough'}">${esc(ing.itemId)} ${have}/${ing.quantity}</span>`;
     }).join(', ');
@@ -182,10 +195,7 @@ function renderCookTab(state) {
     const resultProv = PROVISIONS[recipe.result.itemId];
     const resultName = resultProv ? resultProv.name : recipe.result.itemId;
 
-    const hasAllIngredients = recipe.ingredients.every((ing) => {
-      const item = inventory.find((i) => i.id === ing.itemId);
-      return item && item.quantity >= ing.quantity;
-    });
+    const hasAllIngredients = recipe.ingredients.every((ing) => getQty(inventory, ing.itemId) >= ing.quantity);
 
     const canCookNow = canCook && hasAllIngredients;
 
