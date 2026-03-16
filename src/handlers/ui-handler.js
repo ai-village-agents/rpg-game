@@ -20,6 +20,7 @@ import { createCraftingState, craftItem } from '../crafting.js';
 import { createTalentState, allocateTalent, deallocateTalent, resetAllTalents } from '../talents.js';
 import { recruitCompanion, dismissCompanion } from '../companions.js';
 import { shouldShowSpecialization, createSpecializationState, applySpecialization } from '../specialization-ui.js';
+import { handleEnchantingMenuAction } from '../enchanting-ui.js';
 import { clearFloor as clearDungeonFloor, TOTAL_FLOORS } from '../dungeon-floors.js';
 import { handleProvisionAction } from './provisions-handler.js';
 import { handleEncounterAction, shouldCheckForEncounter } from './encounter-handler.js';
@@ -380,6 +381,13 @@ export function handleUIAction(state, action) {
     return { ...rest, phase: returnPhase };
   }
 
+  if (['ENCHANTING_OPEN', 'ENCHANTING_CLOSE', 'ENCHANTING_SELECT_SLOT', 'ENCHANTING_APPLY', 'ENCHANTING_REMOVE'].includes(type)) {
+    const result = handleEnchantingMenuAction(state, action);
+    if (result && result.state) {
+      return result.state;
+    }
+    return result || state;
+  }
 
   // Crafting Actions
   if (type === 'VIEW_CRAFTING') {
@@ -582,7 +590,8 @@ export function handleUIAction(state, action) {
     const tournament = createTournament(action.tournamentId, {
       name: state.player.name,
       level: state.player.level || 1,
-      rating: state.arenaState.rating
+      rating: state.arenaState.rating,
+      gold: state.player.gold || 0
     });
     if (tournament.error) {
       return pushLog(state, tournament.error);
@@ -595,8 +604,16 @@ export function handleUIAction(state, action) {
       },
       activeTournament: action.tournamentId
     };
-    const next = { ...state, arenaState, phase: 'exploration' };
-    return pushLog(next, `You enter the ${tournament.name}.`);
+    const next = {
+      ...state,
+      arenaState,
+      phase: 'arena',
+      player: {
+        ...state.player,
+        gold: (state.player.gold || 0) - (tournament.entryFee || 0)
+      }
+    };
+    return pushLog(next, `You enter the ${tournament.name}. Entry fee: ${tournament.entryFee || 0} gold.`);
   }
 
   if (type === 'ARENA_CLAIM_REWARDS') {

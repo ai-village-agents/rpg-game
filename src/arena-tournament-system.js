@@ -468,7 +468,8 @@ export function createTournament(tournamentId, playerData) {
     status: 'in_progress',
     playerStatus: 'active',
     startTime: Date.now(),
-    rewards: template.rewards
+    rewards: template.rewards,
+    entryFee: template.entryFee
   };
 }
 

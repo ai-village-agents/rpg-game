@@ -22,6 +22,7 @@ import { renderSettingsPanel, getSettingsStyles, attachSettingsHandlers } from '
 import { renderQuestRewardScreen, renderQuestRewardActions, attachQuestRewardHandlers, getQuestRewardStyles } from './quest-rewards-ui.js';
 import { renderShopPanel, getShopStyles, attachShopHandlers } from './shop-ui.js';
 import { renderCraftingPanel, getCraftingStyles, attachCraftingHandlers } from './crafting-ui.js';
+import { renderEnchantingMenu } from './enchanting-ui.js';
 import { renderTalentTree, getTalentTreeStyles, attachTalentHandlers } from './talents-ui.js';
 import { renderHelpModal, getHelpStyles, attachHelpHandlers } from './help-ui.js';
 import { renderAchievementsPanel, attachAchievementsHandlers } from './achievements-ui.js';
@@ -51,7 +52,7 @@ import { renderVictoryScreen, renderVictoryActions, getVictoryScreenStyles } fro
 import { DIFFICULTY_LEVELS, DIFFICULTY_NAMES, DIFFICULTY_DESCRIPTIONS } from './difficulty.js';
 import { renderMomentumGauge, renderOverdriveButton, getMomentumStyles } from './momentum-ui.js';
 import { renderComboDisplay } from './combo-system-ui.js';
-import { renderArenaPanel, getArenaStyles } from './arena-tournament-system-ui.js';
+import { renderArenaPanel, getArenaStyles, renderActiveTournament } from './arena-tournament-system-ui.js';
 import { renderGuildPanel, renderCreateGuildForm, renderGuildBrowser, renderGuildHud } from './guild-system-ui.js';
 import { renderEnemyIntent } from './enemy-intent-ui.js';
 import { renderAtmospherePanel } from './location-atmosphere.js';
@@ -171,6 +172,7 @@ function renderExplorationButtons(state) {
       <h3 class="group-label">Game Systems</h3>
       <div class="buttons">
         <button id="btnCrafting">Crafting 🔨</button>
+        <button id="btnEnchanting">Enchanting ✨</button>
         <button id="btnTalents">Talents ⭐</button>
         <button id="btnCompanions">Companions 🤝${renderCompanionBadge(state)}</button>
         <button id="btnSporeling">\uD83E\uDDA0 Sporeling</button>
@@ -660,6 +662,7 @@ export function render(state, dispatch) {
     document.getElementById('btnSaveSlots').onclick = () => dispatch({ type: 'SAVE_SLOTS' });
     document.getElementById('btnSettings').onclick = () => dispatch({ type: 'VIEW_SETTINGS' });
     document.getElementById('btnCrafting').onclick = () => dispatch({ type: 'VIEW_CRAFTING' });
+    document.getElementById('btnEnchanting').onclick = () => dispatch({ type: 'ENCHANTING_OPEN' });
     document.getElementById('btnTalents').onclick = () => dispatch({ type: 'VIEW_TALENTS' });
     document.getElementById('btnHelp').onclick = () => dispatch({ type: 'TOGGLE_HELP' });
     document.getElementById('btnTavern').onclick = () => dispatch({ type: 'VIEW_TAVERN' });
@@ -1622,6 +1625,31 @@ if (state.phase === 'achievements') {
     return;
   }
 
+  if (state.phase === 'enchanting') {
+    const enchantingHtml = renderEnchantingMenu(state);
+    hud.innerHTML = `<div class="enchanting-panel"><pre style="white-space:pre-wrap;font-family:inherit;">${enchantingHtml}</pre></div>`;
+    const selectedSlot = state?.enchantingMenuState?.selectedSlot || 'weapon';
+    actions.innerHTML = `<div class="buttons">
+      <button id="btnEnchantWeapon" ${selectedSlot==='weapon'?'style="outline:2px solid #a335ee"':''}>Weapon Slot</button>
+      <button id="btnEnchantArmor" ${selectedSlot==='armor'?'style="outline:2px solid #a335ee"':''}>Armor Slot</button>
+      <button id="btnEnchantAccessory" ${selectedSlot==='accessory'?'style="outline:2px solid #a335ee"':''}>Accessory Slot</button>
+      <button id="btnCloseEnchanting">Close Enchanting</button>
+    </div>`;
+    document.getElementById('btnEnchantWeapon').onclick = () => dispatch({ type: 'ENCHANTING_SELECT_SLOT', slot: 'weapon' });
+    document.getElementById('btnEnchantArmor').onclick = () => dispatch({ type: 'ENCHANTING_SELECT_SLOT', slot: 'armor' });
+    document.getElementById('btnEnchantAccessory').onclick = () => dispatch({ type: 'ENCHANTING_SELECT_SLOT', slot: 'accessory' });
+    document.getElementById('btnCloseEnchanting').onclick = () => dispatch({ type: 'ENCHANTING_CLOSE' });
+    hud.querySelectorAll('[data-action="enchant"]').forEach(btn => {
+      btn.onclick = () => dispatch({ type: 'ENCHANTING_APPLY', slot: btn.dataset.slot, enchantmentId: btn.dataset.enchantmentId });
+    });
+    hud.querySelectorAll('[data-action="remove-enchant"]').forEach(btn => {
+      btn.onclick = () => dispatch({ type: 'ENCHANTING_REMOVE', slot: btn.dataset.slot });
+    });
+    log.innerHTML = state.log.slice().reverse().map(line => formatLogEntryHtml(line)).join('');
+    finalizeRender();
+    return;
+  }
+
   if (state.phase === 'crafting') {
     const craftingHtml = renderCraftingPanel(state, state.craftingUI || {});
 
@@ -1963,7 +1991,13 @@ if (state.phase === 'achievements') {
       document.head.appendChild(styleEl);
     }
 
-    hud.innerHTML = renderArenaPanel(state.arenaState, { showQuickMatch: true, showTournaments: true });
+    const activeTournamentId = state.arenaState?.activeTournament;
+    const activeTournamentData = activeTournamentId ? state.arenaState?.tournaments?.[activeTournamentId] : null;
+    if (activeTournamentData) {
+      hud.innerHTML = renderActiveTournament(activeTournamentData);
+    } else {
+      hud.innerHTML = renderArenaPanel(state.arenaState, { showQuickMatch: true, showTournaments: true });
+    }
     actions.innerHTML = '<div class="buttons"><button id="btnArenaQuickMatch">Quick Match ⚔️</button><button id="btnArenaTournament">Tournaments 🏆</button><button id="btnCloseArena">Close</button></div>';
 
     const quickMatchBtn = document.getElementById('btnArenaQuickMatch');
