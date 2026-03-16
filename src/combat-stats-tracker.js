@@ -102,6 +102,8 @@ export function recordAbilityUse(stats, abilityName, damage = 0, healing = 0) {
 
   stats.abilityUses[name] = (stats.abilityUses[name] || 0) + 1;
   stats.totalDamageDealt += dmg;
+  // Offensive abilities count as attacks for summary purposes
+  if (dmg > 0) stats.attackCount++;
   stats.totalHealingDone += heal;
 
   if (dmg > stats.maxSingleHit) {

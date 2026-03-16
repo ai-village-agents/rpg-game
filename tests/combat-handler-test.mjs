@@ -1,5 +1,7 @@
 import { handleCombatAction, handleEnemyTurnLogic } from '../src/handlers/combat-handler.js';
 import { createGameStats } from '../src/game-stats.js';
+import { createBattleSummary } from '../src/battle-summary.js';
+import { getBattleLogEntries } from '../src/combat-battle-log-integration.js';
 
 let passed = 0;
 let failed = 0;
@@ -33,6 +35,49 @@ console.log('--- Testing Combat Handler ---');
   assert(next.enemy.hp < 30, 'Enemy took damage');
   assert(next.gameStats.totalDamageDealt > 0, 'Damage dealt recorded in stats');
   assert(next.gameStats.turnsPlayed > 0, 'Turn played recorded');
+}
+
+
+// Test PLAYER_ABILITY victory records max single hit from ability battle-log damage
+{
+  const abilityVictoryState = {
+    ...mockState,
+    player: {
+      ...mockState.player,
+      hp: 55,
+      maxHp: 55,
+      mp: 10,
+      abilities: ['power-strike'],
+      classId: 'warrior',
+      inventory: { potion: 1 },
+    },
+    enemy: {
+      ...mockState.enemy,
+      name: 'Slime',
+      displayName: 'Glorious Slime of the Depths',
+      hp: 5,
+      maxHp: 5,
+      def: 0,
+    },
+    log: [],
+    gameStats: createGameStats(),
+    rngSeed: 12345,
+  };
+
+  const prevBattleLogLen = getBattleLogEntries().length;
+  const next = handleCombatAction(abilityVictoryState, { type: 'PLAYER_ABILITY', abilityId: 'power-strike' });
+  const newEntries = getBattleLogEntries().slice(prevBattleLogLen);
+  const abilityEntry = newEntries.find((entry) => entry.type === 'ability');
+  const summary = createBattleSummary(next);
+  const performanceRows = summary.combatStatsDisplay.sections.find((s) => s.type === 'stats' && s.title === 'Performance')?.rows ?? [];
+  const actionRows = summary.combatStatsDisplay.sections.find((s) => s.type === 'stats' && s.title === 'Actions')?.rows ?? [];
+  const maxSingleHit = performanceRows.find((r) => r.label === 'Max Single Hit')?.value;
+  const attacks = actionRows.find((r) => r.label === 'Attacks')?.value;
+
+  assert(next.phase === 'victory', 'PLAYER_ABILITY can produce victory');
+  assert(abilityEntry?.details?.source === 'player', 'Ability battle-log entries are marked as player-sourced');
+  assert(maxSingleHit && maxSingleHit !== 'N/A', 'Ability-only victory records a max single hit');
+  assert(attacks === '1', 'Offensive ability victory counts as one attack in summary');
 }
 
 // Test PLAYER_DEFEND

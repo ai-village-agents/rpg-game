@@ -32,6 +32,7 @@ export function logPlayerAbility(abilityName, damage, element, targetName) {
     damage: amount,
     element: element || null,
     target,
+    source: 'player',
   });
 }
 

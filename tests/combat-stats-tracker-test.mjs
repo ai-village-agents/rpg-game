@@ -629,7 +629,7 @@ test('complete combat flow produces valid stats', () => {
   assert.equal(s.totalDamageDealt, 95); // 12 + 25 + 30 + 28
   assert.equal(s.totalDamageReceived, 25); // 8 + 10 + 7
   assert.equal(s.totalHealingDone, 15);
-  assert.equal(s.attackCount, 2);
+  assert.equal(s.attackCount, 4); // 2 basic attacks + 2 offensive abilities
   assert.equal(s.abilityUses['Power Strike'], 2);
   assert.equal(s.potionCount, 1);
   assert.equal(s.shieldsDestroyed, 3);

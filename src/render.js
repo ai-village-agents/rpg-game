@@ -105,9 +105,16 @@ function esc(s) {
     .replaceAll("'", '&#39;');
 }
 
-function renderAchievementToasts(state, dispatch) {
-  const notifications = state.achievementNotifications || [];
-  if (notifications.length === 0) return;
+const _toastQueue = [];
+let _toastShowing = false;
+
+function _showNextToast() {
+  if (_toastQueue.length === 0) {
+    _toastShowing = false;
+    return;
+  }
+  _toastShowing = true;
+  const { name, id } = _toastQueue.shift();
 
   let container = document.getElementById('achievement-toasts');
   if (!container) {
@@ -116,17 +123,37 @@ function renderAchievementToasts(state, dispatch) {
     document.body.appendChild(container);
   }
 
-  notifications.forEach((notif) => {
-    const toast = document.createElement('div');
-    toast.className = 'achievement-toast';
-    if (notif?.id != null) toast.dataset.id = String(notif.id);
-    const name = notif?.name ?? 'Achievement';
-    toast.innerHTML = `🏆 Achievement Unlocked! <strong>${esc(name)}</strong>`;
-    container.appendChild(toast);
+  const toast = document.createElement('div');
+  toast.className = 'achievement-toast';
+  if (id != null) toast.dataset.id = String(id);
+  toast.innerHTML = `🏆 Achievement Unlocked! <strong>${esc(name)}</strong>`;
+  container.appendChild(toast);
 
-    setTimeout(() => toast.classList.add('achievement-toast-hide'), 3500);
-    setTimeout(() => toast.remove(), 4000);
-  });
+  setTimeout(() => toast.classList.add('achievement-toast-hide'), 3500);
+  setTimeout(() => {
+    toast.remove();
+    // Show next toast 300ms after this one starts fading
+  }, 4000);
+  // Start showing next toast 800ms after this one appeared
+  setTimeout(() => _showNextToast(), 800);
+}
+
+function renderAchievementToasts(state, dispatch) {
+  const notifications = state.achievementNotifications || [];
+  if (notifications.length === 0) return;
+
+  for (const notif of notifications) {
+    const name = notif?.name ?? 'Achievement';
+    const id = notif?.id;
+    // Avoid duplicate toasts for same achievement
+    if (!_toastQueue.some(q => q.id != null && q.id === id)) {
+      _toastQueue.push({ name, id });
+    }
+  }
+
+  if (!_toastShowing) {
+    _showNextToast();
+  }
 }
 
 function inventorySummary(player) {
