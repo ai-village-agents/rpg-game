@@ -47,3 +47,27 @@ test('class selection preserves disabled tutorial hints', () => {
 
   assert(afterClass.tutorialState.hintsEnabled === false, 'disabled hints should persist into background selection');
 });
+
+
+test('class selection completes and dismisses welcome tutorial hint', () => {
+  const start = {
+    phase: 'class-select',
+    log: [],
+    tutorialState: {
+      completedSteps: [],
+      currentHint: {
+        id: 'welcome',
+        trigger: 'class-select',
+        title: 'Welcome, Adventurer!',
+        message: 'Choose a class to begin your journey. Each class has unique abilities and playstyles.',
+        position: 'center',
+      },
+      hintsEnabled: true,
+    },
+  };
+
+  const afterClass = handleSystemAction(start, { type: 'SELECT_CLASS', classId: 'warrior' });
+
+  assert(afterClass.tutorialState.currentHint === null, 'welcome hint should dismiss on class selection');
+  assert(afterClass.tutorialState.completedSteps.includes('welcome'), 'welcome step should be completed on class selection');
+});

@@ -8,6 +8,7 @@ import { getCurrentRoom } from '../map.js';
 import { saveToSlot, loadFromSlot, getSaveSlots, deleteSaveSlot } from '../engine.js';
 import { consumeAchievementNotifications } from '../achievements.js';
 import { DIFFICULTY_LEVELS } from '../difficulty.js';
+import { completeTutorialStep, dismissCurrentHint } from '../tutorial.js';
 
 function getRoomDescription(worldState) {
   const room = getCurrentRoom(worldState);
@@ -32,9 +33,13 @@ export function handleSystemAction(state, action) {
     const baseState = initialStateWithClass(action.classId, selectedName, difficulty);
     const className = action.classId[0].toUpperCase() + action.classId.slice(1);
 
+    const nextTutorialState = state.tutorialState
+      ? completeTutorialStep(dismissCurrentHint(state.tutorialState), 'welcome')
+      : state.tutorialState;
+
     return {
       ...baseState,
-      tutorialState: state.tutorialState || baseState.tutorialState,
+      tutorialState: nextTutorialState || baseState.tutorialState,
       phase: 'background-select',
       log: [
         `You have chosen the path of the ${className}.`,
