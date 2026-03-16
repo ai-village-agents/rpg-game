@@ -178,7 +178,10 @@ export function formatNumber(num) {
  * @returns {string} HTML string for stat item
  */
 export function renderStatItem(label, value, valueClass = '') {
-  const formattedValue = typeof value === 'number' ? formatNumber(value) : value;
+  // Handle undefined/null values by defaulting to 0
+  const formattedValue = (value === undefined || value === null)
+    ? '0'
+    : (typeof value === 'number' ? formatNumber(value) : value);
   return `
     <div class="stat-item">
       <span class="stat-label">${label}</span>
