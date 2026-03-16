@@ -1,8 +1,8 @@
 const TILE_SIZE = 32;
 const WORLD_GRID_WIDTH = 32;
 const WORLD_GRID_HEIGHT = 32;
-const ROOM_WIDTH = 16;
-const ROOM_HEIGHT = 12;
+const ROOM_WIDTH = 8;
+const ROOM_HEIGHT = 6;
 
 const DIRECTIONS = {
   north: { dx: 0, dy: -1, roomRow: -1, roomCol: 0 },
@@ -70,42 +70,42 @@ function buildRoom(id, name, obstacles = []) {
 const defaultRooms = [
   [
     buildRoom('nw', 'Northwest Grove', [
-      { x: 4, y: 3, w: 3, h: 2 },
-      { x: 9, y: 5, w: 2, h: 2 },
+      { x: 2, y: 1, w: 1, h: 1 },
+      { x: 4, y: 2, w: 1, h: 1 },
     ]),
     buildRoom('n', 'Northern Path', [
-      { x: 7, y: 2, w: 2, h: 6 },
+      { x: 3, y: 1, w: 1, h: 3 },
     ]),
     buildRoom('ne', 'Northeast Ridge', [
-      { x: 3, y: 6, w: 4, h: 3 },
-      { x: 10, y: 2, w: 3, h: 2 },
+      { x: 1, y: 3, w: 2, h: 1 },
+      { x: 5, y: 1, w: 1, h: 1 },
     ]),
   ],
   [
     buildRoom('w', 'Western Crossing', [
-      { x: 6, y: 4, w: 2, h: 3 },
-      { x: 10, y: 8, w: 3, h: 2 },
+      { x: 3, y: 2, w: 1, h: 1 },
+      { x: 5, y: 4, w: 1, h: 1 },
     ]),
     buildRoom('center', 'Village Square', [
-      { x: 4, y: 4, w: 2, h: 2 },
-      { x: 9, y: 4, w: 2, h: 2 },
-      { x: 6, y: 7, w: 4, h: 2 },
+      { x: 2, y: 2, w: 1, h: 1 },
+      { x: 4, y: 2, w: 1, h: 1 },
+      { x: 3, y: 3, w: 2, h: 1 },
     ]),
     buildRoom('e', 'Eastern Fields', [
-      { x: 11, y: 3, w: 2, h: 5 },
-      { x: 3, y: 8, w: 2, h: 2 },
+      { x: 5, y: 1, w: 1, h: 2 },
+      { x: 1, y: 4, w: 1, h: 1 },
     ]),
   ],
   [
     buildRoom('sw', 'Southwest Marsh', [
-      { x: 5, y: 6, w: 3, h: 2 },
+      { x: 2, y: 3, w: 1, h: 1 },
     ]),
     buildRoom('s', 'Southern Road', [
-      { x: 7, y: 2, w: 2, h: 7 },
+      { x: 3, y: 1, w: 1, h: 3 },
     ]),
     buildRoom('se', 'Southeast Dock', [
-      { x: 4, y: 3, w: 2, h: 2 },
-      { x: 9, y: 6, w: 3, h: 3 },
+      { x: 2, y: 1, w: 1, h: 1 },
+      { x: 4, y: 3, w: 1, h: 1 },
     ]),
   ],
 ];

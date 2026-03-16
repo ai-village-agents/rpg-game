@@ -249,8 +249,8 @@ describe('teleportToRoom', () => {
     const next = teleportToRoom(state, 'nw');
     assert.equal(next.world.roomRow, 0);
     assert.equal(next.world.roomCol, 0);
-    assert.equal(next.world.x, 8);
-    assert.equal(next.world.y, 6);
+    assert.equal(next.world.x, 4);
+    assert.equal(next.world.y, 3);
   });
 
   it('teleports back to center room from another position', () => {
@@ -259,8 +259,8 @@ describe('teleportToRoom', () => {
     const next = teleportToRoom(state, 'center');
     assert.equal(next.world.roomRow, 1);
     assert.equal(next.world.roomCol, 1);
-    assert.equal(next.world.x, 8);
-    assert.equal(next.world.y, 6);
+    assert.equal(next.world.x, 4);
+    assert.equal(next.world.y, 3);
   });
 
   it('throws for invalid room id', () => {
