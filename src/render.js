@@ -1717,9 +1717,12 @@ if (state.phase === 'achievements') {
       </div>
     `;
 
+    const npcHasShop = hasShop(ds.npcId);
+
     actions.innerHTML = `
       <div class="buttons">
         ${currentLine ? `<button id="btnDialogNext">${isLastDialogPage ? 'Done ✓' : 'Next ▶'}</button>` : ''}
+        ${npcHasShop ? `<button id="btnViewShop">🛒 View Shop</button>` : ''}
         <button id="btnDialogClose">Farewell</button>
       </div>
     `;
