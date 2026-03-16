@@ -553,17 +553,17 @@ export function render(state, dispatch) {
 
   const finalizeRender = () => {
     if (state.fastTravelModalOpen) {
-      hud.innerHTML += renderFastTravelModal(state);
+      hud.insertAdjacentHTML('beforeend', renderFastTravelModal(state));
       attachFastTravelHandlers(dispatch);
     }
 
     if (state.showHelp) {
-      hud.innerHTML += renderHelpModal();
+      hud.insertAdjacentHTML('beforeend', renderHelpModal());
       attachHelpHandlers(dispatch);
     }
 
     if (state.ui?.tutorialProgressVisible) {
-      hud.innerHTML += renderTutorialProgressPanel(state.tutorialState);
+      hud.insertAdjacentHTML('beforeend', renderTutorialProgressPanel(state.tutorialState));
       attachTutorialProgressHandlers(dispatch);
     }
 
@@ -614,7 +614,7 @@ export function render(state, dispatch) {
     // Render tutorial overlay
     const tutorialHtml = renderTutorialHint(state.tutorialState);
     if (tutorialHtml) {
-      hud.innerHTML += tutorialHtml;
+      hud.insertAdjacentHTML('beforeend', tutorialHtml);
       attachTutorialHandlers(dispatch);
     }
   };
