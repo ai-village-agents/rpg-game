@@ -106,16 +106,37 @@ function esc(s) {
     .replaceAll("'", '&#39;');
 }
 
-const _toastQueue = [];
-let _toastShowing = false;
+const _achievementToastQueue = [];
+const _achievementToastIdsInFlight = new Set();
+let _achievementToastShowing = false;
 
-function _showNextToast() {
-  if (_toastQueue.length === 0) {
-    _toastShowing = false;
-    return;
+const ACHIEVEMENT_TOAST_VISIBLE_MS = 2500;
+const ACHIEVEMENT_TOAST_FADE_MS = 450;
+const ACHIEVEMENT_TOAST_NEXT_DELAY_MS = 120;
+
+export function selectUniqueAchievementToastEntries(notifications, idsInFlight = new Set()) {
+  const selected = [];
+  const seenIds = new Set(idsInFlight);
+
+  for (const notif of notifications || []) {
+    const name = notif?.name ?? 'Achievement';
+    const id = notif?.id;
+    if (id != null) {
+      if (seenIds.has(id)) continue;
+      seenIds.add(id);
+    }
+    selected.push({ name, id });
   }
-  _toastShowing = true;
-  const { name, id } = _toastQueue.shift();
+
+  return selected;
+}
+
+function showNextAchievementToast() {
+  if (_achievementToastShowing) return;
+  if (_achievementToastQueue.length === 0) return;
+
+  _achievementToastShowing = true;
+  const { name, id } = _achievementToastQueue.shift();
 
   let container = document.getElementById('achievement-toasts');
   if (!container) {
@@ -130,31 +151,26 @@ function _showNextToast() {
   toast.innerHTML = `🏆 Achievement Unlocked! <strong>${esc(name)}</strong>`;
   container.appendChild(toast);
 
-  setTimeout(() => toast.classList.add('achievement-toast-hide'), 3500);
+  setTimeout(() => toast.classList.add('achievement-toast-hide'), ACHIEVEMENT_TOAST_VISIBLE_MS);
   setTimeout(() => {
     toast.remove();
-    // Show next toast 300ms after this one starts fading
-  }, 4000);
-  // Start showing next toast 800ms after this one appeared
-  setTimeout(() => _showNextToast(), 800);
+    if (id != null) _achievementToastIdsInFlight.delete(id);
+    _achievementToastShowing = false;
+    setTimeout(() => showNextAchievementToast(), ACHIEVEMENT_TOAST_NEXT_DELAY_MS);
+  }, ACHIEVEMENT_TOAST_VISIBLE_MS + ACHIEVEMENT_TOAST_FADE_MS);
 }
 
 function renderAchievementToasts(state, dispatch) {
   const notifications = state.achievementNotifications || [];
   if (notifications.length === 0) return;
 
-  for (const notif of notifications) {
-    const name = notif?.name ?? 'Achievement';
-    const id = notif?.id;
-    // Avoid duplicate toasts for same achievement
-    if (!_toastQueue.some(q => q.id != null && q.id === id)) {
-      _toastQueue.push({ name, id });
-    }
+  const newEntries = selectUniqueAchievementToastEntries(notifications, _achievementToastIdsInFlight);
+  for (const entry of newEntries) {
+    _achievementToastQueue.push(entry);
+    if (entry.id != null) _achievementToastIdsInFlight.add(entry.id);
   }
 
-  if (!_toastShowing) {
-    _showNextToast();
-  }
+  showNextAchievementToast();
 }
 
 function inventorySummary(player) {
