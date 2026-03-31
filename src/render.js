@@ -1294,15 +1294,24 @@ if (state.phase === 'achievements') {
 
     
     // Wire filter/sort controls
-    document.getElementById('quest-filter').onchange = (e) => {
-      dispatch({ type: 'UPDATE_QUEST_UI_STATE', payload: { filter: e.target.value } });
-    };
-    document.getElementById('quest-sort').onchange = (e) => {
-      dispatch({ type: 'UPDATE_QUEST_UI_STATE', payload: { sortBy: e.target.value } });
-    };
-    document.getElementById('quest-sort-dir').onclick = () => {
-      dispatch({ type: 'UPDATE_QUEST_UI_STATE', payload: { sortOrder: questUiState.sortOrder === 'asc' ? 'desc' : 'asc' } });
-    };
+    const questFilterEl = document.getElementById('quest-filter');
+    if (questFilterEl) {
+      questFilterEl.onchange = (e) => {
+        dispatch({ type: 'UPDATE_QUEST_UI_STATE', payload: { filter: e.target.value } });
+      };
+    }
+    const questSortEl = document.getElementById('quest-sort');
+    if (questSortEl) {
+      questSortEl.onchange = (e) => {
+        dispatch({ type: 'UPDATE_QUEST_UI_STATE', payload: { sortBy: e.target.value } });
+      };
+    }
+    const questSortDirEl = document.getElementById('quest-sort-dir');
+    if (questSortDirEl) {
+      questSortDirEl.onclick = () => {
+        dispatch({ type: 'UPDATE_QUEST_UI_STATE', payload: { sortOrder: questUiState.sortOrder === 'asc' ? 'desc' : 'asc' } });
+      };
+    }
 
     // Wire close button
     document.getElementById('btnCloseQuests').onclick = () => dispatch({ type: 'CLOSE_QUESTS' });

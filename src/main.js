@@ -126,6 +126,7 @@ if (IS_BROWSER) {
     transitionedState = applyDailyProgressFromTransition(state, transitionedState, action);
     
     state = transitionedState;
+    window.__state = state;
     render(state, dispatch);
     renderDailyChallengesUI(state, dispatch);
 

@@ -18,6 +18,7 @@ import { createTutorialState } from './tutorial.js';
 import { createWeatherState } from './weather.js';
 import { createDailyChallengeState } from './daily-challenge-system.js';
 import { createArenaState } from './arena-tournament-system.js';
+import { initQuestState } from './quest-integration.js';
 
 export function initialState() {
   const playerBase = characters.player;
@@ -67,6 +68,7 @@ export function initialState() {
     showDailyChallenges: false,
     encounterState: createEncounterState(),
     arenaState: createArenaState(),
+    questState: initQuestState(),
     ...createCompanionState(),
     npcRelationshipManager: createNPCRelationshipManager(),
   };
@@ -135,6 +137,7 @@ export function initialStateWithClass(classId, characterName = '', difficulty = 
     showDailyChallenges: false,
     encounterState: createEncounterState(),
     arenaState: createArenaState(),
+    questState: initQuestState(),
     ...createCompanionState(),
     npcRelationshipManager: createNPCRelationshipManager(),
   };
